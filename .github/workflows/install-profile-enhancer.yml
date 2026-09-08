@@ -1,4 +1,5 @@
 name: Install AnimeTracker profile enhancer
+
 on:
   push:
     branches: [main]
@@ -9,17 +10,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Inject profile enhancer
+      - name: Inject current profile enhancer
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
           p=Path('index.html')
           s=p.read_text(encoding='utf-8')
-          tag='<script src="./profile-enhancer.js"></script>'
-          if tag not in s:
-              s=s.replace('</body>', tag+'\n</body>')
-              p.write_text(s,encoding='utf-8')
+          s=re.sub(r'<script[^>]+profile-enhancer(?:-v2)?\.js[^>]*></script>\n?', '', s)
+          s=re.sub(r'<link[^>]+profile-enhancer\.css[^>]*>\n?', '', s)
+          s=s.replace('</head>', '<link rel="stylesheet" href="./profile-enhancer.css">\n</head>', 1)
+          s=s.replace('</body>', '<script src="./profile-enhancer-v2.js"></script>\n</body>', 1)
+          p.write_text(s,encoding='utf-8')
           PY
       - name: Commit injected script
         shell: bash
@@ -30,6 +33,6 @@ jobs:
           if git diff --cached --quiet; then
             echo 'Nothing to commit'
           else
-            git commit -m 'Add real profile account enhancer'
+            git commit -m 'fix: load v2 profile and cloud sync'
             git push
           fi
