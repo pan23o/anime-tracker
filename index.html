@@ -1,0 +1,2058 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AnimeTracker</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;600&display=swap');
+
+:root{
+  --bg:#080808;
+  --bg2:#101010;
+  --panel:#111;
+  --panel2:#171717;
+  --line:#292929;
+  --line2:#353535;
+  --text:#f5f5f5;
+  --muted:#8b8b8b;
+  --dim:#5b5b5b;
+  --soft:#1c1c1c;
+  --accent:#f5f5f5;
+  --danger:#bcbcbc;
+  --shadow:0 22px 70px rgba(0,0,0,.48);
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;min-height:100vh;color:var(--text);
+  font-family:Inter,Arial,sans-serif;
+  background:
+    radial-gradient(circle at 12% 8%,rgba(255,255,255,.065),transparent 26%),
+    radial-gradient(circle at 88% 88%,rgba(255,255,255,.035),transparent 30%),
+    linear-gradient(135deg,var(--bg) 0%,var(--bg2) 50%,#070707 100%);
+}
+body:after{
+  content:"";position:fixed;inset:0;pointer-events:none;opacity:.022;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.8'/%3E%3C/svg%3E");
+}
+
+button,input,select{font:inherit}
+button{cursor:pointer}
+
+header{
+  width:min(1240px,92vw);margin:0 auto;padding:42px 0 24px;
+  display:flex;align-items:flex-end;justify-content:space-between;gap:24px;
+}
+.brand h1{margin:0;font-size:42px;line-height:1;letter-spacing:-2px;font-weight:800}
+.brand .tag{margin-top:9px;color:#686868;font-size:11px;letter-spacing:1.5px;text-transform:uppercase}
+.controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.btn,.select{
+  border:1px solid #333;border-radius:11px;padding:10px 13px;color:#ddd;
+  background:#151515;font-size:11px;font-weight:700;transition:.2s ease;
+}
+.btn:hover,.select:hover{background:#222;border-color:#555}
+.btn.ghost{color:#888}
+.btn.icon{padding:10px 11px}
+.select{appearance:auto}
+
+/* profile shortcut */
+.profileTopBtn{width:42px;height:42px;border-radius:50%;padding:0;overflow:hidden;display:grid;place-items:center;border:1px solid var(--line2);background:var(--panel);font-weight:900;font-size:12px;position:relative}
+.profileTopBtn:hover{transform:translateY(-1px);border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent)}
+.profileTopBtn img,.profileAvatar img{width:100%;height:100%;object-fit:cover;display:block}
+.profileAvatar{overflow:hidden}
+.profileUpload{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.profileHint{font-size:9px;color:var(--muted);line-height:1.45}
+.settingsField input[type=email]{width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);outline:none}
+
+main{width:min(1240px,92vw);margin:0 auto 70px}
+
+/* dashboard */
+.dashboard{
+  display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:14px;
+}
+.stat{
+  border:1px solid #242424;background:rgba(15,15,15,.88);border-radius:15px;
+  padding:14px 15px;box-shadow:0 10px 30px rgba(0,0,0,.18)
+}
+.stat .label{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:#666}
+.stat .value{margin-top:7px;font-size:20px;font-weight:800;letter-spacing:-.5px}
+.stat .sub{margin-top:4px;color:#626262;font-size:10px}
+.stat.wide{grid-column:span 2}
+.progressBar{
+  height:5px;background:#202020;border-radius:99px;overflow:hidden;margin-top:8px
+}
+.progressBar span{display:block;height:100%;width:0;background:#eee;transition:width .4s ease}
+
+/* toolbar */
+.toolbar{
+  display:grid;grid-template-columns:1fr auto auto auto;gap:8px;
+  margin:0 0 12px;padding:10px;border:1px solid #242424;border-radius:15px;
+  background:rgba(14,14,14,.85)
+}
+.searchBox{
+  width:100%;padding:10px 12px;border:1px solid #2c2c2c;border-radius:10px;
+  outline:none;background:#111;color:#eee;font-size:12px
+}
+.searchBox:focus{border-color:#555;background:#151515}
+.toolbar select{
+  min-width:145px;padding:10px 11px;border:1px solid #2c2c2c;border-radius:10px;
+  background:#151515;color:#ccc;font-size:11px;font-weight:700;outline:none
+}
+
+/* table */
+.table{
+  overflow:hidden;border:1px solid var(--line);border-radius:18px;background:rgba(14,14,14,.9);
+  box-shadow:var(--shadow);backdrop-filter:blur(12px)
+}
+.row{
+  display:grid;grid-template-columns:minmax(310px,1fr) 220px 220px;
+  min-height:70px;border-bottom:1px solid #222
+}
+.row:last-child{border-bottom:0}
+.cell{min-width:0;padding:13px 20px;display:flex;align-items:center}
+.head{
+  min-height:52px;background:#171717;color:#777;font-size:10px;font-weight:700;
+  letter-spacing:1.5px;text-transform:uppercase
+}
+.row:not(.head):hover{background:rgba(255,255,255,.022)}
+.animeWrap{width:100%;display:flex;align-items:center;min-width:0;position:relative}
+.animeMain{min-width:0;flex:1}
+.animeInput,.watched{
+  width:100%;padding:9px 11px;border:1px solid transparent;border-radius:10px;
+  outline:none;background:transparent;color:#f5f5f5;font:800 15px Inter,Arial,sans-serif;text-transform:uppercase;letter-spacing:.2px;transition:.2s ease
+}
+.animeInput::placeholder,.watched::placeholder{color:#555}
+.animeInput:focus,.watched:focus{border-color:#3b3b3b;background:#151515}
+.animeLink{
+  display:none;min-width:0;width:100%;padding:9px 11px;color:#f5f5f5;text-decoration:none;
+  font:800 15px Inter,Arial,sans-serif;text-transform:uppercase;letter-spacing:.2px;border-radius:10px;white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;cursor:pointer
+}
+.animeLink:hover{background:#151515;text-decoration:underline}
+/* Colores especiales del nombre según favorito y nota */
+.animeLink.name-favorite{
+  color:#f6c945;
+  text-shadow:0 0 8px rgba(246,201,69,.28);
+}
+.animeLink.name-poop{
+  color:#8a5a2b;
+  /* La caca no brilla: color marrón plano, sin sombra ni animación. */
+  text-shadow:none;
+}
+.animeLink.name-diamond{
+  background:linear-gradient(110deg,#1f8cff 0%,#76c8ff 34%,#ffffff 50%,#7ccfff 66%,#238bff 100%);
+  background-size:220% 100%;
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  color:#69bfff;
+  font-weight:800;
+  animation:diamondShine 3.2s linear infinite;
+  text-shadow:0 0 10px rgba(99,191,255,.3);
+}
+@keyframes diamondShine{to{background-position:220% 0}}
+.animeLink.visible{display:block}
+.animeInput.editing{display:block}
+.animeInput:not(.editing){display:none}
+
+.meta{
+  display:flex;align-items:center;gap:6px;min-height:17px;padding:0 11px;white-space:nowrap;overflow:hidden
+}
+.chip{
+  display:inline-flex;align-items:center;gap:4px;padding:3px 7px;border:1px solid #292929;
+  border-radius:99px;background:#151515;color:#777;font-size:8px;font-weight:800;
+  letter-spacing:.8px;text-transform:uppercase
+}
+.chip.fav{color:#eee}
+.chip.new{color:#eee;border-color:#555;background:#222}
+.chip.warn{color:#aaa}
+.mutedText{color:#565656;font-size:9px;overflow:hidden;text-overflow:ellipsis}
+.infoBtn,.clearAnime{
+  flex:0 0 18px;width:18px;height:18px;margin-right:5px;padding:0;display:inline-flex;
+  align-items:center;justify-content:center;border:0;background:transparent;color:#666;
+  font:700 12px/1 Arial,sans-serif;cursor:pointer;border-radius:50%;
+  opacity:0;visibility:hidden;pointer-events:none;transition:.15s ease
+}
+.infoBtn{order:2;margin-left:4px;margin-right:0}
+.clearAnime{order:1}
+.animeWrap:hover .infoBtn,.animeWrap:hover .clearAnime{
+  opacity:1;visibility:visible;pointer-events:auto
+}
+.infoBtn:hover,.clearAnime:hover{color:#fff;background:#222}
+
+.eye{
+  --open:0;position:relative;isolation:isolate;flex:0 0 42px;width:42px;height:32px;margin-right:9px;
+  display:inline-flex;align-items:center;justify-content:center;overflow:hidden;
+  border:1.5px solid #68717f;border-radius:50% 50% 48% 48% / 60% 60% 40% 40%;
+  background:radial-gradient(ellipse at 50% 50%,#eef3f8 0 30%,#aeb9c5 31% 56%,#3d4651 57% 100%);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),0 3px 10px rgba(0,0,0,.25);
+  transform:scaleY(calc(.12 + var(--open)*.88));transform-origin:center;
+  transition:transform .42s cubic-bezier(.2,.85,.2,1),border-color .3s ease,filter .3s ease,box-shadow .3s ease
+}
+.eye::before{
+  content:"";position:relative;z-index:2;width:16px;height:16px;border-radius:50%;
+  background:radial-gradient(circle at 38% 32%,#657386 0 9%,#202a36 10% 26%,#0a0f16 27% 55%,#536171 56% 100%);
+  box-shadow:0 0 0 3px rgba(255,255,255,.34),0 0 0 5px rgba(25,33,42,.28),inset 2px 2px 4px rgba(255,255,255,.18);
+  transition:all .38s cubic-bezier(.2,.85,.2,1)
+}
+.eye::after{
+  content:"";position:absolute;z-index:4;left:-4px;right:-4px;top:50%;height:2px;border-radius:99px;background:#f4f6f8;
+  box-shadow:0 0 7px rgba(255,255,255,.55);opacity:calc(1 - var(--open));transform:translateY(-50%);
+  transition:opacity .35s ease,transform .35s ease
+}
+.eye:hover{filter:brightness(1.12);transform:scaleY(calc(.12 + var(--open)*.88)) scale(1.04)}
+.eye.eye-favorite{
+  border-color:#d7a92e;background:radial-gradient(ellipse at 50% 50%,#fff7c8 0 30%,#d8a52b 31% 58%,#4c3510 100%);
+  box-shadow:inset 0 0 0 1px rgba(255,244,181,.22),0 0 13px rgba(235,183,43,.22)
+}
+.eye.eye-favorite::before{
+  content:"★";width:20px;height:20px;display:grid;place-items:center;border:0;border-radius:50%;
+  background:radial-gradient(circle,#fff8bf 0 36%,#d49d18 37% 68%,#6f4708 69%);color:#fff7c4;font:900 16px/1 Arial,sans-serif;
+  text-shadow:0 1px 2px rgba(86,55,0,.7);box-shadow:0 0 0 3px rgba(255,238,158,.24),0 0 10px rgba(235,183,43,.4);
+  animation:eyeStarPulse 2.4s ease-in-out infinite
+}
+.eye.eye-poop{
+  border-color:#6e4927;background:radial-gradient(ellipse at 50% 50%,#d5b49a 0 30%,#8b684f 31% 58%,#39271d 100%);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.05),0 3px 10px rgba(0,0,0,.25)
+}
+.eye.eye-poop::before{
+  content:"💩";width:22px;height:22px;display:grid;place-items:center;border:0;border-radius:50%;background:transparent;
+  font:18px/1 Arial,sans-serif;box-shadow:none;filter:none;animation:eyePoopBob 3.2s ease-in-out infinite
+}
+.eye.eye-diamond{
+  border-color:#72c9ff;background:radial-gradient(ellipse at 50% 50%,#f7fdff 0 20%,#b9ecff 21% 40%,#238ff0 41% 65%,#0c285a 100%);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.35),0 0 17px rgba(77,180,255,.5),0 0 30px rgba(88,136,255,.18);
+  animation:eyeDiamondAura 2.8s ease-in-out infinite
+}
+.eye.eye-diamond::before{
+  content:"◆";width:21px;height:21px;display:grid;place-items:center;border:0;border-radius:45%;
+  background:linear-gradient(135deg,#197ce8 0%,#83d9ff 36%,#fff 50%,#74ccff 65%,#1266d2 100%);
+  color:transparent;font-size:0;transform:rotate(45deg);
+  box-shadow:0 0 0 3px rgba(224,249,255,.55),0 0 15px rgba(130,214,255,.85),inset 3px 3px 7px rgba(255,255,255,.7);
+  animation:eyeDiamondSpin 3.8s linear infinite
+}
+.eye.eye-diamond .eyeSpark{display:block}
+@keyframes eyeStarPulse{50%{transform:scale(1.12) rotate(8deg);filter:brightness(1.12)}}
+@keyframes eyePoopBob{50%{transform:translateY(-1px)}}
+@keyframes eyeDiamondAura{50%{filter:brightness(1.16);box-shadow:inset 0 0 0 1px rgba(255,255,255,.45),0 0 23px rgba(77,180,255,.72),0 0 38px rgba(88,136,255,.28)}}
+@keyframes eyeDiamondSpin{to{transform:rotate(405deg)}}
+@media (prefers-reduced-motion:reduce){.eye,.eye::before{animation:none!important;transition:none!important}}
+.statusText{margin-left:auto;padding-left:8px;color:#6d6d6d;font-size:8px;font-weight:800;letter-spacing:1px;text-transform:uppercase}
+.statusText.ok{color:#ddd}
+.statusText.loading{color:#777}
+.duration{color:#bdbdbd;font-size:13px;font-weight:500}
+.duration strong{color:#eee}
+.duration small{display:block;color:#5f5f5f;font-size:9px;margin-top:3px}
+.progress{width:100%;display:flex;align-items:center;gap:8px}
+.progress .watched{max-width:88px}
+.total{color:#666;font-size:13px;white-space:nowrap}
+
+.row.hiddenRow{display:none}
+
+/* modals */
+.modal{
+  position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:rgba(0,0,0,.78);
+  backdrop-filter:blur(10px);padding:20px
+}
+.hidden{display:none!important}
+.modalCard{
+  position:relative;width:min(520px,100%);padding:25px;border:1px solid #333;border-radius:18px;
+  background:#111;box-shadow:0 25px 90px rgba(0,0,0,.75)
+}
+.modalCard h2{margin:0 0 7px;font-size:23px;letter-spacing:-.6px}
+.modalCard p{margin:0 0 17px;color:#777;font-size:12px;line-height:1.55}
+.close{
+  position:absolute;right:15px;top:11px;border:0;background:none;color:#777;font-size:25px;cursor:pointer
+}
+.close:hover{color:#fff}
+.sourceChoices{display:grid;gap:9px}
+.sourceChoices button{
+  width:100%;border:1px solid #333;border-radius:11px;padding:12px 14px;background:#171717;color:#f5f5f5;
+  font:700 13px Inter,Arial,sans-serif;text-align:left;cursor:pointer;transition:.2s ease
+}
+.sourceChoices button:hover{background:#222;border-color:#555;transform:translateY(-1px)}
+.sourceHint{margin-top:12px;color:#5e5e5e;font:10px "Roboto Mono",monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.infoCard{width:min(760px,100%);padding:22px}
+.infoGrid{display:grid;grid-template-columns:155px 1fr;gap:20px}
+.cover{
+  width:155px;height:220px;object-fit:cover;border-radius:13px;border:1px solid #2c2c2c;background:#171717
+}
+.coverPlaceholder{
+  width:155px;height:220px;border-radius:13px;border:1px solid #2c2c2c;background:#171717;
+  display:grid;place-items:center;color:#555;font-size:12px;text-transform:uppercase;letter-spacing:1px
+}
+.infoTitle{font-size:24px;font-weight:800;line-height:1.15;letter-spacing:-.7px}
+.infoSub{color:#777;font-size:11px;margin-top:5px}
+.badges{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.genre{padding:5px 7px;border:1px solid #2c2c2c;border-radius:99px;color:#777;font-size:9px}
+.infoLine{display:flex;gap:9px;margin:9px 0;color:#aaa;font-size:11px}
+.infoLine b{color:#eee}
+.formRow{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:15px}
+.field label{display:block;margin:0 0 6px;color:#666;font-size:9px;letter-spacing:1px;text-transform:uppercase}
+.field select,.field input[type=number]{
+  width:100%;padding:10px;border:1px solid #2c2c2c;border-radius:10px;background:#171717;color:#eee;outline:none
+}
+.checkRow{display:flex;align-items:center;gap:8px;margin-top:12px;color:#aaa;font-size:11px}
+.checkRow input{accent-color:#fff}
+.modalActions{display:flex;gap:8px;margin-top:17px}
+.modalActions button{
+  border:1px solid #333;border-radius:10px;background:#f5f5f5;color:#000;padding:10px 14px;font-weight:800;cursor:pointer
+}
+.modalActions button+button{background:#1b1b1b;color:#ddd}
+.nextAiring{margin-top:12px;padding:10px;border:1px solid #292929;background:#151515;border-radius:10px;color:#888;font-size:10px}
+
+.achievements{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-height:min(62vh,620px);overflow-y:auto;overscroll-behavior:contain;padding-right:6px;scrollbar-gutter:stable}
+.achievements::-webkit-scrollbar{width:9px}
+.achievements::-webkit-scrollbar-thumb{background:#3a3a3a;border-radius:99px}
+.achievements::-webkit-scrollbar-track{background:#0c0c0c;border-radius:99px}
+.badge{
+  min-height:74px;padding:12px;border:1px solid #2a2a2a;border-radius:12px;background:#151515;opacity:.38
+}
+.badge.unlocked{opacity:1;border-color:#484848}
+.badge .icon{font-size:20px}
+.badge strong{display:block;margin-top:5px;font-size:10px}
+.badge span{display:block;margin-top:3px;color:#696969;font-size:9px}
+
+.syncBox{display:grid;gap:9px}
+.syncBox button{width:100%}
+.syncNote{color:#5e5e5e;font-size:10px;line-height:1.5}
+
+.toast{
+  position:fixed;left:50%;bottom:20px;transform:translate(-50%,20px);z-index:100;
+  padding:11px 15px;border:1px solid #333;border-radius:11px;background:#151515;color:#ddd;
+  box-shadow:0 15px 40px rgba(0,0,0,.5);font-size:11px;font-weight:700;opacity:0;pointer-events:none;transition:.25s ease
+}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.achievementToast{position:fixed;right:20px;bottom:20px;z-index:110;display:flex;align-items:center;gap:12px;width:min(360px,calc(100vw - 32px));padding:14px 16px;border:1px solid #555;border-radius:15px;background:#121212;color:#f5f5f5;box-shadow:0 20px 60px rgba(0,0,0,.65);transform:translateY(18px);opacity:0;pointer-events:none;transition:.26s ease}.achievementToast.show{transform:translateY(0);opacity:1}.achievementToastIcon{font-size:30px;line-height:1}.achievementToast small{display:block;color:#aaa;font-size:9px;letter-spacing:1.2px;font-weight:800}.achievementToast strong{display:block;margin-top:3px;font-size:14px}.achievementToast span{display:block;margin-top:3px;color:#888;font-size:10px;line-height:1.35}
+
+
+.hint{margin:15px 4px 0;color:#555;font-size:10px;line-height:1.7}
+.footerNote{margin-top:16px;color:#3f3f3f;font-size:9px;text-align:right}
+
+
+/* TEMAS -------------------------------------------------------------- */
+body[data-theme]{
+  background:linear-gradient(135deg,var(--bg) 0%,var(--bg2) 55%,var(--bg) 100%);
+}
+body[data-theme] header .tag{color:var(--muted)}
+body[data-theme] .btn,
+body[data-theme] .select,
+body[data-theme] .toolbar select{background:var(--panel2);color:var(--text);border-color:var(--line2)}
+body[data-theme] .btn:hover,
+body[data-theme] .select:hover{background:var(--soft);border-color:var(--accent)}
+body[data-theme] .stat,
+body[data-theme] .toolbar,
+body[data-theme] .table{background:var(--panel);border-color:var(--line)}
+body[data-theme] .row{border-color:var(--line)}
+body[data-theme] .head{background:var(--panel2);color:var(--muted)}
+body[data-theme] .row:not(.head):hover{background:color-mix(in srgb,var(--accent) 6%,transparent)}
+body[data-theme] .searchBox,
+body[data-theme] .animeInput:focus,
+body[data-theme] .watched:focus{background:var(--panel2);color:var(--text);border-color:var(--line2)}
+body[data-theme] .searchBox{border-color:var(--line2)}
+body[data-theme] .animeInput,
+body[data-theme] .watched,
+body[data-theme] .animeLink{color:var(--text)}
+body[data-theme] .progressBar{background:var(--soft)}
+body[data-theme] .progressBar span{background:var(--accent)}
+body[data-theme] .modal{background:color-mix(in srgb,var(--bg) 80%,transparent)}
+body[data-theme] .modalCard,
+body[data-theme] .achievementToast,
+body[data-theme] .toast{background:var(--panel);color:var(--text);border-color:var(--line2)}
+body[data-theme] .modalCard p,
+body[data-theme] .infoSub{color:var(--muted)}
+body[data-theme] .close{color:var(--muted)}
+body[data-theme] .close:hover{color:var(--text)}
+body[data-theme] .sourceChoices button,
+body[data-theme] .field select,
+body[data-theme] .field input[type=number],
+body[data-theme] .nextAiring,
+body[data-theme] .badge,
+body[data-theme] .chip{background:var(--panel2);color:var(--text);border-color:var(--line2)}
+body[data-theme] .field label,
+body[data-theme] .stat .label,
+body[data-theme] .stat .sub,
+body[data-theme] .mutedText,
+body[data-theme] .hint,
+body[data-theme] .footerNote{color:var(--muted)}
+body[data-theme] .infoLine{color:var(--muted)}
+body[data-theme] .infoLine b,
+body[data-theme] .duration strong{color:var(--text)}
+body[data-theme] .modalActions button{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+body[data-theme] .modalActions button+button{background:var(--panel2);color:var(--text);border-color:var(--line2)}
+body[data-theme] .achievements::-webkit-scrollbar-thumb{background:var(--line2)}
+body[data-theme] .achievements::-webkit-scrollbar-track{background:var(--soft)}
+
+/* Ventana de tema personalizado */
+.themeCard{width:min(560px,100%)}
+.themePickerGrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px}
+.themeColorField{padding:15px;border:1px solid var(--line);border-radius:14px;background:var(--panel2)}
+.themeColorField label{display:block;margin-bottom:10px;color:var(--muted);font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase}
+.themeColorField input[type=color]{width:100%;height:58px;padding:0;border:1px solid var(--line2);border-radius:12px;background:transparent;cursor:pointer}
+.themePreview{margin-top:16px;padding:18px;border:1px solid var(--line);border-radius:15px;background:var(--custom-preview-bg,#111);color:var(--custom-preview-detail,#fff);transition:.2s ease}
+.themePreview .previewTitle{font-weight:900;font-size:17px;text-transform:uppercase;letter-spacing:.4px}
+.themePreview .previewLine{height:6px;margin-top:10px;border-radius:999px;background:var(--custom-preview-detail,#fff);opacity:.9}
+.themeActions{display:flex;gap:8px;margin-top:17px;justify-content:flex-end}
+.themeActions .btn{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.themeActions .btn.ghost{background:var(--panel2);color:var(--text);border-color:var(--line2)}
+@media(max-width:560px){.themePickerGrid{grid-template-columns:1fr}}
+
+
+/* v25 · datos, seguridad y configuración */
+.settingsCard{width:min(760px,100%)}
+.settingsGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.settingsSection{border:1px solid var(--line);border-radius:14px;background:var(--panel2);padding:15px}
+.settingsSection.full{grid-column:1/-1}
+.settingsSection h3{margin:0 0 10px;font-size:12px;letter-spacing:.4px}
+.settingsSection p{margin:0 0 11px;color:var(--muted);font-size:10px;line-height:1.55}
+.settingsField{display:grid;gap:6px;margin-top:10px}
+.settingsField label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.settingsField input[type=text]{width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);outline:none}
+.settingToggle{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:9px 0;border-top:1px solid var(--line)}
+.settingToggle:first-of-type{border-top:0}
+.settingToggle span{font-size:11px;color:var(--text)}
+.settingToggle small{display:block;margin-top:2px;color:var(--muted);font-size:9px}
+.settingToggle input{accent-color:var(--accent)}
+.dataActions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.dataActions .dangerAction{border-color:#6b3030;color:#ffbaba;background:rgba(120,20,20,.12)}
+.storageMeter{height:6px;border-radius:99px;background:var(--soft);overflow:hidden;margin-top:8px}
+.storageMeter span{display:block;height:100%;width:0;background:var(--accent);transition:width .25s ease}
+.storageLine{display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:9px;margin-top:7px}
+.profileSummary{display:flex;align-items:center;gap:12px}
+.profileAvatar{width:44px;height:44px;border:1px solid var(--line2);border-radius:50%;display:grid;place-items:center;background:var(--panel);font-weight:800;font-size:16px}
+.profileMeta strong{display:block;font-size:13px}.profileMeta span{display:block;margin-top:3px;color:var(--muted);font-size:9px}
+.trashCard{width:min(720px,100%)}
+.trashList{display:grid;gap:8px;max-height:55vh;overflow-y:auto;overscroll-behavior:contain;padding-right:5px}
+.trashItem{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--panel2)}
+.trashItem strong{display:block;font-size:12px}.trashItem span{display:block;margin-top:4px;color:var(--muted);font-size:9px}
+.trashActions{display:flex;gap:6px}.trashActions button{padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--text);font-size:9px;font-weight:700}
+.trashEmpty{padding:24px;text-align:center;color:var(--muted);font-size:11px;border:1px dashed var(--line);border-radius:12px}
+.backupList{display:grid;gap:7px;margin-top:10px;max-height:220px;overflow-y:auto}
+.backupItem{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:9px 10px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.backupItem strong{display:block;font-size:10px}.backupItem span{display:block;color:var(--muted);font-size:8px;margin-top:3px}
+.backupItem button{padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);color:var(--text);font-size:8px;font-weight:800}
+.saveStatus{display:inline-flex;align-items:center;gap:5px}.saveDot{width:6px;height:6px;border-radius:50%;background:#7bd88f;box-shadow:0 0 8px rgba(123,216,143,.5)}
+
+@media(max-width:1050px){
+  .dashboard{grid-template-columns:repeat(3,1fr)}
+  .stat.wide{grid-column:span 3}
+  .toolbar{grid-template-columns:1fr 1fr}
+  .toolbar .searchBox{grid-column:1/-1}
+  .row{grid-template-columns:minmax(270px,1fr) 190px 170px}
+}
+@media(max-width:750px){
+  header{padding:32px 0 22px;align-items:flex-start}
+  .brand h1{font-size:34px}
+  .controls{max-width:230px}
+  main{width:94vw}
+  .dashboard{grid-template-columns:repeat(2,1fr)}
+  .stat.wide{grid-column:span 2}
+  .toolbar{grid-template-columns:1fr 1fr}
+  .toolbar .searchBox{grid-column:1/-1}
+  .row{grid-template-columns:minmax(210px,1fr) 115px 125px}
+  .cell{padding:10px 11px}
+  .head{font-size:8px}
+  .eye{flex-basis:30px;width:30px;height:24px;margin-right:7px}
+  .animeInput,.animeLink{font-size:13px}
+  .progress .watched{max-width:66px}
+  .infoGrid{grid-template-columns:100px 1fr;gap:13px}
+  .cover,.coverPlaceholder{width:100px;height:145px}
+  .infoTitle{font-size:20px}
+  .achievements{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:520px){
+  header{display:block}
+  .controls{margin-top:15px;justify-content:flex-start;max-width:none}
+  .dashboard{gap:7px}
+  .stat{padding:11px}
+  .stat .value{font-size:17px}
+  .toolbar{grid-template-columns:1fr}
+  .toolbar .searchBox{grid-column:auto}
+  .toolbar select{width:100%}
+  .row{grid-template-columns:minmax(150px,1fr) 92px 96px}
+  .cell{padding:9px 7px}
+  .eye{flex-basis:26px;width:26px;height:21px;margin-right:5px}
+  .clearAnime,.infoBtn{flex-basis:16px;width:16px;height:16px}
+  .statusText{display:none}
+  .total{font-size:11px}
+}
+
+/* Cloud account */
+.cloud-account-btn{position:fixed;top:18px;right:18px;z-index:9990;width:46px;height:46px;border-radius:50%;border:1px solid var(--line2);background:var(--panel2);color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;box-shadow:var(--shadow)}
+.cloud-account-btn:hover{transform:scale(1.05)}
+.cloud-auth-overlay{position:fixed;inset:0;z-index:10050;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px)}
+.cloud-auth-overlay.show{display:flex}.cloud-auth-card{width:min(440px,100%);background:var(--panel);border:1px solid var(--line2);border-radius:20px;padding:24px;box-shadow:var(--shadow)}
+.cloud-auth-card h2{margin:0 0 6px}.cloud-auth-card p{color:var(--muted);margin:0 0 18px}.cloud-auth-card input{width:100%;margin:7px 0;padding:12px;border-radius:10px;border:1px solid var(--line2);background:var(--bg2);color:var(--text)}
+.cloud-auth-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}.cloud-auth-actions button{flex:1;min-width:120px;padding:11px;border-radius:10px;border:1px solid var(--line2);background:var(--accent);color:var(--bg);font-weight:800;cursor:pointer}.cloud-auth-actions .secondary{background:var(--panel2);color:var(--text)}
+.cloud-status{font-size:12px;color:var(--muted);margin-top:12px}.cloud-user-menu{position:fixed;top:70px;right:18px;z-index:9991;display:none;background:var(--panel);border:1px solid var(--line2);border-radius:14px;padding:10px;min-width:220px;box-shadow:var(--shadow)}.cloud-user-menu.show{display:block}.cloud-user-menu button{width:100%;padding:10px;text-align:left;background:transparent;color:var(--text);border:0;cursor:pointer;border-radius:8px}.cloud-user-menu button:hover{background:var(--soft)}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <h1>AnimeTracker</h1>
+    <div class="tag">tu lista · tu progreso · tu biblioteca</div>
+  </div>
+  <div class="controls">
+    <button class="btn profileTopBtn" id="profileTopBtn" title="Perfil y cuenta local" aria-label="Abrir perfil"><span id="profileTopInitials">AT</span></button>
+    <button class="btn" id="refreshAll" title="Actualizar datos de todos los animes">↻ Actualizar</button>
+    <button class="btn ghost" id="achBtn">Logros</button>
+    <button class="btn ghost" id="settingsBtn">Ajustes</button>
+    <button class="btn ghost" id="trashBtn">Papelera</button>
+    <button class="btn ghost" id="exportBtn">Exportar</button>
+    <button class="btn ghost" id="importBtn">Importar</button>
+    <select class="select" id="themeSelect" aria-label="Tema">
+      <option value="high-black">Alto contraste · Negro</option>
+      <option value="high-white">Alto contraste · Blanco</option>
+      <option value="manga">Manga</option>
+      <option value="ink">Tinta</option>
+      <option value="custom">Personalizado</option>
+    </select>
+    <input id="importFile" type="file" accept="application/json" hidden>
+  </div>
+</header>
+
+<main>
+  <section class="dashboard">
+    <div class="stat">
+      <div class="label">Animes</div>
+      <div class="value" id="statAnime">0</div>
+      <div class="sub" id="statActive">0 activos</div>
+    </div>
+    <div class="stat">
+      <div class="label">Completados</div>
+      <div class="value" id="statCompleted">0</div>
+      <div class="sub" id="statCompletion">0%</div>
+    </div>
+    <div class="stat">
+      <div class="label">Capítulos vistos</div>
+      <div class="value" id="statChapters">0</div>
+      <div class="sub" id="statKnown">0 conocidos</div>
+    </div>
+    <div class="stat">
+      <div class="label">Tiempo visto</div>
+      <div class="value" id="statTime">0 h</div>
+      <div class="sub">estimado</div>
+    </div>
+    <div class="stat">
+      <div class="label">📌 Episodios pendientes</div>
+      <div class="value" id="statPending">0</div>
+      <div class="sub">por ver</div>
+    </div>
+    <div class="stat wide">
+      <div class="label">Progreso global</div>
+      <div class="value" id="statGlobal">0%</div>
+      <div class="progressBar"><span id="globalBar"></span></div>
+    </div>
+  </section>
+
+  <section class="toolbar">
+    <input class="searchBox" id="search" placeholder="Buscar en tu biblioteca..." autocomplete="off">
+    <select id="statusFilter" aria-label="Filtrar por estado">
+      <option value="all">Todos los estados</option>
+      <option value="viendo">Viendo</option>
+      <option value="terminado">Terminado</option>
+      <option value="pendiente">Pendiente</option>
+      <option value="pausa">En pausa</option>
+      <option value="abandonado">Abandonado</option>
+    </select>
+    <select id="sortSelect" aria-label="Ordenar">
+      <option value="added">Más recientes</option>
+      <option value="name">Nombre A-Z</option>
+      <option value="progress">Más progreso</option>
+      <option value="score">Mayor nota</option>
+      <option value="watched">Más capítulos</option>
+      <option value="new">Nuevos episodios</option>
+    </select>
+    <button class="btn" id="favFilter">☆ Solo favoritos</button>
+  </section>
+
+  <div class="table">
+    <div class="row head">
+      <div class="cell">Anime</div>
+      <div class="cell">Duración actual</div>
+      <div class="cell">Visto</div>
+    </div>
+    <div id="rows"></div>
+  </div>
+
+  <div class="hint">
+    Escribe un anime en la última fila para crear otra automáticamente. La búsqueda espera 2 segundos desde la última tecla y lo indica con «ESPERANDO».
+    Pulsa el nombre para elegir una página. La <b>ⓘ</b> abre la ficha del anime.
+  </div>
+
+  <div class="footerNote"><span class="saveStatus"><span class="saveDot"></span><span id="saveStatusText">Guardado local automático</span></span> · actualización automática de episodios cada 30 minutos</div>
+</main>
+
+<!-- SOURCE MODAL -->
+<div id="sourceModal" class="modal hidden" aria-hidden="true">
+  <div class="modalCard" role="dialog" aria-modal="true">
+    <button class="close" id="sourceClose" aria-label="Cerrar">×</button>
+    <h2>¿Dónde quieres buscar?</h2>
+    <p id="sourceAnime"></p>
+    <div class="sourceChoices">
+      <button type="button" data-source="nyaa">Nyaa</button>
+      <button type="button" data-source="subsplease">SubsPlease</button>
+      <button type="button" data-source="ext">EXT.to</button>
+    </div>
+    <div class="sourceHint" id="sourceHint"></div>
+  </div>
+</div>
+
+<!-- INFO MODAL -->
+<div id="infoModal" class="modal hidden" aria-hidden="true">
+  <div class="modalCard infoCard" role="dialog" aria-modal="true">
+    <button class="close" id="infoClose" aria-label="Cerrar">×</button>
+    <div class="infoGrid">
+      <div id="infoCoverWrap"></div>
+      <div>
+        <div class="infoTitle" id="infoTitle">Anime</div>
+        <div class="infoSub" id="infoSub">Sin datos adicionales</div>
+        <div class="badges" id="infoGenres"></div>
+        <div class="infoLine"><span>Nota</span><b id="infoApiScore">—</b></div>
+        <div class="infoLine"><span>Capítulos</span><b id="infoEpisodes">—</b></div>
+        <div class="infoLine"><span>Estado emisión</span><b id="infoAiring">—</b></div>
+        <div class="nextAiring hidden" id="nextAiring"></div>
+
+        <div class="formRow">
+          <div class="field">
+            <label>Mi estado</label>
+            <select id="infoStatus">
+              <option value="viendo">Viendo</option>
+              <option value="terminado">Terminado</option>
+              <option value="pendiente">Pendiente</option>
+              <option value="pausa">En pausa</option>
+              <option value="abandonado">Abandonado</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Mi nota (0-10)</label>
+            <input id="infoScore" type="number" min="0" max="10" step="0.1" placeholder="—">
+          </div>
+        </div>
+        <label class="checkRow"><input id="infoFav" type="checkbox"> Marcar como favorito</label>
+        <div class="modalActions">
+          <button id="infoSave">Guardar</button>
+          <button id="infoSources">Buscar episodios</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ACHIEVEMENTS MODAL -->
+<div id="achModal" class="modal hidden" aria-hidden="true">
+  <div class="modalCard">
+    <button class="close" id="achClose" aria-label="Cerrar">×</button>
+    <h2>Logros</h2>
+    <p>Pequeños hitos para convertir tu lista en una colección.</p>
+    <div class="achievements" id="achievements"></div>
+  </div>
+</div>
+
+<!-- CUSTOM THEME MODAL -->
+<div id="themeModal" class="modal hidden" aria-hidden="true">
+  <div class="modalCard themeCard" role="dialog" aria-modal="true" aria-labelledby="themeModalTitle">
+    <button class="close" id="themeClose" aria-label="Cerrar">×</button>
+    <h2 id="themeModalTitle">Tema personalizado</h2>
+    <p>Elige el color principal del fondo y el color de los detalles. Puedes cambiar ambos cuando quieras.</p>
+    <div class="themePickerGrid">
+      <div class="themeColorField">
+        <label for="customBgColor">Fondo</label>
+        <input id="customBgColor" type="color" value="#080808" aria-label="Color del fondo">
+      </div>
+      <div class="themeColorField">
+        <label for="customDetailColor">Detalles</label>
+        <input id="customDetailColor" type="color" value="#ffffff" aria-label="Color de los detalles">
+      </div>
+    </div>
+    <div class="themePreview" id="themePreview">
+      <div class="previewTitle">AnimeTracker</div>
+      <div>Vista previa de tu combinación de colores.</div>
+      <div class="previewLine"></div>
+    </div>
+    <div class="themeActions">
+      <button class="btn ghost" id="themeReset" type="button">Restablecer</button>
+      <button class="btn" id="themeSave" type="button">Aplicar tema</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- SETTINGS / DATA MODAL -->
+<div id="settingsModal" class="modal hidden" aria-hidden="true">
+  <div class="modalCard settingsCard" role="dialog" aria-modal="true">
+    <button class="close" id="settingsClose" aria-label="Cerrar">×</button>
+    <h2>Ajustes y datos</h2>
+    <p>Perfil local, copias de seguridad y protección de tu biblioteca. Todo se guarda únicamente en este navegador.</p>
+    <div class="settingsGrid">
+      <section class="settingsSection">
+        <h3>👤 Perfil local</h3>
+        <div class="profileSummary">
+          <div class="profileAvatar" id="profileAvatar">AT</div>
+          <div class="profileMeta"><strong id="profileDisplayName">Usuario</strong><span id="profileEmailDisplay">Sin correo configurado</span><span id="profileSince"></span></div>
+        </div>
+        <div class="profileUpload">
+          <button class="btn ghost" id="profilePhotoBtn" type="button">Cambiar foto</button>
+          <button class="btn ghost" id="profilePhotoRemove" type="button">Quitar foto</button>
+          <input id="profilePhotoInput" type="file" accept="image/*" hidden>
+          <span class="profileHint">La foto se guarda localmente en este navegador y forma parte de las copias completas.</span>
+        </div>
+        <div class="settingsField"><label for="profileName">Nombre</label><input id="profileName" type="text" maxlength="32" placeholder="Tu nombre"></div>
+        <div class="settingsField"><label for="profileEmail">Correo electrónico</label><input id="profileEmail" type="email" maxlength="120" placeholder="tu@correo.com"></div>
+        <div class="dataActions"><button class="btn" id="profileSave" type="button">Guardar perfil</button></div>
+      </section>
+      <section class="settingsSection">
+        <h3>🛡️ Protección</h3>
+        <label class="settingToggle"><span>Confirmar eliminaciones<small>Evita borrar un anime por accidente.</small></span><input id="settingConfirmDelete" type="checkbox"></label>
+        <label class="settingToggle"><span>Copias automáticas<small>Guarda instantáneas locales periódicas.</small></span><input id="settingAutoBackup" type="checkbox"></label>
+        <label class="settingToggle"><span>Avisos de logros<small>Muestra la ventana emergente al desbloquearlos.</small></span><input id="settingAchievementPopups" type="checkbox"></label>
+      </section>
+      <section class="settingsSection full">
+        <h3>💾 Estado del almacenamiento</h3>
+        <p id="storageDescription">Calculando uso local…</p>
+        <div class="storageMeter"><span id="storageBar"></span></div>
+        <div class="storageLine"><span id="storageUsed">—</span><span>localStorage del navegador</span></div>
+      </section>
+      <section class="settingsSection">
+        <h3>🗃️ Copias locales</h3>
+        <p>Se guardan hasta 5 instantáneas sin incluir otras copias dentro de ellas.</p>
+        <div class="dataActions"><button class="btn" id="backupNow" type="button">Crear copia ahora</button></div>
+        <div class="backupList" id="backupList"></div>
+      </section>
+      <section class="settingsSection">
+        <h3>📦 Tus datos</h3>
+        <p>La exportación completa incluye biblioteca, papelera, perfil, logros, actividad, temas y configuración.</p>
+        <div class="dataActions">
+          <button class="btn" id="settingsExport" type="button">Exportar copia completa</button>
+          <button class="btn" id="settingsImport" type="button">Importar</button>
+          <button class="btn dangerAction" id="resetAll" type="button">Borrar todos los datos</button>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<!-- TRASH MODAL -->
+<div id="trashModal" class="modal hidden" aria-hidden="true">
+  <div class="modalCard trashCard" role="dialog" aria-modal="true">
+    <button class="close" id="trashClose" aria-label="Cerrar">×</button>
+    <h2>Papelera</h2>
+    <p>Los animes eliminados se conservan durante 30 días. Puedes restaurarlos antes de que caduquen.</p>
+    <div class="trashList" id="trashList"></div>
+    <div class="dataActions"><button class="btn dangerAction" id="emptyTrash" type="button">Vaciar papelera</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="achievementToast" id="achievementToast" role="status" aria-live="polite"></div>
+
+<script>
+const rowsEl = document.getElementById("rows");
+const STORAGE = "anime_tracker_v6";
+const THEME = "anime_tracker_theme";
+const PROFILE_STORAGE = "anime_tracker_profile_v1";
+const SETTINGS_STORAGE = "anime_tracker_settings_v1";
+const TRASH_STORAGE = "anime_tracker_trash_v1";
+const BACKUPS_STORAGE = "anime_tracker_backups_v1";
+const LAST_SAVE_STORAGE = "anime_tracker_last_save";
+const ACTIVITY_STORAGE = "anime_tracker_activity";
+let data = [];
+let favoritesOnly = false;
+let infoIndex = null;
+let sourceIndex = null;
+let toastTimer = null;
+let achievementToastTimer = null;
+let achievementQueue = [];
+const ACHIEVEMENTS_STORAGE = "anime_tracker_v6_unlocked_achievements";
+let refreshingAll = false;
+
+const LOOKUP_DELAY = 2000;
+const DEFAULT_SETTINGS = {confirmDelete:true,autoBackup:true,achievementPopups:true};
+const DEFAULT_PROFILE = {name:"Usuario",email:"",avatar:"",createdAt:Date.now()};
+let settings=loadJson(SETTINGS_STORAGE,DEFAULT_SETTINGS);
+let profile=loadJson(PROFILE_STORAGE,DEFAULT_PROFILE);
+let trash=loadJson(TRASH_STORAGE,[]);
+if(!Array.isArray(trash)) trash=[];
+let backups=loadJson(BACKUPS_STORAGE,[]);
+if(!Array.isArray(backups)) backups=[];
+let lastAutoBackup=0;
+
+function loadJson(key,fallback){
+  try{const value=JSON.parse(localStorage.getItem(key)||"null");return value===null?JSON.parse(JSON.stringify(fallback)):value;}
+  catch(e){return JSON.parse(JSON.stringify(fallback));}
+}
+function storeJson(key,value){
+  try{localStorage.setItem(key,JSON.stringify(value));return true;}
+  catch(e){console.warn("No se pudo guardar",key,e);toast("No hay espacio suficiente para guardar");return false;}
+}
+
+
+const EMPTY = {
+  anime:"", watched:"", total:"", duration:"", durationMin:"",
+  state:"", score:"", favorite:false, cover:"", apiTitle:"",
+  genres:[], format:"", apiStatus:"", aniId:"",
+  knownTotal:"", newEpisodes:0, nextAiringAt:"", nextAiringEpisode:"",
+  addedAt:Date.now(), updatedAt:Date.now()
+};
+
+function cloneEmpty(){ return JSON.parse(JSON.stringify(EMPTY)); }
+
+try{
+  const saved=JSON.parse(localStorage.getItem(STORAGE) || "[]");
+  data=Array.isArray(saved)?saved.map(normalizeItem):[];
+}catch(e){ data=[]; }
+
+const statusLabels = {
+  viendo:"Viendo", terminado:"Terminado", pendiente:"Pendiente",
+  pausa:"En pausa", abandonado:"Abandonado"
+};
+
+function normalizeItem(raw){
+  const item={...cloneEmpty(),...(raw||{})};
+  item.anime=String(item.anime||"");
+  item.watched=String(item.watched||"");
+  item.total=String(item.total||"");
+  item.duration=String(item.duration||"");
+  item.durationMin=Number(item.durationMin)||0;
+  item.state = statusLabels[item.state] ? item.state : (item.state==="COMPLETO" ? "terminado" : "");
+  item.score = item.score==="" ? "" : Number(item.score);
+  if(!Number.isFinite(item.score)) item.score="";
+  item.favorite=Boolean(item.favorite);
+  item.genres=Array.isArray(item.genres)?item.genres:[];
+  item.knownTotal=String(item.knownTotal||"");
+  item.airedEpisodes=String(item.airedEpisodes||"");
+  item.plannedEpisodes=String(item.plannedEpisodes||"");
+  item.newEpisodes=Number(item.newEpisodes)||0;
+  item.addedAt=Number(item.addedAt)||Date.now();
+  item.updatedAt=Number(item.updatedAt)||item.addedAt;
+  return item;
+}
+
+function save({skipBackup=false}={}){
+  const ok=storeJson(STORAGE,data);
+  if(ok){
+    try{localStorage.setItem(LAST_SAVE_STORAGE,String(Date.now()));}catch(e){}
+    updateSaveStatus();
+    if(settings.autoBackup&&!skipBackup) createBackup("Automática",false);
+  }
+  renderStats();
+  checkNewAchievements();
+}
+function updateSaveStatus(){
+  const el=document.getElementById("saveStatusText");if(!el)return;
+  const ts=Number(localStorage.getItem(LAST_SAVE_STORAGE)||0);
+  el.textContent=ts?`Guardado ${new Date(ts).toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})}`:"Guardado local automático";
+}
+function ensure(i){ while(data.length<=i) data.push(cloneEmpty()); }
+
+function normalize(s){
+  return s.toLowerCase().trim().replace(/[^\p{L}\p{N}]+/gu," ");
+}
+function escapeHtml(s){
+  return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+}
+function formatNumber(n){
+  return new Intl.NumberFormat("es-ES").format(Math.round(Number(n)||0));
+}
+function formatDate(ts){
+  if(!ts) return "";
+  try{return new Intl.DateTimeFormat("es-ES",{day:"2-digit",month:"2-digit",year:"numeric"}).format(new Date(ts))}
+  catch(e){return ""}
+}
+function formatTime(hours){
+  if(hours<1) return `${Math.round(hours*60)} min`;
+  if(hours<24) return `${hours.toFixed(1)} h`;
+  return `${(hours/24).toFixed(1)} días`;
+}
+function localDateKey(date=new Date()){
+  const y=date.getFullYear();
+  const m=String(date.getMonth()+1).padStart(2,"0");
+  const d=String(date.getDate()).padStart(2,"0");
+  return `${y}-${m}-${d}`;
+}
+function addActivity(){
+  let dates=[];
+  try{ dates=JSON.parse(localStorage.getItem(ACTIVITY_STORAGE)||"[]"); }catch(e){}
+  if(!Array.isArray(dates)) dates=[];
+  const today=localDateKey();
+  if(!dates.includes(today)) dates.push(today);
+  localStorage.setItem(ACTIVITY_STORAGE,JSON.stringify(dates.slice(-365)));
+}
+function streak(){
+  let raw=[];
+  try{ raw=JSON.parse(localStorage.getItem(ACTIVITY_STORAGE)||"[]"); }catch(e){}
+  const dates=new Set(Array.isArray(raw)?raw:[]);
+  const d=new Date();
+  let count=0;
+  for(let i=0;i<365;i++){
+    const key=localDateKey(d);
+    if(!dates.has(key)) break;
+    count++;
+    d.setDate(d.getDate()-1);
+  }
+  return count;
+}
+
+function sourceSearchQuery(item){
+  const anime=(item?.anime||"").trim();
+  const total=Number(item?.total)||0;
+  const watched=Number(item?.watched)||0;
+  const complete=total>0 && watched>=total;
+  return complete ? `${anime} es` : `${anime}${watched>0 ? ` ${watched}` : ""} es`;
+}
+function sourceUrl(source,item){
+  const anime=(item?.anime||"").trim();
+  const watched=Number(item?.watched)||0;
+  const total=Number(item?.total)||0;
+  const complete=total>0 && watched>=total;
+  const nyaa=sourceSearchQuery(item);
+  if(source==="nyaa") return "https://nyaa.si/?f=0&c=1_3&q="+encodeURIComponent(nyaa).replace(/%20/g,"+");
+  if(source==="subsplease"){
+    const q=watched>0 ? `${anime} ${watched}` : anime;
+    return "https://subsplease.org/?s="+encodeURIComponent(q).replace(/%20/g,"+");
+  }
+  if(source==="ext"){
+    const q=complete ? anime : `${anime}${watched>0 ? ` ${watched}` : ""}`;
+    return "https://ext.to/browse/?q="+encodeURIComponent(q).replace(/%20/g,"+");
+  }
+  return "#";
+}
+
+function openSourceModal(i){
+  sourceIndex=i;
+  const item=data[i];
+  document.getElementById("sourceAnime").textContent=item?.anime||"";
+  document.getElementById("sourceHint").textContent=`Nyaa: "${sourceSearchQuery(item)}" · SubsPlease: "${(Number(item?.watched)||0)>0?`${item.anime} ${item.watched}`:item.anime}"`;
+  document.getElementById("sourceModal").classList.remove("hidden");
+}
+function closeSourceModal(){
+  document.getElementById("sourceModal").classList.add("hidden");
+  sourceIndex=null;
+}
+document.getElementById("sourceClose").addEventListener("click",closeSourceModal);
+document.getElementById("sourceModal").addEventListener("click",e=>{if(e.target.id==="sourceModal")closeSourceModal()});
+document.querySelectorAll("#sourceModal [data-source]").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    if(sourceIndex===null) return;
+    window.open(sourceUrl(btn.dataset.source,data[sourceIndex]),"_blank","noopener,noreferrer");
+    closeSourceModal();
+  });
+});
+
+const CUSTOM_THEME = "anime_tracker_custom_theme";
+const THEME_PRESETS = {
+  "high-black": {bg:"#000000", bg2:"#000000", panel:"#000000", panel2:"#000000", line:"#ffffff", line2:"#ffffff", text:"#ffffff", muted:"#e5e5e5", dim:"#bdbdbd", soft:"#111111", accent:"#ffffff", danger:"#ffffff"},
+  "high-white": {bg:"#ffffff", bg2:"#ffffff", panel:"#ffffff", panel2:"#ffffff", line:"#000000", line2:"#000000", text:"#000000", muted:"#1a1a1a", dim:"#444444", soft:"#eeeeee", accent:"#000000", danger:"#000000"},
+  manga: {bg:"#ffffff", bg2:"#f6f6f6", panel:"#ffffff", panel2:"#f1f1f1", line:"#151515", line2:"#000000", text:"#090909", muted:"#444444", dim:"#666666", soft:"#e6e6e6", accent:"#000000", danger:"#111111"},
+  ink: {bg:"#050505", bg2:"#0b0b0b", panel:"#090909", panel2:"#121212", line:"#3a3a3a", line2:"#737373", text:"#ffffff", muted:"#aaaaaa", dim:"#777777", soft:"#1c1c1c", accent:"#ffffff", danger:"#ffffff"}
+};
+const DEFAULT_CUSTOM_THEME = {bg:"#080808", detail:"#ffffff"};
+
+function setCssVars(vars){
+  const root=document.documentElement;
+  Object.entries(vars).forEach(([k,v])=>root.style.setProperty(`--${k}`,v));
+}
+function hexToRgb(hex){
+  const h=String(hex||"").replace("#","");
+  const full=h.length===3?h.split("").map(x=>x+x).join(""):h;
+  const n=parseInt(full,16);
+  return {r:(n>>16)&255,g:(n>>8)&255,b:n&255};
+}
+function mixHex(a,b,amount){
+  const x=hexToRgb(a),y=hexToRgb(b),t=Math.max(0,Math.min(1,amount));
+  const n=v=>Math.round(v).toString(16).padStart(2,"0");
+  return "#"+n(x.r+(y.r-x.r)*t)+n(x.g+(y.g-x.g)*t)+n(x.b+(y.b-x.b)*t);
+}
+function luminance(hex){const {r,g,b}=hexToRgb(hex);return (r*0.2126+g*0.7152+b*0.0722)/255;}
+function getCustomTheme(){
+  try{return {...DEFAULT_CUSTOM_THEME,...JSON.parse(localStorage.getItem(CUSTOM_THEME)||"{}")};}
+  catch(e){return {...DEFAULT_CUSTOM_THEME};}
+}
+function customVars(custom){
+  const bg=custom.bg||DEFAULT_CUSTOM_THEME.bg;
+  const detail=custom.detail||DEFAULT_CUSTOM_THEME.detail;
+  const light=luminance(bg)>0.5;
+  return {
+    bg, bg2:mixHex(bg,detail,light?0.03:0.05), panel:mixHex(bg,detail,light?0.015:0.035),
+    panel2:mixHex(bg,detail,light?0.05:0.07), line:mixHex(bg,detail,0.52), line2:mixHex(bg,detail,0.75),
+    text:detail, muted:mixHex(bg,detail,0.68), dim:mixHex(bg,detail,0.42), soft:mixHex(bg,detail,0.11), accent:detail, danger:detail
+  };
+}
+function updateThemePreview(){
+  const bg=document.getElementById("customBgColor").value;
+  const detail=document.getElementById("customDetailColor").value;
+  const preview=document.getElementById("themePreview");
+  preview.style.setProperty("--custom-preview-bg",bg);
+  preview.style.setProperty("--custom-preview-detail",detail);
+}
+function openThemeModal(){
+  const custom=getCustomTheme();
+  document.getElementById("customBgColor").value=custom.bg;
+  document.getElementById("customDetailColor").value=custom.detail;
+  updateThemePreview();
+  document.getElementById("themeModal").classList.remove("hidden");
+}
+function closeThemeModal(){document.getElementById("themeModal").classList.add("hidden");}
+function applyTheme(name,{persist=true}={}){
+  const theme=name==="high"?"high-black":name;
+  if(theme==="custom") setCssVars(customVars(getCustomTheme()));
+  else setCssVars(THEME_PRESETS[theme]||THEME_PRESETS.ink);
+  document.body.dataset.theme=theme;
+  document.getElementById("themeSelect").value=theme;
+  if(persist){try{localStorage.setItem(THEME,theme);}catch(e){}}
+}
+function setTheme(name){
+  if(name==="custom"){
+    applyTheme("custom");
+    openThemeModal();
+    return;
+  }
+  applyTheme(name);
+}
+const savedTheme=localStorage.getItem(THEME)||"ink";
+applyTheme(savedTheme==="high"?"high-black":savedTheme,{persist:false});
+document.getElementById("themeSelect").addEventListener("change",e=>setTheme(e.target.value));
+document.getElementById("themeClose").addEventListener("click",closeThemeModal);
+document.getElementById("themeModal").addEventListener("click",e=>{if(e.target.id==="themeModal")closeThemeModal()});
+document.getElementById("customBgColor").addEventListener("input",updateThemePreview);
+document.getElementById("customDetailColor").addEventListener("input",updateThemePreview);
+document.getElementById("themeReset").addEventListener("click",()=>{
+  document.getElementById("customBgColor").value=DEFAULT_CUSTOM_THEME.bg;
+  document.getElementById("customDetailColor").value=DEFAULT_CUSTOM_THEME.detail;
+  updateThemePreview();
+});
+document.getElementById("themeSave").addEventListener("click",()=>{
+  const custom={bg:document.getElementById("customBgColor").value,detail:document.getElementById("customDetailColor").value};
+  try{localStorage.setItem(CUSTOM_THEME,JSON.stringify(custom));}catch(e){}
+  applyTheme("custom");
+  closeThemeModal();
+  toast("Tema personalizado aplicado");
+});
+
+function animeProgress(item){
+  const total=Number(item.total)||0;
+  const watched=Math.max(0,Number(item.watched)||0);
+  return total>0?Math.min(watched/total,1):0;
+}
+
+function createRow(i){
+  const item=data[i]||cloneEmpty();
+  const row=document.createElement("div");
+  row.className="row";
+  row.dataset.index=i;
+  let lookupTimer=null;
+  let lookupToken=0;
+  let lookupController=null;
+
+  row.innerHTML=`
+    <div class="cell">
+      <div class="animeWrap">
+        <span class="eye" aria-label="Progreso del anime"></span>
+        <button class="clearAnime" type="button" aria-label="Eliminar anime" title="Eliminar anime">×</button>
+        <button class="infoBtn" type="button" aria-label="Abrir ficha" title="Abrir ficha">ⓘ</button>
+        <div class="animeMain">
+          <input class="animeInput" placeholder="Escribe un anime..." value="${escapeHtml(item.anime)}">
+          <a class="animeLink" href="#" rel="noopener noreferrer"></a>
+          <div class="meta"></div>
+        </div>
+      </div>
+    </div>
+    <div class="cell duration"><div><strong class="durationText">—</strong><small class="durationSub"></small></div></div>
+    <div class="cell">
+      <div class="progress">
+        <input class="watched" type="number" min="0" placeholder="0" value="${escapeHtml(item.watched)}">
+        <span class="total">/ —</span>
+        <span class="statusText"></span>
+      </div>
+    </div>`;
+  rowsEl.appendChild(row);
+
+  const anime=row.querySelector(".animeInput");
+  const link=row.querySelector(".animeLink");
+  const watched=row.querySelector(".watched");
+  const clear=row.querySelector(".clearAnime");
+  const info=row.querySelector(".infoBtn");
+
+  if(item.anime.trim()){
+    link.textContent=item.anime;
+    link.classList.add("visible");
+  }else anime.classList.add("editing");
+
+  link.addEventListener("click",e=>{
+    e.preventDefault();
+    openSourceModal(i);
+  });
+  link.addEventListener("dblclick",()=>{
+    link.classList.remove("visible");
+    anime.classList.add("editing");anime.focus();anime.select();
+  });
+  info.addEventListener("click",()=>openInfoModal(i));
+
+  clear.addEventListener("click",()=>{
+    if(i>=data.length || !data[i]?.anime?.trim()) return;
+    const item=data[i];
+    if(settings.confirmDelete&&!confirm(`¿Mover ${item.anime} a la papelera?`)) return;
+    lookupToken++;
+    if(lookupTimer) clearTimeout(lookupTimer);
+    if(lookupController){lookupController.abort();lookupController=null;}
+    createBackup("Antes de eliminar",true);
+    trash.unshift({item:JSON.parse(JSON.stringify(item)),deletedAt:Date.now()});
+    storeJson(TRASH_STORAGE,trash);
+    data.splice(i,1);
+    save({skipBackup:true});
+    render();
+    toast("Anime movido a la papelera");
+  });
+
+  function scheduleLookup(){
+    ensure(i);
+
+    const newName=anime.value.trim();
+    const previousName=(data[i].anime||"").trim();
+
+    // Si el nombre cambia de verdad, no dejamos datos del anime anterior visibles
+    // durante la espera de búsqueda.
+    if(newName && previousName && normalize(newName)!==normalize(previousName)){
+      Object.assign(data[i],{
+        total:"",duration:"",durationMin:"",cover:"",genres:[],
+        aniId:"",apiTitle:"",apiStatus:"",apiScore:0,
+        knownTotal:"",airedEpisodes:"",plannedEpisodes:"",
+        nextAiringAt:"",nextAiringEpisode:"",newEpisodes:0,
+        watched:"",state:"viendo",score:"",favorite:false
+      });
+    }
+
+    // El nombre se guarda siempre en MAYÚSCULAS para que sea uniforme y fácil de leer.
+    data[i].anime=anime.value.trim().toLocaleUpperCase("es-ES");
+    row.dataset.waitingSearch=newName ? "true" : "false";
+    anime.classList.add("editing");
+    link.classList.remove("visible");
+
+    if(lookupTimer) clearTimeout(lookupTimer);
+    if(lookupController){
+      lookupController.abort();
+      lookupController=null;
+    }
+    lookupToken++;
+    row.dataset.lookupToken=String(lookupToken);
+
+    if(!anime.value.trim()){
+      row.dataset.waitingSearch="false";
+      Object.assign(data[i],{
+        total:"",duration:"",durationMin:"",state:"",watched:"",
+        cover:"",genres:[],aniId:"",apiTitle:"",apiStatus:"",apiScore:0,
+        knownTotal:"",airedEpisodes:"",plannedEpisodes:"",
+        nextAiringAt:"",nextAiringEpisode:"",newEpisodes:0
+      });
+      save();updateRow(row,data[i],{preserveEdit:true});return;
+    }
+
+    data[i].state=data[i].state||"viendo";
+    save();
+    updateRow(row,data[i],{preserveEdit:true});
+
+    const token=lookupToken;
+    const query=anime.value.trim();
+
+    // No consulta nada mientras el usuario siga escribiendo.
+    // La cuenta atrás empieza de nuevo con cada pulsación.
+    lookupTimer=setTimeout(()=>{
+      if(token!==lookupToken) return;
+      if((anime.value||"").trim()!==query) return;
+      row.dataset.waitingSearch="false";
+      lookupController=new AbortController();
+      lookupAnime(query,i,row,token,lookupController.signal);
+    },LOOKUP_DELAY);
+  }
+
+  anime.addEventListener("input",()=>{
+    scheduleLookup();
+    if(i===data.length-1){ensure(i+1);createRow(i+1);}
+  });
+  watched.addEventListener("input",()=>{
+    ensure(i);
+    let v=watched.value.trim()===""?"":Number(watched.value);
+    if(v!=="" && (!Number.isFinite(v)||v<0)) v=0;
+    if(v!=="" && data[i].total) v=Math.min(v,Number(data[i].total));
+    data[i].watched=v===""?"":String(v);
+    if(v!==""){
+      addActivity();
+      const seen=Number(v)||0;
+      const known=Math.max(0,Number(data[i].knownTotal)||0);
+      if(seen>known){
+        data[i].knownTotal=String(seen);
+        data[i].newEpisodes=data[i].total
+          ? Math.max(0,Number(data[i].total)-seen)
+          : 0;
+      }
+    }
+    if(data[i].total && Number(v)>=Number(data[i].total)) data[i].newEpisodes=0;
+    data[i].updatedAt=Date.now();
+    save();updateRow(row,data[i]);
+  });
+
+  updateRow(row,item);
+}
+
+function render(){
+  rowsEl.innerHTML="";
+  const count=Math.max(data.length+1,8);
+  for(let i=0;i<count;i++) createRow(i);
+  applyFilters();
+  renderStats();
+}
+
+function updateRow(row,item,options={}){
+  const total=Number(item.total)||0;
+  const watched=Math.max(0,Number(item.watched)||0);
+  const progress=animeProgress(item);
+
+  row.querySelector(".total").textContent="/ "+(total||"—");
+  const durationText=row.querySelector(".durationText");
+  durationText.textContent=total?`${formatNumber(total)} capítulos`:"—";
+  row.querySelector(".durationSub").textContent=item.durationMin?`${item.durationMin} min / capítulo`:"";
+
+  const input=row.querySelector(".watched");
+  if(total){
+    input.max=total;
+    if(watched>total){item.watched=String(total);input.value=item.watched}
+  }else input.removeAttribute("max");
+
+  const eye=row.querySelector(".eye");
+  eye.style.setProperty("--open",progress);
+  // Prioridad visual: 10/10 > nota ≤ 3 > favorito > normal.
+  // Así un anime con 10 y favorito SIEMPRE se muestra como diamante.
+  eye.classList.remove("eye-diamond","eye-favorite","eye-poop");
+  const myScore=Number(item.score);
+  if(myScore===10){
+    eye.classList.add("eye-diamond");
+    eye.setAttribute("aria-label","Ojo diamante: anime con nota 10/10");
+  }else if(Number.isFinite(myScore) && item.score!=="" && myScore<=3){
+    eye.classList.add("eye-poop");
+    eye.setAttribute("aria-label","Ojo caca: anime con nota 3 o inferior");
+  }else if(item.favorite){
+    eye.classList.add("eye-favorite");
+    eye.setAttribute("aria-label","Ojo estrella: anime favorito");
+  }else{
+    eye.setAttribute("aria-label","Ojo de progreso del anime");
+  }
+  const meta=row.querySelector(".meta");
+  const chips=[];
+  if(row.dataset.waitingSearch==="true" && item.anime.trim()){
+    chips.push('<span class="chip">⌛ Esperando…</span>');
+  }
+  if(item.favorite) chips.push('<span class="chip fav">★ Favorito</span>');
+  if(item.state) chips.push(`<span class="chip">${statusLabels[item.state]||item.state}</span>`);
+  if(item.score!=="" && item.score!==undefined) chips.push(`<span class="chip">★ ${Number(item.score).toFixed(1)}</span>`);
+  if(item.newEpisodes>0 && watched<total) chips.push(`<span class="chip new">＋${item.newEpisodes} nuevo${item.newEpisodes===1?"":"s"}</span>`);
+  else if(total && watched<total && item.state==="viendo") chips.push(`<span class="chip warn">${formatNumber(total-watched)} pendientes</span>`);
+  meta.innerHTML=chips.join("");
+
+  const st=row.querySelector(".statusText");
+  if(!item.anime.trim()) st.textContent="";
+  else if(row.dataset.waitingSearch==="true"){st.textContent="ESPERANDO";st.className="statusText"}
+  else if(item.total && watched>=total){st.textContent="COMPLETO";st.className="statusText ok"}
+  else if(item.newEpisodes>0){st.textContent="NUEVO";st.className="statusText ok"}
+  else st.textContent="";
+
+  const link=row.querySelector(".animeLink");
+  const anime=row.querySelector(".animeInput");
+  if(item.anime.trim()){
+    // La visualización del nombre es siempre uniforme: MAYÚSCULAS y negrita.
+    link.textContent=String(item.anime).toLocaleUpperCase("es-ES");
+    link.classList.remove("name-favorite","name-poop","name-diamond");
+    const myScore=Number(item.score);
+    if(myScore===10) link.classList.add("name-diamond");
+    else if(Number.isFinite(myScore) && item.score!=="" && myScore<=3) link.classList.add("name-poop");
+    else if(item.favorite) link.classList.add("name-favorite");
+    if(!options.preserveEdit){
+      link.classList.add("visible");
+      anime.classList.remove("editing");
+    }
+  }else{
+    link.classList.remove("visible","name-favorite","name-poop","name-diamond");
+    anime.classList.add("editing");
+  }
+  row.querySelector(".clearAnime").setAttribute("aria-hidden",item.anime.trim()?"false":"true");
+}
+
+function renderStats(){
+  const filled=data.filter(x=>x.anime.trim());
+  const totalKnown=filled.reduce((s,x)=>s+(Number(x.total)||0),0);
+  const watched=filled.reduce((s,x)=>s+(Number(x.watched)||0),0);
+  const completed=filled.filter(x=>(Number(x.total)||0)>0 && Number(x.watched||0)>=Number(x.total)).length;
+  const active=filled.filter(x=>x.state==="viendo").length;
+  const pct=totalKnown?Math.round((watched/totalKnown)*100):0;
+  const hours=filled.reduce((s,x)=>{
+    const min=Number(x.durationMin)||24;
+    return s+(Number(x.watched)||0)*min/60;
+  },0);
+
+  document.getElementById("statAnime").textContent=formatNumber(filled.length);
+  document.getElementById("statActive").textContent=`${formatNumber(active)} activos`;
+  document.getElementById("statCompleted").textContent=formatNumber(completed);
+  document.getElementById("statCompletion").textContent=`${filled.length?Math.round(completed/filled.length*100):0}% de la lista`;
+  document.getElementById("statChapters").textContent=formatNumber(watched);
+  document.getElementById("statKnown").textContent=`${formatNumber(totalKnown)} conocidos`;
+  document.getElementById("statTime").textContent=formatTime(hours);
+  const pending=filled.reduce((sum,x)=>sum+Math.max(0,(Number(x.total)||0)-(Number(x.watched)||0)),0);
+  document.getElementById("statPending").textContent=formatNumber(pending);
+  document.getElementById("statGlobal").textContent=`${pct}%`;
+  document.getElementById("globalBar").style.width=`${pct}%`;
+}
+
+function applyFilters(){
+  const q=normalize(document.getElementById("search").value);
+  const st=document.getElementById("statusFilter").value;
+  const sort=document.getElementById("sortSelect").value;
+  const entries=[...rowsEl.querySelectorAll(".row")];
+  const filled=entries.filter(r=>data[Number(r.dataset.index)]?.anime?.trim());
+
+  filled.forEach(r=>{
+    const item=data[Number(r.dataset.index)];
+    const matchesQ=!q||normalize(item.anime).includes(q);
+    const matchesS=st==="all"||item.state===st;
+    const matchesF=!favoritesOnly||item.favorite;
+    r.classList.toggle("hiddenRow",!(matchesQ&&matchesS&&matchesF));
+  });
+
+  const comparator={
+    name:(a,b)=>a.anime.localeCompare(b.anime,"es"),
+    progress:(a,b)=>animeProgress(b)-animeProgress(a),
+    score:(a,b)=>(Number(b.score)||0)-(Number(a.score)||0),
+    watched:(a,b)=>(Number(b.watched)||0)-(Number(a.watched)||0),
+    new:(a,b)=>(Number(b.newEpisodes)||0)-(Number(a.newEpisodes)||0),
+    added:(a,b)=>(Number(b.addedAt)||0)-(Number(a.addedAt)||0)
+  }[sort]||null;
+
+  if(comparator){
+    const ordered=[...filled].sort((ra,rb)=>comparator(
+      data[Number(ra.dataset.index)],data[Number(rb.dataset.index)]
+    ));
+    ordered.forEach(r=>rowsEl.appendChild(r));
+    entries.filter(r=>!filled.includes(r)).forEach(r=>rowsEl.appendChild(r));
+  }
+}
+["search","statusFilter","sortSelect"].forEach(id=>document.getElementById(id).addEventListener("input",applyFilters));
+document.getElementById("sortSelect").addEventListener("change",applyFilters);
+document.getElementById("favFilter").addEventListener("click",()=>{
+  favoritesOnly=!favoritesOnly;
+  document.getElementById("favFilter").textContent=favoritesOnly?"★ Mostrando favoritos":"☆ Solo favoritos";
+  applyFilters();
+});
+
+/* AniList */
+const ANI_QUERY = `
+query ($search:String!) {
+  Page(page:1,perPage:8) {
+    media(search:$search,type:ANIME,isAdult:false) {
+      id
+      title { romaji english native }
+      episodes
+      duration
+      status
+      format
+      averageScore
+      genres
+      coverImage { large extraLarge }
+      nextAiringEpisode { airingAt episode }
+    }
+  }
+}`;
+
+const ANI_ID_QUERY = `
+query ($id:Int!) {
+  Media(id:$id,type:ANIME) {
+    id
+    title { romaji english native }
+    episodes
+    duration
+    status
+    format
+    averageScore
+    genres
+    coverImage { large extraLarge }
+    nextAiringEpisode { airingAt episode }
+  }
+}`;
+
+async function aniRequest(query,variables,signal=null){
+  const res=await fetch("https://graphql.anilist.co",{
+    method:"POST",
+    headers:{"Content-Type":"application/json","Accept":"application/json"},
+    body:JSON.stringify({query,variables}),
+    ...(signal?{signal}:{})
+  });
+  if(!res.ok) throw new Error("ANILIST_HTTP");
+  const json=await res.json();
+  if(json.errors?.length) throw new Error("ANILIST_QUERY");
+  return json.data;
+}
+
+function chooseAniResult(items,q){
+  if(!items?.length) return null;
+  const nq=normalize(q);
+  return items.find(m=>normalize(m.title?.romaji||"")===nq)
+      ||items.find(m=>normalize(m.title?.english||"")===nq)
+      ||items[0];
+}
+
+function applyAniData(item,m,{first=false}={}){
+  if(!m) return;
+  item.aniId=String(m.id||"");
+  item.apiTitle=m.title?.english||m.title?.romaji||item.anime;
+  item.cover=m.coverImage?.extraLarge||m.coverImage?.large||item.cover||"";
+  item.durationMin=Number(m.duration)||item.durationMin||0;
+  item.genres=Array.isArray(m.genres)?m.genres:[];
+  item.format=m.format||"";
+  item.apiStatus=m.status||"";
+  item.apiScore=(Number(m.averageScore)||0)/10;
+  item.nextAiringAt=Number(m.nextAiringEpisode?.airingAt||0)||"";
+  item.nextAiringEpisode=Number(m.nextAiringEpisode?.episode||0)||"";
+
+  const planned=Number(m.episodes)||0;
+  const nextEpisode=Number(m.nextAiringEpisode?.episode)||0;
+  const scheduled=m.status==="RELEASING" && nextEpisode>0;
+  const unreleased=m.status==="NOT_YET_RELEASED";
+  const aired=scheduled
+    ? Math.max(0,nextEpisode-1)
+    : (unreleased ? 0 : planned);
+
+  item.plannedEpisodes=planned?String(planned):"";
+  item.airedEpisodes=(scheduled || unreleased || aired>0) ? String(aired) : "";
+
+  if(scheduled || unreleased){
+    const oldKnown=Number(item.knownTotal)||0;
+    if(first || !item.knownTotal){
+      item.knownTotal=String(aired);
+      item.total=String(aired);
+      item.newEpisodes=0;
+    }else{
+      item.newEpisodes=Math.max(0,aired-oldKnown);
+      item.knownTotal=String(aired);
+      item.total=String(aired);
+    }
+  }else if(aired>0){
+    const oldKnown=Number(item.knownTotal)||0;
+    if(first || !oldKnown){
+      item.knownTotal=String(aired);
+      item.total=String(aired);
+      item.newEpisodes=0;
+    }else{
+      item.newEpisodes=Math.max(0,aired-oldKnown);
+      item.knownTotal=String(aired);
+      item.total=String(aired);
+    }
+  }else if(planned>0 && !item.total){
+    item.plannedEpisodes=String(planned);
+    item.total=String(planned);
+  }
+  if(first && !item.state) item.state=(item.total && Number(item.watched)>=Number(item.total))?"terminado":"viendo";
+  if(item.total && Number(item.watched)>Number(item.total)) item.watched=String(item.total);
+}
+
+async function lookupWikipedia(q,signal=null){
+  // API clásica con origin=* para que funcione también al abrir el HTML directamente.
+  const api="https://es.wikipedia.org/w/api.php?origin=*&format=json&formatversion=2";
+  const searchUrl=api+"&action=query&list=search&srsearch="+encodeURIComponent(q)+"&srnamespace=0&srlimit=8";
+  const sr=await fetch(searchUrl,{headers:{"Accept":"application/json"},...(signal?{signal}:{})});
+  if(!sr.ok) throw new Error("WIKI_SEARCH");
+  const sj=await sr.json();
+  const pages=sj?.query?.search||[];
+  if(!pages.length) throw new Error("NOT_FOUND");
+  const nq=normalize(q);
+  const page=pages.find(x=>normalize(x.title)===nq)||pages[0];
+
+  const articleUrl=api+"&action=parse&page="+encodeURIComponent(page.title)+"&prop=text|wikitext";
+  const ar=await fetch(articleUrl,{headers:{"Accept":"application/json"},...(signal?{signal}:{})});
+  if(!ar.ok) throw new Error("WIKI_ARTICLE");
+  const aj=await ar.json();
+  const wikiHtml=aj?.parse?.text||"";
+  const wikiText=aj?.parse?.wikitext||"";
+  const plain=decodeHtml(wikiHtml).replace(/\s+/g," ");
+  let total=findEpisodeNumber(plain)||findEpisodeNumber(wikiText);
+
+  if(!total){
+    const patterns=[
+      /(?:número de episodios|n\.?\s*º?\s*de episodios|episodios)\s*[:：]?\s*(\d{1,4})/i,
+      /(\d{1,4})\s+episodios/i,
+      /episodios\s+(\d{1,4})/i
+    ];
+    for(const re of patterns){
+      const m=plain.match(re)||wikiText.match(re);
+      if(m){ total=parseInt(m[1],10); break; }
+    }
+  }
+  return {title:page.title,total:total||null,airing:/en emisión|en emisi[oó]n|actualmente se emite|se emite actualmente/i.test(plain)};
+}
+function decodeHtml(s){const d=document.createElement("div");d.innerHTML=s;return d.textContent||d.innerText||""}
+function findEpisodeNumber(text){
+  const cleaned=text.replace(/\[[^\]]*\]/g," ");
+  for(const re of [
+    /(?:número de episodios|n\.?\s*º?\s*de episodios)\s*[:：]?\s*(\d{1,4})/i,
+    /(?:episodios|episodes)\s*[:：]?\s*(\d{1,4})/i
+  ]){
+    const m=cleaned.match(re);
+    if(m){const n=parseInt(m[1],10);if(n>0&&n<5000)return n}
+  }
+  return null;
+}
+
+async function lookupAnime(query,i,row,token,signal=null){
+  const q=query.trim();
+  if(!q||!row.isConnected) return;
+  if((row.querySelector(".animeInput").value||"").trim()!==q) return;
+  ensure(i);
+  data[i].state="viendo";
+  updateRow(row,data[i]);
+
+  try{
+    let wiki=null;
+    try{
+      wiki=await lookupWikipedia(q,signal);
+    }catch(e){
+      if(e?.name==="AbortError") return;
+    }
+
+    let m=null;
+    try{
+      const ani=await aniRequest(ANI_QUERY,{search:q},signal);
+      m=chooseAniResult(ani?.Page?.media||[],q);
+    }catch(e){
+      if(e?.name==="AbortError") return;
+      console.warn("AniList no respondió; se conservarán los datos de Wikipedia si existen.",e);
+    }
+
+    if((row.querySelector(".animeInput").value||"").trim()!==q) return;
+    if(signal?.aborted || row.dataset.lookupToken!==String(token)) return;
+
+    const first=!data[i].aniId && !data[i].knownTotal;
+    applyAniData(data[i],m,{first});
+    // Wikipedia es la fuente prioritaria para el total mostrado.
+    if(wiki?.total){
+      const oldKnown=Number(data[i].knownTotal)||0;
+      const wikiTotal=Number(wiki.total);
+      data[i].total=String(wikiTotal);
+      data[i].knownTotal=String(wikiTotal);
+      data[i].plannedEpisodes=String(wikiTotal);
+      data[i].airedEpisodes=String(wikiTotal);
+      data[i].newEpisodes=first ? 0 : Math.max(0,wikiTotal-oldKnown);
+      if(Number(data[i].watched)>wikiTotal) data[i].watched=String(wikiTotal);
+    }
+    if(!m && !wiki?.total) throw new Error("NOT_FOUND");
+
+    data[i].duration=data[i].total?`${data[i].total} capítulos`:(wiki?.airing?"En emisión":"No indicado");
+    data[i].updatedAt=Date.now();
+    save();updateRow(row,data[i]);
+  }catch(e){
+    if(e?.name==="AbortError") return;
+    console.error(e);
+    if(signal?.aborted || row.dataset.lookupToken!==String(token)) return;
+    if((row.querySelector(".animeInput").value||"").trim()!==q) return;
+    data[i].state=data[i].state||"viendo";
+    updateRow(row,data[i]);save();
+  }
+}
+
+async function refreshItem(i){
+  const item=data[i];
+  if(!item?.anime?.trim()) return;
+  const active=document.activeElement;
+  const activeRow=active?.closest?.(".row");
+  if(activeRow && Number(activeRow.dataset.index)===i && active.classList.contains("animeInput")) return;
+  try{
+    let m=null;
+    if(item.aniId){
+      const res=await aniRequest(ANI_ID_QUERY,{id:Number(item.aniId)});
+      m=res?.Media||null;
+    }
+    if(!m){
+      const res=await aniRequest(ANI_QUERY,{search:item.anime.trim()});
+      m=chooseAniResult(res?.Page?.media||[],item.anime.trim());
+    }
+    if(m) applyAniData(item,m,{first:false});
+    try{
+      const wiki=await lookupWikipedia(item.anime.trim());
+      if(wiki?.total){
+        const oldKnown=Number(item.knownTotal)||0;
+        const wikiTotal=Number(wiki.total);
+        item.total=String(wikiTotal);
+        item.knownTotal=String(wikiTotal);
+        item.plannedEpisodes=String(wikiTotal);
+        item.airedEpisodes=String(wikiTotal);
+        item.newEpisodes=Math.max(0,wikiTotal-oldKnown);
+        if(Number(item.watched)>wikiTotal) item.watched=String(wikiTotal);
+      }
+    }catch(e){ console.warn("Wikipedia no respondió al actualizar",item.anime,e); }
+    item.updatedAt=Date.now();
+    save();
+  }catch(e){ console.warn("No se pudo actualizar",item.anime,e) }
+}
+
+async function refreshAll(){
+  if(refreshingAll) return;
+  const filled=data.map((x,i)=>({x,i})).filter(o=>o.x.anime.trim());
+  if(!filled.length){toast("No hay animes que actualizar");return}
+
+  const btn=document.getElementById("refreshAll");
+  refreshingAll=true;
+  btn.disabled=true;
+  btn.textContent="↻ Actualizando...";
+
+  try{
+    for(const o of filled) await refreshItem(o.i);
+    render();
+    toast("Biblioteca actualizada");
+  }catch(e){
+    console.error("Error general al actualizar la biblioteca",e);
+    render();
+    toast("La actualización terminó con algún error");
+  }finally{
+    refreshingAll=false;
+    btn.disabled=false;
+    btn.textContent="↻ Actualizar";
+  }
+}
+document.getElementById("refreshAll").addEventListener("click",refreshAll);
+
+function openInfoModal(i){
+  infoIndex=i;
+  const item=data[i];
+  document.getElementById("infoTitle").textContent=item.anime||"Anime";
+  document.getElementById("infoSub").textContent=[item.apiTitle,item.format].filter(Boolean).join(" · ")||"Sin datos adicionales";
+
+  const cover=document.getElementById("infoCoverWrap");
+  cover.innerHTML=item.cover
+    ? `<img class="cover" src="${escapeHtml(item.cover)}" alt="Portada de ${escapeHtml(item.anime)}" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'coverPlaceholder',textContent:'Sin portada'}))">`
+    : `<div class="coverPlaceholder">Sin portada</div>`;
+
+  document.getElementById("infoGenres").innerHTML=(item.genres||[]).map(g=>`<span class="genre">${escapeHtml(g)}</span>`).join("");
+  document.getElementById("infoApiScore").textContent=item.apiScore?`${item.apiScore.toFixed(1)}/10`:"—";
+  const current=item.total!=="" ? `${item.watched||0} / ${item.total}` : "—";
+  const planned=item.plannedEpisodes && item.plannedEpisodes!==item.airedEpisodes
+    ? ` · ${item.plannedEpisodes} previstos` : "";
+  document.getElementById("infoEpisodes").textContent=current+planned;
+  document.getElementById("infoAiring").textContent=prettyAiring(item.apiStatus);
+  document.getElementById("infoStatus").value=item.state||"viendo";
+  document.getElementById("infoScore").value=item.score===""?"":item.score;
+  document.getElementById("infoFav").checked=Boolean(item.favorite);
+
+  const na=document.getElementById("nextAiring");
+  if(item.nextAiringAt && item.nextAiringEpisode){
+    na.classList.remove("hidden");
+    na.textContent=`Próximo episodio: ${item.nextAiringEpisode} · ${new Date(item.nextAiringAt*1000).toLocaleString("es-ES")}`;
+  }else na.classList.add("hidden");
+
+  document.getElementById("infoModal").classList.remove("hidden");
+}
+function prettyAiring(s){
+  return ({
+    FINISHED:"Terminado",RELEASING:"En emisión",NOT_YET_RELEASED:"Próximo",
+    CANCELLED:"Cancelado",HIATUS:"En pausa"
+  })[s]||"—";
+}
+function closeInfoModal(){
+  document.getElementById("infoModal").classList.add("hidden");infoIndex=null;
+}
+document.getElementById("infoClose").addEventListener("click",closeInfoModal);
+document.getElementById("infoModal").addEventListener("click",e=>{if(e.target.id==="infoModal")closeInfoModal()});
+document.getElementById("infoSave").addEventListener("click",()=>{
+  if(infoIndex===null)return;
+  const item=data[infoIndex];
+  item.state=document.getElementById("infoStatus").value;
+  let score=document.getElementById("infoScore").value.trim();
+  item.score=score===""?"":Math.max(0,Math.min(10,Number(score)));
+  item.favorite=document.getElementById("infoFav").checked;
+  item.updatedAt=Date.now();
+  if(item.state==="terminado"&&item.total)item.watched=String(item.total);
+  save();render();closeInfoModal();toast("Ficha guardada");
+});
+document.getElementById("infoSources").addEventListener("click",()=>{
+  if(infoIndex===null)return;
+  const i=infoIndex;closeInfoModal();openSourceModal(i);
+});
+
+function achievements(){
+  const filled=data.filter(x=>x.anime.trim());
+  const chapters=filled.reduce((s,x)=>s+(Number(x.watched)||0),0);
+  const completed=filled.filter(x=>x.total&&Number(x.watched)>=Number(x.total)).length;
+  const favorites=filled.filter(x=>x.favorite).length;
+  const rated=filled.filter(x=>x.score!==""&&x.score!==undefined);
+  const scoreCount=rated.length;
+  const active=filled.filter(x=>x.state==="viendo").length;
+  const paused=filled.filter(x=>x.state==="pausa").length;
+  const abandoned=filled.filter(x=>x.state==="abandonado").length;
+  const pending=filled.reduce((sum,x)=>sum+Math.max(0,(Number(x.total)||0)-(Number(x.watched)||0)),0);
+  const totalKnown=filled.reduce((s,x)=>s+(Number(x.total)||0),0);
+  const globalProgress=totalKnown?chapters/totalKnown:0;
+  const avg=scoreCount?rated.reduce((s,x)=>s+Number(x.score),0)/scoreCount:0;
+  const tens=rated.filter(x=>Number(x.score)===10).length;
+  const lows=rated.filter(x=>Number(x.score)<=3).length;
+  const high=rated.filter(x=>Number(x.score)>=9).length;
+  const genres=new Set(filled.flatMap(x=>Array.isArray(x.genres)?x.genres:[]).filter(Boolean).map(g=>String(g).toLowerCase().trim()));
+  const withCover=filled.filter(x=>String(x.cover||"").trim()).length;
+  const withInfo=filled.filter(x=>x.genres?.length||x.format||x.apiStatus||x.durationMin).length;
+  const newEpisodes=filled.reduce((s,x)=>s+(Number(x.newEpisodes)||0),0);
+  const achievements=[];
+  const push=(icon,title,desc,ok)=>achievements.push([icon,title,desc,Boolean(ok)]);
+
+  // Descubrimiento y biblioteca (16)
+  [[1,"👀","Primer seguimiento","Añade tu primer anime"],[3,"🌱","Trío inicial","Sigue 3 animes"],[5,"📖","Primer estante","Ten 5 animes en la biblioteca"],[10,"📚","Biblioteca personal","Ten 10 animes en la biblioteca"],[20,"🗂️","Archivista novato","Ten 20 animes en la biblioteca"],[30,"🏛️","Colección seria","Ten 30 animes en la biblioteca"],[50,"🗃️","Gran archivo","Ten 50 animes en la biblioteca"],[75,"💎","Colección élite","Ten 75 animes en la biblioteca"],[100,"👑","Centenar anime","Ten 100 animes en la biblioteca"],[150,"🌌","Universo propio","Ten 150 animes en la biblioteca"],[200,"🪐","Galaxia anime","Ten 200 animes en la biblioteca"],[250,"🚀","Archivo infinito","Ten 250 animes en la biblioteca"]].forEach(([n,i,t,d])=>push(i,t,d,filled.length>=n));
+  push("🖼️","Biblioteca ilustrada","Ten 10 animes con portada",withCover>=10);
+  push("🧭","Explorador de géneros","Ten información de 5 géneros diferentes",genres.size>=5);
+  push("🌈","Géneros sin fronteras","Ten información de 15 géneros diferentes",genres.size>=15);
+  push("🔎","Ficha completa","Ten 10 animes con información adicional",withInfo>=10);
+
+  // Capítulos y tiempo de visionado (16)
+  [[1,"🌱","Primer paso","Ve tu primer capítulo"],[10,"👀","Calentando","Ve 10 capítulos"],[25,"📺","Sesión larga","Ve 25 capítulos"],[50,"⚡","Velocidad","Ve 50 capítulos"],[100,"💯","Cien capítulos","Ve 100 capítulos"],[200,"🌙","Doscientos","Ve 200 capítulos"],[365,"☀️","Año de capítulos","Ve 365 capítulos"],[500,"🏅","Maratón 500","Ve 500 capítulos"],[1000,"🚀","Despegue","Ve 1.000 capítulos"],[2500,"🔥","Maratonista","Ve 2.500 capítulos"],[5000,"👑","Veterano del anime","Ve 5.000 capítulos"],[10000,"🌌","Leyenda anime","Ve 10.000 capítulos"]].forEach(([n,i,t,d])=>push(i,t,d,chapters>=n));
+  push("🎬","Maratón personal","Ten al menos 100 capítulos vistos en total",chapters>=100);
+  push("⏱️","Tiempo invertido","Acumula unas 100 horas estimadas de anime",filled.reduce((s,x)=>s+(Number(x.watched)||0)*(Number(x.durationMin)||24)/60,0)>=100);
+  push("🕰️","Reloj otaku","Acumula unas 500 horas estimadas de anime",filled.reduce((s,x)=>s+(Number(x.watched)||0)*(Number(x.durationMin)||24)/60,0)>=500);
+  push("🎞️","Pantalla encendida","Ten 20 animes con al menos un capítulo visto",filled.filter(x=>Number(x.watched)>0).length>=20);
+
+  // Finales (14)
+  [[1,"🎉","Primer final","Completa tu primer anime"],[3,"🏆","Triplete final","Completa 3 animes"],[5,"🎬","Temporada terminada","Completa 5 animes"],[10,"📚","Diez finales","Completa 10 animes"],[15,"🎓","Veterano","Completa 15 animes"],[25,"👑","Maestro","Completa 25 animes"],[50,"🏅","Cazador de finales","Completa 50 animes"],[75,"🌟","Finalista élite","Completa 75 animes"],[100,"💯","Centurión","Completa 100 animes"]].forEach(([n,i,t,d])=>push(i,t,d,completed>=n));
+  push("🎯","Cierre perfecto","Completa un anime con progreso del 100%",filled.some(x=>animeProgress(x)>=1));
+  push("🧹","Sin cabos sueltos","No tengas episodios pendientes y tengas al menos 3 animes",filled.length>=3&&pending===0);
+  push("⚔️","Conquistador","Completa al menos la mitad de tu biblioteca",filled.length>=4&&completed/filled.length>=0.5);
+  push("🏰","Biblioteca conquistada","Completa el 75% de tu biblioteca",filled.length>=4&&completed/filled.length>=0.75);
+  push("👑","Perfeccionista","Completa toda una biblioteca de al menos 10 animes",filled.length>=10&&completed===filled.length);
+
+  // Notas y crítica (20)
+  [[1,"📝","Primera opinión","Puntúa tu primer anime"],[3,"✍️","Crítico en marcha","Puntúa 3 animes"],[5,"⭐","Crítico","Puntúa 5 animes"],[10,"🧐","Crítico serio","Puntúa 10 animes"],[25,"🎓","Crítico experto","Puntúa 25 animes"],[50,"🏛️","Jurado anime","Puntúa 50 animes"]].forEach(([n,i,t,d])=>push(i,t,d,scoreCount>=n));
+  push("💩","La caca apareció","Pon una nota de 3 o menos",lows>=1);
+  push("💩","Colección de cacas","Ten 3 animes con nota de 3 o menos",lows>=3);
+  push("😐","Ni fu ni fa","Pon un 5 a algún anime",rated.some(x=>Number(x.score)===5));
+  push("👍","Recomendable","Pon un 7 o más a algún anime",rated.some(x=>Number(x.score)>=7));
+  push("🔥","Obra maestra","Pon un 9 o más a algún anime",high>=1);
+  push("💎","Diamante encontrado","Pon un 10 a algún anime",tens>=1);
+  push("💎💎","Doble diamante","Ten 2 animes con 10",tens>=2);
+  push("👑","Colección de diamantes","Ten 5 animes con 10",tens>=5);
+  push("🌟","Tesoro nacional","Ten 10 animes con 10",tens>=10);
+  [[6,"📊","Media sólida"],[7,"📈","Buen gusto"],[8,"✨","Gran selección"],[9,"🔥","Nivel obra maestra"]].forEach(([n,i,t])=>push(i,t,`Mantén una nota media de ${n}/10 o más`,scoreCount>=5&&avg>=n));
+  push("⚖️","Crítico equilibrado","Ten al menos una nota baja y una nota de 10",lows>=1&&tens>=1);
+  push("🎭","Gustos variados","Usa al menos 5 notas diferentes",new Set(rated.map(x=>Number(x.score))).size>=5);
+  push("🔟","Diez perfecto","Completa un anime y ponle un 10",filled.some(x=>Number(x.score)===10&&x.total&&Number(x.watched)>=Number(x.total)));
+
+  // Favoritos y estados (14)
+  [[1,"💛","Primer amor","Añade tu primer favorito"],[3,"❤️","Corazón triple","Ten 3 favoritos"],[5,"🌟","Colección dorada","Ten 5 favoritos"],[10,"👑","Sala de la fama","Ten 10 favoritos"],[25,"🏆","Élite dorada","Ten 25 favoritos"],[50,"💛","Corazón infinito","Ten 50 favoritos"]].forEach(([n,i,t,d])=>push(i,t,d,favorites>=n));
+  push("▶️","En emisión personal","Ten 3 animes en estado viendo",active>=3);
+  push("📺","Agenda ocupada","Ten 10 animes en estado viendo",active>=10);
+  push("⏸️","Necesito descansar","Pon un anime en pausa",paused>=1);
+  push("🛋️","Sala de espera","Ten 5 animes en pausa",paused>=5);
+  push("💀","Hasta aquí","Abandona un anime",abandoned>=1);
+  push("🧱","Cementerio anime","Ten 5 animes abandonados",abandoned>=5);
+  push("📌","Lista pendiente","Ten 25 episodios pendientes",pending>=25);
+  push("📬","Semana ocupada","Ten 5 episodios nuevos detectados",newEpisodes>=5);
+
+  // Progreso y objetivos (14)
+  [[0.25,"🐣","Cuarto de camino","Alcanza el 25% de progreso en algún anime"],[0.5,"📈","A mitad de camino","Alcanza el 50% de progreso en algún anime"],[0.75,"🔥","Recta final","Alcanza el 75% de progreso en algún anime"],[0.9,"🎯","Casi ahí","Alcanza el 90% de progreso en algún anime"]].forEach(([n,i,t,d])=>push(i,t,d,filled.some(x=>animeProgress(x)>=n)));
+  [[0.1,"🌱","Biblioteca despierta"],[0.25,"📚","Biblioteca avanzando"],[0.5,"⚡","Media biblioteca"],[0.75,"🏹","Gran conquista"],[0.9,"👑","Biblioteca casi perfecta"]].forEach(([n,i,t])=>push(i,t,`Alcanza ${(n*100)}% de progreso global`,totalKnown>0&&globalProgress>=n));
+  push("🔄","Todo en marcha","Ten al menos 5 animes con progreso entre 1% y 99%",filled.filter(x=>animeProgress(x)>0&&animeProgress(x)<1).length>=5);
+  push("🚦","Primer movimiento","Ten 10 animes con algún capítulo visto",filled.filter(x=>Number(x.watched)>0).length>=10);
+  push("🏁","Sin pendientes personales","No tengas episodios pendientes en 5 o más animes",filled.length>=5&&pending===0);
+  push("📡","Al día","No tengas episodios nuevos pendientes detectados y tengas 5 animes con información",filled.length>=5&&newEpisodes===0&&withInfo>=5);
+  push("🧩","Biblioteca completa","Ten al menos un anime viendo, terminado, en pausa y abandonado",active>=1&&completed>=1&&paused>=1&&abandoned>=1);
+
+  // Especiales (14) -> total 108
+  push("🗓️","Regreso","Ten un anime añadido hace más de 30 días",filled.some(x=>Date.now()-Number(x.addedAt||Date.now())>=30*86400000));
+  push("⌛","Archivo histórico","Ten un anime añadido hace más de 180 días",filled.some(x=>Date.now()-Number(x.addedAt||Date.now())>=180*86400000));
+  push("🆕","Recién llegado","Ten un anime añadido en las últimas 24 horas",filled.some(x=>Date.now()-Number(x.addedAt||0)<=86400000));
+  push("🎨","Coleccionista visual","Ten 25 animes con portada",withCover>=25);
+  push("🧠","Biblioteca informada","Ten 25 animes con ficha enriquecida",withInfo>=25);
+  push("🌍","Explorador total","Registra 20 géneros diferentes",genres.size>=20);
+  push("🪄","Favorito diamante","Ten un anime favorito con nota 10",filled.some(x=>x.favorite&&Number(x.score)===10));
+  push("💩⭐","Contrastes","Ten un favorito con 3 o menos y otro con 10",filled.some(x=>x.favorite&&Number(x.score)<=3)&&tens>=1);
+  push("🎯","Precisión","Completa 5 animes puntuados",filled.filter(x=>x.total&&Number(x.watched)>=Number(x.total)&&x.score!==""&&x.score!==undefined).length>=5);
+  push("📦","Biblioteca equilibrada","Ten al menos 5 animes en cada uno de viendo, terminado y pendiente",active>=5&&completed>=5&&filled.filter(x=>x.state==="pendiente").length>=5);
+  push("🌊","Gran oleada","Ten 100 episodios pendientes",pending>=100);
+  push("🧨","Maratón extrema","Ve 2.000 capítulos",chapters>=2000);
+  push("🏅","Doble especialidad","Ten 25 animes completados y 25 puntuados",completed>=25&&scoreCount>=25);
+  push("👁️‍🗨️","Todo controlado","Ten 50 animes y más de la mitad con información completa",filled.length>=50&&withInfo>=Math.ceil(filled.length/2));
+
+  // Exactamente 108 logros, sin logros de racha.
+  return achievements.slice(0,108);
+}
+function unlockedAchievementTitles(){
+  return achievements().filter(a=>a[3]).map(a=>a[1]);
+}
+function showAchievementPopup(item){
+  if(!settings.achievementPopups) return;
+  const el=document.getElementById("achievementToast");
+  if(!el) return;
+  el.innerHTML=`<div class="achievementToastIcon">${item[0]}</div><div><small>¡LOGRO COMPLETADO!</small><strong>${escapeHtml(item[1])}</strong><span>${escapeHtml(item[2])}</span></div>`;
+  el.classList.add("show");
+  clearTimeout(achievementToastTimer);
+  achievementToastTimer=setTimeout(()=>{
+    el.classList.remove("show");
+    setTimeout(()=>{
+      const next=achievementQueue.shift();
+      if(next) showAchievementPopup(next);
+    },260);
+  },3200);
+}
+function checkNewAchievements(){
+  const current=unlockedAchievementTitles();
+  let previous;
+  try{ previous=JSON.parse(localStorage.getItem(ACHIEVEMENTS_STORAGE)||"null"); }catch(e){ previous=null; }
+  if(!Array.isArray(previous)){
+    try{ localStorage.setItem(ACHIEVEMENTS_STORAGE,JSON.stringify(current)); }catch(e){}
+    return;
+  }
+  const newItems=achievements().filter(a=>a[3]&&!previous.includes(a[1]));
+  if(newItems.length){
+    try{ localStorage.setItem(ACHIEVEMENTS_STORAGE,JSON.stringify(current)); }catch(e){}
+    if(document.getElementById("achievementToast").classList.contains("show")) achievementQueue.push(...newItems);
+    else {
+      const [first,...rest]=newItems;
+      achievementQueue.push(...rest);
+      showAchievementPopup(first);
+    }
+  } else {
+    try{ localStorage.setItem(ACHIEVEMENTS_STORAGE,JSON.stringify(current)); }catch(e){}
+  }
+}
+
+function openAchievements(){
+  document.getElementById("achievements").innerHTML=achievements().map(a=>`
+    <div class="badge ${a[3]?"unlocked":""}">
+      <div class="icon">${a[0]}</div><strong>${a[1]}</strong><span>${a[2]}</span>
+    </div>`).join("");
+  document.getElementById("achModal").classList.remove("hidden");
+}
+function closeAchievements(){document.getElementById("achModal").classList.add("hidden")}
+document.getElementById("achClose").addEventListener("click",closeAchievements);
+document.getElementById("achBtn").addEventListener("click",openAchievements);
+document.getElementById("achModal").addEventListener("click",e=>{if(e.target.id==="achModal")closeAchievements()});
+
+function toast(msg){
+  const el=document.getElementById("toast");
+  el.textContent=msg;el.classList.add("show");
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),2200);
+}
+
+/* v25 · estado completo, copias, papelera, perfil y configuración */
+function appSnapshot(){
+  return {
+    schema:25,
+    data:JSON.parse(JSON.stringify(data)),
+    activity:loadJson(ACTIVITY_STORAGE,[]),
+    unlockedAchievements:loadJson(ACHIEVEMENTS_STORAGE,[]),
+    theme:localStorage.getItem(THEME)||"ink",
+    customTheme:loadJson(CUSTOM_THEME,DEFAULT_CUSTOM_THEME),
+    profile:{...DEFAULT_PROFILE,...profile},
+    settings:{...DEFAULT_SETTINGS,...settings},
+    trash:JSON.parse(JSON.stringify(trash))
+  };
+}
+function createBackup(reason="Manual",force=false){
+  const now=Date.now();
+  if(!force&&now-lastAutoBackup<15*60*1000) return false;
+  const snap=appSnapshot();
+  backups.unshift({id:`b${now}`,createdAt:now,reason,snapshot:snap});
+  backups=backups.slice(0,5);
+  lastAutoBackup=now;
+  storeJson(BACKUPS_STORAGE,backups);
+  if(document.getElementById("settingsModal")&&!document.getElementById("settingsModal").classList.contains("hidden")) renderBackupList();
+  return true;
+}
+function restoreSnapshot(snap,{fromImport=false}={}){
+  if(!snap||typeof snap!=="object") throw new Error("Formato");
+  const incoming=Array.isArray(snap)?snap:(Array.isArray(snap.data)?snap.data:null);
+  if(!incoming) throw new Error("Formato");
+  data=incoming.map(normalizeItem);
+  if(!Array.isArray(snap)){
+    storeJson(ACTIVITY_STORAGE,Array.isArray(snap.activity)?snap.activity:[]);
+    if(Array.isArray(snap.unlockedAchievements)) storeJson(ACHIEVEMENTS_STORAGE,snap.unlockedAchievements);
+    if(snap.theme) localStorage.setItem(THEME,String(snap.theme));
+    if(snap.customTheme) storeJson(CUSTOM_THEME,{...DEFAULT_CUSTOM_THEME,...snap.customTheme});
+    if(snap.profile){profile={...DEFAULT_PROFILE,...snap.profile};storeJson(PROFILE_STORAGE,profile);}
+    if(snap.settings){settings={...DEFAULT_SETTINGS,...snap.settings};storeJson(SETTINGS_STORAGE,settings);}
+    trash=Array.isArray(snap.trash)?snap.trash:[];storeJson(TRASH_STORAGE,trash);
+  }
+  save({skipBackup:true});
+  applyTheme(localStorage.getItem(THEME)||"ink",{persist:false});
+  render();
+  updateSaveStatus();
+  if(fromImport) toast("Copia completa importada");
+}
+function exportComplete(){
+  const payload={app:"AnimeTracker",version:25,exportedAt:new Date().toISOString(),...appSnapshot(),backups};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+  const a=document.createElement("a"),url=URL.createObjectURL(blob);
+  a.href=url;a.download=`anime-tracker-v25-${localDateKey()}.json`;a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);toast("Copia completa exportada");
+}
+function pruneTrash(){
+  const limit=Date.now()-30*86400000;
+  const before=trash.length;
+  trash=trash.filter(x=>Number(x?.deletedAt||0)>=limit&&x?.item);
+  if(trash.length!==before) storeJson(TRASH_STORAGE,trash);
+}
+function renderTrash(){
+  pruneTrash();
+  const el=document.getElementById("trashList");
+  if(!trash.length){el.innerHTML='<div class="trashEmpty">La papelera está vacía.</div>';return;}
+  el.innerHTML=trash.map((x,i)=>`<div class="trashItem"><div><strong>${escapeHtml(x.item?.anime||"Anime")}</strong><span>Eliminado ${new Date(x.deletedAt).toLocaleString("es-ES")}</span></div><div class="trashActions"><button data-restore="${i}">Restaurar</button><button data-delete="${i}">Eliminar</button></div></div>`).join("");
+  el.querySelectorAll("[data-restore]").forEach(b=>b.addEventListener("click",()=>{
+    const i=Number(b.dataset.restore),entry=trash[i];if(!entry)return;
+    data.push(normalizeItem(entry.item));trash.splice(i,1);storeJson(TRASH_STORAGE,trash);save();render();renderTrash();toast("Anime restaurado");
+  }));
+  el.querySelectorAll("[data-delete]").forEach(b=>b.addEventListener("click",()=>{
+    const i=Number(b.dataset.delete),entry=trash[i];if(!entry)return;
+    if(!confirm(`¿Eliminar definitivamente ${entry.item?.anime||"este anime"}?`))return;
+    trash.splice(i,1);storeJson(TRASH_STORAGE,trash);renderTrash();toast("Eliminado definitivamente");
+  }));
+}
+function bytesText(n){if(n<1024)return `${n} B`;if(n<1048576)return `${(n/1024).toFixed(1)} KB`;return `${(n/1048576).toFixed(2)} MB`;}
+function storageUsage(){
+  let bytes=0;for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i),v=localStorage.getItem(k)||"";bytes+=(k.length+v.length)*2;}return bytes;
+}
+function renderBackupList(){
+  const el=document.getElementById("backupList");if(!el)return;
+  if(!backups.length){el.innerHTML='<div class="trashEmpty">Todavía no hay copias locales.</div>';return;}
+  el.innerHTML=backups.map((b,i)=>`<div class="backupItem"><div><strong>${escapeHtml(b.reason||"Copia")}</strong><span>${new Date(b.createdAt).toLocaleString("es-ES")}</span></div><button data-backup="${i}">Restaurar</button></div>`).join("");
+  el.querySelectorAll("[data-backup]").forEach(btn=>btn.addEventListener("click",()=>{
+    const b=backups[Number(btn.dataset.backup)];if(!b)return;
+    if(!confirm("¿Restaurar esta copia? Se creará una copia del estado actual antes de continuar."))return;
+    createBackup("Antes de restaurar",true);restoreSnapshot(b.snapshot);renderBackupList();toast("Copia restaurada");
+  }));
+}
+function profileInitials(){return (profile.name||"AT").trim().split(/\s+/).slice(0,2).map(x=>x[0]||"").join("").toUpperCase()||"AT";}
+function setAvatar(el){if(!el)return;el.innerHTML=profile.avatar?`<img src="${profile.avatar}" alt="Foto de perfil">`:escapeHtml(profileInitials());}
+function refreshProfileUI(){
+  setAvatar(document.getElementById("profileAvatar"));
+  setAvatar(document.getElementById("profileTopBtn"));
+  const top=document.getElementById("profileTopInitials");if(top)top.style.display=profile.avatar?"none":"";
+  const d=document.getElementById("profileDisplayName");if(d)d.textContent=profile.name||"Usuario";
+  const e=document.getElementById("profileEmailDisplay");if(e)e.textContent=profile.email||"Sin correo configurado";
+}
+function openSettings(){
+  profile={...DEFAULT_PROFILE,...profile};settings={...DEFAULT_SETTINGS,...settings};
+  document.getElementById("profileName").value=profile.name||"Usuario";
+  document.getElementById("profileEmail").value=profile.email||"";
+  refreshProfileUI();
+  document.getElementById("profileSince").textContent=`Perfil local desde ${formatDate(profile.createdAt)}`;
+  document.getElementById("settingConfirmDelete").checked=!!settings.confirmDelete;
+  document.getElementById("settingAutoBackup").checked=!!settings.autoBackup;
+  document.getElementById("settingAchievementPopups").checked=!!settings.achievementPopups;
+  const bytes=storageUsage(),approxLimit=5*1024*1024,pct=Math.min(100,bytes/approxLimit*100);
+  document.getElementById("storageUsed").textContent=`Usado aprox.: ${bytesText(bytes)}`;
+  document.getElementById("storageDescription").textContent=`Tu biblioteca está guardada en este navegador. Uso aproximado: ${bytesText(bytes)}.`;
+  document.getElementById("storageBar").style.width=`${pct}%`;
+  renderBackupList();document.getElementById("settingsModal").classList.remove("hidden");
+}
+function closeSettings(){document.getElementById("settingsModal").classList.add("hidden");}
+function openTrash(){renderTrash();document.getElementById("trashModal").classList.remove("hidden");}
+function closeTrash(){document.getElementById("trashModal").classList.add("hidden");}
+
+document.getElementById("settingsBtn").addEventListener("click",openSettings);
+document.getElementById("profileTopBtn").addEventListener("click",openSettings);
+document.getElementById("settingsClose").addEventListener("click",closeSettings);
+document.getElementById("settingsModal").addEventListener("click",e=>{if(e.target.id==="settingsModal")closeSettings();});
+document.getElementById("trashBtn").addEventListener("click",openTrash);
+document.getElementById("trashClose").addEventListener("click",closeTrash);
+document.getElementById("trashModal").addEventListener("click",e=>{if(e.target.id==="trashModal")closeTrash();});
+document.getElementById("profileSave").addEventListener("click",()=>{
+  const name=document.getElementById("profileName").value.trim().slice(0,32)||"Usuario";
+  const email=document.getElementById("profileEmail").value.trim().slice(0,120);
+  if(email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){toast("Introduce un correo válido");return;}
+  profile={...profile,name,email,createdAt:Number(profile.createdAt)||Date.now()};storeJson(PROFILE_STORAGE,profile);refreshProfileUI();openSettings();toast("Perfil guardado");
+});
+document.getElementById("profilePhotoBtn").addEventListener("click",()=>document.getElementById("profilePhotoInput").click());
+document.getElementById("profilePhotoInput").addEventListener("change",async e=>{
+  const f=e.target.files?.[0];if(!f)return;if(!f.type.startsWith("image/")){toast("Selecciona una imagen válida");return;}
+  if(f.size>2*1024*1024){toast("La imagen es demasiado grande (máximo 2 MB)");return;}
+  const reader=new FileReader();reader.onload=()=>{profile={...profile,avatar:String(reader.result||"")};storeJson(PROFILE_STORAGE,profile);refreshProfileUI();toast("Foto de perfil actualizada");};reader.readAsDataURL(f);
+});
+document.getElementById("profilePhotoRemove").addEventListener("click",()=>{profile={...profile,avatar:""};storeJson(PROFILE_STORAGE,profile);refreshProfileUI();toast("Foto de perfil eliminada");});
+["settingConfirmDelete","settingAutoBackup","settingAchievementPopups"].forEach(id=>document.getElementById(id).addEventListener("change",()=>{
+  settings={confirmDelete:document.getElementById("settingConfirmDelete").checked,autoBackup:document.getElementById("settingAutoBackup").checked,achievementPopups:document.getElementById("settingAchievementPopups").checked};
+  storeJson(SETTINGS_STORAGE,settings);toast("Ajustes guardados");
+}));
+document.getElementById("backupNow").addEventListener("click",()=>{createBackup("Manual",true);renderBackupList();toast("Copia local creada");});
+document.getElementById("emptyTrash").addEventListener("click",()=>{if(!trash.length)return;if(confirm("¿Vaciar la papelera definitivamente?")){trash=[];storeJson(TRASH_STORAGE,trash);renderTrash();toast("Papelera vaciada");}});
+document.getElementById("resetAll").addEventListener("click",()=>{
+  if(!confirm("¿Borrar TODOS los datos de AnimeTracker de este navegador?"))return;
+  if(!confirm("Esta acción elimina biblioteca, papelera, copias, perfil, logros y ajustes. ¿Continuar?"))return;
+  exportComplete();
+  [STORAGE,ACTIVITY_STORAGE,ACHIEVEMENTS_STORAGE,THEME,CUSTOM_THEME,PROFILE_STORAGE,SETTINGS_STORAGE,TRASH_STORAGE,BACKUPS_STORAGE,LAST_SAVE_STORAGE].forEach(k=>localStorage.removeItem(k));
+  data=[];trash=[];backups=[];profile={...DEFAULT_PROFILE,createdAt:Date.now()};settings={...DEFAULT_SETTINGS};applyTheme("ink");render();closeSettings();toast("Datos locales borrados");
+});
+
+document.getElementById("exportBtn").addEventListener("click",exportComplete);
+document.getElementById("settingsExport").addEventListener("click",exportComplete);
+document.getElementById("importBtn").addEventListener("click",()=>document.getElementById("importFile").click());
+document.getElementById("settingsImport").addEventListener("click",()=>document.getElementById("importFile").click());
+document.getElementById("importFile").addEventListener("change",async e=>{
+  const file=e.target.files?.[0];if(!file)return;
+  try{
+    const obj=JSON.parse(await file.text());
+    const incoming=Array.isArray(obj)?obj:obj.data;
+    if(!Array.isArray(incoming))throw new Error("Formato");
+    if(!confirm(`¿Importar ${incoming.length} animes? Se hará una copia del estado actual antes de reemplazarlo.`)){e.target.value="";return;}
+    createBackup("Antes de importar",true);
+    restoreSnapshot(obj,{fromImport:true});
+    if(Array.isArray(obj.backups)){backups=obj.backups.slice(0,5);storeJson(BACKUPS_STORAGE,backups);}
+    closeSettings();
+  }catch(err){console.error(err);toast("Archivo no válido o incompatible");}
+  e.target.value="";
+});
+
+/* Keyboard / modal close */
+document.addEventListener("keydown",e=>{
+  if(e.key!=="Escape")return;
+  closeSourceModal();closeInfoModal();closeAchievements();closeThemeModal();closeSettings();closeTrash();
+});
+
+/* "Logros" remains accessible from a compact key shortcut and is shown in dashboard via double click. */
+document.querySelector(".brand h1").addEventListener("dblclick",openAchievements);
+
+/* Automatic episode refresh every 30 min. */
+setInterval(()=>refreshAll(),30*60*1000);
+
+profile={...DEFAULT_PROFILE,...profile};
+settings={...DEFAULT_SETTINGS,...settings};
+refreshProfileUI();
+storeJson(PROFILE_STORAGE,profile);storeJson(SETTINGS_STORAGE,settings);
+pruneTrash();updateSaveStatus();
+if(settings.autoBackup) createBackup("Inicio de sesión local",false);
+render();
+</script>
+
+<button class="cloud-account-btn" id="cloudAccountBtn" title="Cuenta">☁️</button>
+<div class="cloud-user-menu" id="cloudUserMenu"><div id="cloudUserLabel" style="padding:8px;font-weight:800"></div><button id="cloudSyncBtn">☁️ Sincronizar ahora</button><button id="cloudLogoutBtn">Cerrar sesión</button></div>
+<div class="cloud-auth-overlay" id="cloudAuthOverlay"><div class="cloud-auth-card"><h2 id="cloudAuthTitle">Tu cuenta</h2><p id="cloudAuthText">Crea una cuenta o inicia sesión para sincronizar tu AnimeTracker.</p><input id="cloudName" placeholder="Nombre de usuario (para registrarte)"><input id="cloudEmail" type="email" placeholder="Correo electrónico"><input id="cloudPassword" type="password" placeholder="Contraseña (mínimo 6 caracteres)"><div class="cloud-auth-actions"><button id="cloudLogin">Iniciar sesión</button><button id="cloudRegister" class="secondary">Crear cuenta</button><button id="cloudReset" class="secondary">Recuperar contraseña</button><button id="cloudClose" class="secondary">Cerrar</button></div><div class="cloud-status" id="cloudStatus"></div></div></div>
+<script>
+(() => {
+ const SUPABASE_URL='https://djfjqecahztogacliavh.supabase.co';
+ const SUPABASE_KEY='sb_publishable_tm8Tid_HSYtu6cxXQ3ddKA_RWN15BSB';
+ const sb=window.supabase?.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+ const keys=['animeTracker','animeTracker_profile','animeTracker_settings','animeTracker_activity','animeTracker_achievements','animeTracker_trash','animeTracker_backups'];
+ const $=id=>document.getElementById(id); const status=t=>$('cloudStatus').textContent=t;
+ function snapshot(){const d={};keys.forEach(k=>{const v=localStorage.getItem(k);if(v!==null)d[k]=v});return d}
+ function apply(data){if(!data)return;Object.entries(data).forEach(([k,v])=>localStorage.setItem(k,v));}
+ async function sync(push=true){if(!sb)return status('Supabase no se ha cargado.'); const {data:{user}}=await sb.auth.getUser(); if(!user)return status('Inicia sesión primero.');
+   if(push){const {error}=await sb.from('tracker_state').upsert({user_id:user.id,state:snapshot(),updated_at:new Date().toISOString()},{onConflict:'user_id'});if(error){status(error.message);return;} status('☁️ Datos sincronizados correctamente.');}
+   else {const {data,error}=await sb.from('tracker_state').select('state').eq('user_id',user.id).maybeSingle();if(error){status(error.message);return;}if(data?.state){apply(data.state);status('☁️ Datos descargados. Recargando...');setTimeout(()=>location.reload(),600)}else status('No hay copia cloud todavía.');}
+ }
+ async function refresh(){if(!sb)return;const {data:{user}}=await sb.auth.getUser();$('cloudUserMenu').classList.remove('show');if(user){$('cloudUserLabel').textContent=user.email||'Cuenta';$('cloudAccountBtn').textContent='👤';$('cloudAccountBtn').onclick=()=>$('cloudUserMenu').classList.toggle('show');}else{$('cloudAccountBtn').textContent='☁️';$('cloudAccountBtn').onclick=()=>$('cloudAuthOverlay').classList.add('show');}}
+ $('cloudClose').onclick=()=>$('cloudAuthOverlay').classList.remove('show');
+ $('cloudLogin').onclick=async()=>{if(!sb)return;status('Iniciando sesión...');const {error}=await sb.auth.signInWithPassword({email:$('cloudEmail').value.trim(),password:$('cloudPassword').value});if(error)status(error.message);else{status('Sesión iniciada.');$('cloudAuthOverlay').classList.remove('show');await refresh();await sync(false);}};
+ $('cloudRegister').onclick=async()=>{if(!sb)return;const email=$('cloudEmail').value.trim(),password=$('cloudPassword').value,name=$('cloudName').value.trim();if(password.length<6)return status('La contraseña debe tener al menos 6 caracteres.');status('Creando cuenta...');const {data,error}=await sb.auth.signUp({email,password,options:{data:{username:name},emailRedirectTo:location.origin+location.pathname}});if(error)return status(error.message);if(data.user){await sb.from('profiles').upsert({id:data.user.id,username:name||null,updated_at:new Date().toISOString()});}status(data.session?'Cuenta creada e iniciada.':'Cuenta creada. Revisa tu correo para confirmar el email.');if(data.session){$('cloudAuthOverlay').classList.remove('show');await refresh();await sync(true);}};
+ $('cloudReset').onclick=async()=>{if(!sb)return;const email=$('cloudEmail').value.trim();if(!email)return status('Escribe tu correo primero.');const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});status(error?error.message:'Te hemos enviado un correo para restablecer la contraseña.');};
+ $('cloudSyncBtn').onclick=()=>sync(true);
+ $('cloudLogoutBtn').onclick=async()=>{await sb.auth.signOut();await refresh();};
+ if(sb){sb.auth.onAuthStateChange(()=>refresh()); refresh(); setInterval(async()=>{const {data:{user}}=await sb.auth.getUser();if(user)sync(true)},60000);}
+ window.AnimeTrackerCloud={sync};
+})();
+</script>
+
+</body>
+</html>
