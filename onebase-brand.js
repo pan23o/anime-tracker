@@ -18,10 +18,26 @@
     }
   }
 
+  function removeWhiteTheme() {
+    const select = document.getElementById('themeSelect');
+    if (!select) return;
+
+    const whiteOption = select.querySelector('option[value="high-white"]');
+    if (whiteOption) whiteOption.remove();
+
+    // Si alguien tenía guardado el antiguo tema blanco, pasamos a Tinta.
+    try {
+      if (localStorage.getItem('anime_tracker_theme') === 'high-white') {
+        localStorage.setItem('anime_tracker_theme', 'ink');
+      }
+    } catch (e) {}
+  }
+
   function applyBrand() {
     document.title = BRAND;
     document.documentElement.dataset.brand = 'onebase';
     replaceVisibleText();
+    removeWhiteTheme();
   }
 
   if (document.readyState === 'loading') {
@@ -30,7 +46,10 @@
     applyBrand();
   }
 
-  const observer = new MutationObserver(() => replaceVisibleText());
+  const observer = new MutationObserver(() => {
+    replaceVisibleText();
+    removeWhiteTheme();
+  });
   const startObserver = () => observer.observe(document.body, { childList: true, subtree: true });
   if (document.body) startObserver();
   else document.addEventListener('DOMContentLoaded', startObserver, { once: true });
