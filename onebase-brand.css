@@ -1,0 +1,85 @@
+/* ONEBASE visual identity — presentation layer only. */
+:root{
+  --onebase-blue:#39a9ff;
+  --onebase-blue-2:#1477ff;
+  --onebase-cyan:#8fe7ff;
+  --onebase-glow:rgba(57,169,255,.28);
+}
+
+header{
+  position:relative;
+  isolation:isolate;
+  padding-top:34px!important;
+}
+header::before{
+  content:"";
+  position:absolute;
+  left:-8%;right:-8%;top:8px;height:120px;
+  pointer-events:none;z-index:-1;
+  background:radial-gradient(ellipse at 18% 45%,rgba(28,126,255,.14),transparent 48%),radial-gradient(ellipse at 82% 30%,rgba(79,205,255,.08),transparent 45%);
+  filter:blur(8px);
+}
+.brand{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+.brand::before{
+  content:"";
+  width:46px;height:46px;flex:0 0 46px;
+  border-radius:14px;
+  background:url('/favicon.png?v=5') center/cover no-repeat;
+  border:1px solid rgba(92,190,255,.42);
+  box-shadow:0 0 0 1px rgba(255,255,255,.04) inset,0 0 22px rgba(44,155,255,.22),0 10px 30px rgba(0,0,0,.35);
+}
+.brand h1{
+  font-size:44px!important;
+  letter-spacing:-2.8px!important;
+  background:linear-gradient(105deg,#fff 0%,#fff 45%,#a9e8ff 62%,#3ba9ff 82%,#fff 100%);
+  background-size:220% 100%;
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;
+  text-shadow:0 0 26px rgba(53,166,255,.10);
+  animation:onebaseBrandShine 8s ease-in-out infinite;
+}
+.brand .tag{
+  color:#6f9fbd!important;
+  letter-spacing:2px!important;
+  font-weight:700;
+}
+.brand .tag::after{
+  content:"  •  YOUR PERSONAL ANIME DATABASE";
+  color:#4e6473;
+}
+.controls .btn:hover,.controls .select:hover{
+  border-color:rgba(57,169,255,.52)!important;
+  box-shadow:0 0 18px rgba(57,169,255,.10);
+}
+.stat,.toolbar,.table{
+  border-color:rgba(70,150,205,.15)!important;
+}
+.stat:hover{
+  border-color:rgba(57,169,255,.25)!important;
+  box-shadow:0 12px 35px rgba(0,0,0,.24),0 0 22px rgba(57,169,255,.05)!important;
+}
+.progressBar span{
+  background:linear-gradient(90deg,#1477ff,#57c7ff,#dff8ff)!important;
+  box-shadow:0 0 12px rgba(57,169,255,.42);
+}
+.table{
+  box-shadow:0 22px 70px rgba(0,0,0,.48),0 0 35px rgba(28,126,255,.035)!important;
+}
+@keyframes onebaseBrandShine{
+  0%,65%,100%{background-position:0% 50%}
+  82%{background-position:100% 50%}
+}
+
+@media(max-width:760px){
+  header{align-items:flex-start!important;padding-top:22px!important}
+  .brand{gap:10px}
+  .brand::before{width:38px;height:38px;flex-basis:38px;border-radius:11px}
+  .brand h1{font-size:32px!important;letter-spacing:-1.8px!important}
+  .brand .tag{font-size:9px!important}
+  .brand .tag::after{content:""}
+}
