@@ -29,7 +29,7 @@ header::before{
   content:"";
   width:46px;height:46px;flex:0 0 46px;
   border-radius:14px;
-  background:url('/favicon.png?v=5') center/cover no-repeat;
+  background:#020307 url('/favicon.svg?v=6') center/82% no-repeat;
   border:1px solid rgba(92,190,255,.42);
   box-shadow:0 0 0 1px rgba(255,255,255,.04) inset,0 0 22px rgba(44,155,255,.22),0 10px 30px rgba(0,0,0,.35);
 }
