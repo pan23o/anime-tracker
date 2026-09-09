@@ -1,5 +1,5 @@
 (()=>{'use strict';
-const SUPABASE_URL='https://djfjqecahztogacliav.supabase.co';
+const SUPABASE_URL='https://djfjqecahztogacliavh.supabase.co';
 const SUPABASE_KEY='sb_publishable_tm8Tid_HSYtu6cxXQ3ddKA_RWN15BSB';
 const LIB='anime_tracker_v6',PROFILE='anime_tracker_profile_v1',SETTINGS='anime_tracker_settings_v1',LAST_SAVE='anime_tracker_last_save',MODE='anime_tracker_mode_v2',INIT='anime_tracker_local_initialized_v1',VAULT='anime_tracker_persistent_v1';
 const KEYS=[LIB,PROFILE,SETTINGS,'anime_tracker_activity','anime_tracker_v6_unlocked_achievements','anime_tracker_trash_v1','anime_tracker_backups_v1','anime_tracker_theme','anime_tracker_custom_theme',LAST_SAVE];
