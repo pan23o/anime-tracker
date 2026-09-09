@@ -10,23 +10,41 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Inject current profile and auth flows
+      - name: Install the single persistence and auth layer
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
           import re
-          p=Path('index.html')
-          s=p.read_text(encoding='utf-8')
-          s=re.sub(r'<script[^>]+profile-enhancer(?:-v2|-v3|-v4)?\.js[^>]*></script>\n?', '', s)
-          s=re.sub(r'<link[^>]+profile-enhancer\.css[^>]*>\n?', '', s)
-          s=re.sub(r'<script[^>]+password-recovery\.js[^>]*></script>\n?', '', s)
-          s=re.sub(r'<script[^>]+auth-flow\.js[^>]*></script>\n?', '', s)
-          s=s.replace('</head>', '<link rel="stylesheet" href="./profile-enhancer.css">\n</head>', 1)
-          s=s.replace('</body>', '<script src="./profile-enhancer-v4.js"></script>\n<script src="./auth-flow.js"></script>\n</body>', 1)
-          p.write_text(s,encoding='utf-8')
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          s = re.sub(r'<script[^>]+profile-enhancer(?:-v2|-v3|-v4|-v5)?\.js[^>]*></script>\s*', '', s)
+          s = re.sub(r'<link[^>]+profile-enhancer\.css[^>]*>\s*', '', s)
+          s = re.sub(r'<script[^>]+password-recovery\.js[^>]*></script>\s*', '', s)
+          s = re.sub(r'<script[^>]+auth-flow\.js[^>]*></script>\s*', '', s)
+          legacy = re.compile(
+              r'<script>\s*\(\(\)\s*=>\s*\{\s*'
+              r'const\s+SUPABASE_URL\s*=\s*[\'\"]https://djfjqecahztogacliav\.supabase\.co[\'\"]'
+              r'.*?tracker_state.*?</script>', re.S)
+          s, removed = legacy.subn('', s, count=1)
+          print(f'legacy cloud scripts removed: {removed}')
+          s = s.replace('</head>', '<link rel="stylesheet" href="./profile-enhancer.css">\n</head>', 1)
+          s = s.replace('</body>', '<script src="./profile-enhancer-v5.js"></script>\n<script src="./auth-flow.js"></script>\n</body>', 1)
+          p.write_text(s, encoding='utf-8')
           PY
-      - name: Commit injected scripts
+      - name: Validate generated page
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('index.html').read_text(encoding='utf-8')
+          assert s.count('profile-enhancer-v5.js') == 1, 'v5 include count is not 1'
+          assert s.count('auth-flow.js') == 1, 'auth-flow include count is not 1'
+          assert s.count('SUPABASE_URL') == 0, 'legacy inline cloud sync is still present'
+          assert 'tracker_state' not in s, 'legacy tracker_state sync is still embedded'
+          print('index.html validation passed')
+          PY
+      - name: Commit injected page
         shell: bash
         run: |
           git config user.name 'github-actions[bot]'
@@ -35,7 +53,7 @@ jobs:
           if git diff --cached --quiet; then
             echo 'Nothing to commit'
           else
-            git commit -m 'fix: make library persistence resilient across refresh'
+            git commit -m 'fix: replace legacy cloud sync with single persistence layer'
             git pull --rebase origin main
             git push
           fi
