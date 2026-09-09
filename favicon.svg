@@ -1,7 +1,28 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="AnimeTracker">
-  <rect width="64" height="64" rx="14" fill="#050505"/>
-  <rect x="3" y="3" width="58" height="58" rx="12" fill="none" stroke="#f5c542" stroke-width="2" opacity=".9"/>
-  <path d="M17 48V16h8v13l14-13h10L34 31l16 17H39L25 34v14z" fill="#f5c542"/>
-  <path d="M20 12h24" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".9"/>
-  <circle cx="49" cy="15" r="2" fill="#fff"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="ONEBASE">
+  <defs>
+    <linearGradient id="b" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b55ff"/>
+      <stop offset=".52" stop-color="#00bfff"/>
+      <stop offset="1" stop-color="#1746ff"/>
+    </linearGradient>
+    <filter id="g" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="1.6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#020307"/>
+  <g fill="none" stroke="url(#b)" stroke-linecap="round" filter="url(#g)">
+    <path d="M13 23A25 25 0 0 1 51 18" stroke-width="2.2"/>
+    <path d="M51 41A25 25 0 0 1 13 46" stroke-width="2.2"/>
+  </g>
+  <g fill="none" stroke="url(#b)" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" filter="url(#g)">
+    <path d="M19 21h26l-4 6H23z"/>
+    <path d="M20 26c1.5 12 2.8 18 12 21 9.2-3 10.5-9 12-21"/>
+    <path d="M23 31c3-2 5-3 9-3s6 1 9 3"/>
+    <circle cx="27" cy="36" r="2.1" fill="#020307"/>
+    <circle cx="37" cy="36" r="2.1" fill="#020307"/>
+    <path d="M29 43c2.5 1.5 3.5 1.5 6 0"/>
+    <path d="M21 47 14 54M43 47l7 7M16 52l5-1M48 52l-5-1"/>
+  </g>
+  <path d="M12 32 8 36l4 4M52 32l4 4-4 4" fill="none" stroke="#21c8ff" stroke-width="1.7" stroke-linecap="round"/>
 </svg>
