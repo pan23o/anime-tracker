@@ -2031,42 +2031,9 @@ render();
 <button class="cloud-account-btn" id="cloudAccountBtn" title="Cuenta">☁️</button>
 <div class="cloud-user-menu" id="cloudUserMenu"><div id="cloudUserLabel" style="padding:8px;font-weight:800"></div><button id="cloudSyncBtn">☁️ Sincronizar ahora</button><button id="cloudLogoutBtn">Cerrar sesión</button></div>
 <div class="cloud-auth-overlay" id="cloudAuthOverlay"><div class="cloud-auth-card"><h2 id="cloudAuthTitle">Tu cuenta</h2><p id="cloudAuthText">Crea una cuenta o inicia sesión para sincronizar tu AnimeTracker.</p><input id="cloudName" placeholder="Nombre de usuario (para registrarte)"><input id="cloudEmail" type="email" placeholder="Correo electrónico"><input id="cloudPassword" type="password" placeholder="Contraseña (mínimo 6 caracteres)"><div class="cloud-auth-actions"><button id="cloudLogin">Iniciar sesión</button><button id="cloudRegister" class="secondary">Crear cuenta</button><button id="cloudReset" class="secondary">Recuperar contraseña</button><button id="cloudClose" class="secondary">Cerrar</button></div><div class="cloud-status" id="cloudStatus"></div></div></div>
-<script>
-(() => {
- const SUPABASE_URL='https://djfjqecahztogacliavh.supabase.co';
- const SUPABASE_KEY='sb_publishable_tm8Tid_HSYtu6cxXQ3ddKA_RWN15BSB';
- const sb=window.supabase?.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
- const keys=['anime_tracker_v6','anime_tracker_profile_v1','anime_tracker_settings_v1','anime_tracker_activity','anime_tracker_v6_unlocked_achievements','anime_tracker_trash_v1','anime_tracker_backups_v1','anime_tracker_theme','anime_tracker_custom_theme','anime_tracker_last_save'];
- const $=id=>document.getElementById(id); const status=t=>$('cloudStatus').textContent=t;
- function snapshot(){const d={};keys.forEach(k=>{const v=localStorage.getItem(k);if(v!==null)d[k]=v});return d}
- function apply(data){if(!data)return;Object.entries(data).forEach(([k,v])=>localStorage.setItem(k,v));}
- async function sync(push=true){if(!sb)return status('Supabase no se ha cargado.'); const {data:{user}}=await sb.auth.getUser(); if(!user)return status('Inicia sesión primero.');
-   if(push){const {error}=await sb.from('tracker_state').upsert({user_id:user.id,state:snapshot(),updated_at:new Date().toISOString()},{onConflict:'user_id'});if(error){status(error.message);return;} status('☁️ Datos sincronizados correctamente.');}
-   else {const {data,error}=await sb.from('tracker_state').select('state').eq('user_id',user.id).maybeSingle();if(error){status(error.message);return;}if(data?.state){apply(data.state);status('☁️ Datos descargados. Recargando...');setTimeout(()=>location.reload(),600)}else status('No hay copia cloud todavía.');}
- }
- let cloudTimer=null;
- window.addEventListener('animetracker:saved',()=>{
-   clearTimeout(cloudTimer);
-   cloudTimer=setTimeout(async()=>{
-     try{
-       const {data:{user}}=await sb.auth.getUser();
-       if(user) await sync(true);
-     }catch(e){console.warn('Auto sync:',e);}
-   },1200);
- });
- async function refresh(){if(!sb)return;const {data:{user}}=await sb.auth.getUser();$('cloudUserMenu').classList.remove('show');if(user){$('cloudUserLabel').textContent=user.email||'Cuenta';$('cloudAccountBtn').textContent='👤';$('cloudAccountBtn').onclick=()=>$('cloudUserMenu').classList.toggle('show');}else{$('cloudAccountBtn').textContent='☁️';$('cloudAccountBtn').onclick=()=>$('cloudAuthOverlay').classList.add('show');}}
- $('cloudClose').onclick=()=>$('cloudAuthOverlay').classList.remove('show');
- $('cloudLogin').onclick=async()=>{if(!sb)return;status('Iniciando sesión...');const {error}=await sb.auth.signInWithPassword({email:$('cloudEmail').value.trim(),password:$('cloudPassword').value});if(error)status(error.message);else{status('Sesión iniciada.');$('cloudAuthOverlay').classList.remove('show');await refresh();await sync(false);}};
- $('cloudRegister').onclick=async()=>{if(!sb)return;const email=$('cloudEmail').value.trim(),password=$('cloudPassword').value,name=$('cloudName').value.trim();if(password.length<6)return status('La contraseña debe tener al menos 6 caracteres.');status('Creando cuenta...');const {data,error}=await sb.auth.signUp({email,password,options:{data:{username:name},emailRedirectTo:location.origin+location.pathname}});if(error)return status(error.message);if(data.session&&data.user){const {error:profileError}=await sb.from('profiles').upsert({id:data.user.id,username:name||null,updated_at:new Date().toISOString()});if(profileError) console.warn('Perfil cloud:',profileError.message);}status(data.session?'Cuenta creada e iniciada.':'Cuenta creada. Revisa tu correo para confirmar el email.');if(data.session){$('cloudAuthOverlay').classList.remove('show');await refresh();await sync(true);}};
- $('cloudReset').onclick=async()=>{if(!sb)return;const email=$('cloudEmail').value.trim();if(!email)return status('Escribe tu correo primero.');const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});status(error?error.message:'Te hemos enviado un correo para restablecer la contraseña.');};
- $('cloudSyncBtn').onclick=()=>sync(true);
- $('cloudLogoutBtn').onclick=async()=>{await sb.auth.signOut();await refresh();};
- if(sb){sb.auth.onAuthStateChange(()=>refresh()); refresh(); setInterval(async()=>{const {data:{user}}=await sb.auth.getUser();if(user)sync(true)},60000);}
- window.AnimeTrackerCloud={sync};
-})();
-</script>
 
-<script src="./profile-enhancer-v4.js"></script>
+
+<script src="./profile-enhancer-v5.js"></script>
 <script src="./auth-flow.js"></script>
 </body>
 </html>
