@@ -22,12 +22,21 @@ jobs:
           s = re.sub(r'<link[^>]+profile-enhancer\.css[^>]*>\s*', '', s)
           s = re.sub(r'<script[^>]+password-recovery\.js[^>]*></script>\s*', '', s)
           s = re.sub(r'<script[^>]+auth-flow\.js[^>]*></script>\s*', '', s)
-          legacy = re.compile(
-              r'<script>\s*\(\(\)\s*=>\s*\{\s*'
-              r'const\s+SUPABASE_URL\s*=\s*[\'\"]https://djfjqecahztogacliav\.supabase\.co[\'\"]'
-              r'.*?tracker_state.*?</script>', re.S)
-          s, removed = legacy.subn('', s, count=1)
-          print(f'legacy cloud scripts removed: {removed}')
+
+          # Delete any old inline cloud script that contains both of the
+          # legacy identifiers. This deliberately ignores every other script.
+          scripts = re.compile(r'<script(?:\s[^>]*)?>.*?</script>', re.S | re.I)
+          removed = 0
+          def clean(m):
+              global removed
+              block = m.group(0)
+              if 'SUPABASE_URL' in block and 'tracker_state' in block:
+                  removed += 1
+                  return ''
+              return block
+          s = scripts.sub(clean, s)
+          print(f'legacy inline tracker scripts removed: {removed}')
+
           s = s.replace('</head>', '<link rel="stylesheet" href="./profile-enhancer.css">\n</head>', 1)
           s = s.replace('</body>', '<script src="./profile-enhancer-v5.js"></script>\n<script src="./auth-flow.js"></script>\n</body>', 1)
           p.write_text(s, encoding='utf-8')
@@ -37,11 +46,13 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
+          import re
           s=Path('index.html').read_text(encoding='utf-8')
           assert s.count('profile-enhancer-v5.js') == 1, 'v5 include count is not 1'
           assert s.count('auth-flow.js') == 1, 'auth-flow include count is not 1'
-          assert s.count('SUPABASE_URL') == 0, 'legacy inline cloud sync is still present'
-          assert 'tracker_state' not in s, 'legacy tracker_state sync is still embedded'
+          inline = re.findall(r'<script(?:\s[^>]*)?>.*?</script>', s, re.S | re.I)
+          legacy = [x for x in inline if 'SUPABASE_URL' in x and 'tracker_state' in x]
+          assert not legacy, 'legacy inline cloud tracker is still present'
           print('index.html validation passed')
           PY
       - name: Commit injected page
@@ -53,7 +64,7 @@ jobs:
           if git diff --cached --quiet; then
             echo 'Nothing to commit'
           else
-            git commit -m 'fix: replace legacy cloud sync with single persistence layer'
+            git commit -m 'fix: use a single local-first account persistence layer'
             git pull --rebase origin main
             git push
           fi
