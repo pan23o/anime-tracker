@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Inject current profile enhancer
+      - name: Inject current profile and auth flows
         shell: bash
         run: |
           python - <<'PY'
@@ -21,11 +21,12 @@ jobs:
           s=re.sub(r'<script[^>]+profile-enhancer(?:-v2|-v3)?\.js[^>]*></script>\n?', '', s)
           s=re.sub(r'<link[^>]+profile-enhancer\.css[^>]*>\n?', '', s)
           s=re.sub(r'<script[^>]+password-recovery\.js[^>]*></script>\n?', '', s)
+          s=re.sub(r'<script[^>]+auth-flow\.js[^>]*></script>\n?', '', s)
           s=s.replace('</head>', '<link rel="stylesheet" href="./profile-enhancer.css">\n</head>', 1)
-          s=s.replace('</body>', '<script src="./profile-enhancer-v3.js"></script>\n<script src="./password-recovery.js"></script>\n</body>', 1)
+          s=s.replace('</body>', '<script src="./profile-enhancer-v3.js"></script>\n<script src="./auth-flow.js"></script>\n</body>', 1)
           p.write_text(s,encoding='utf-8')
           PY
-      - name: Commit injected script
+      - name: Commit injected scripts
         shell: bash
         run: |
           git config user.name 'github-actions[bot]'
@@ -34,6 +35,6 @@ jobs:
           if git diff --cached --quiet; then
             echo 'Nothing to commit'
           else
-            git commit -m 'fix: working password recovery flow'
+            git commit -m 'fix: handle signup confirmation and password recovery'
             git push
           fi
