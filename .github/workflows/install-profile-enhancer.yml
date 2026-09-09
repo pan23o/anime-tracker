@@ -18,12 +18,12 @@ jobs:
           import re
           p=Path('index.html')
           s=p.read_text(encoding='utf-8')
-          s=re.sub(r'<script[^>]+profile-enhancer(?:-v2|-v3)?\.js[^>]*></script>\n?', '', s)
+          s=re.sub(r'<script[^>]+profile-enhancer(?:-v2|-v3|-v4)?\.js[^>]*></script>\n?', '', s)
           s=re.sub(r'<link[^>]+profile-enhancer\.css[^>]*>\n?', '', s)
           s=re.sub(r'<script[^>]+password-recovery\.js[^>]*></script>\n?', '', s)
           s=re.sub(r'<script[^>]+auth-flow\.js[^>]*></script>\n?', '', s)
           s=s.replace('</head>', '<link rel="stylesheet" href="./profile-enhancer.css">\n</head>', 1)
-          s=s.replace('</body>', '<script src="./profile-enhancer-v3.js"></script>\n<script src="./auth-flow.js"></script>\n</body>', 1)
+          s=s.replace('</body>', '<script src="./profile-enhancer-v4.js"></script>\n<script src="./auth-flow.js"></script>\n</body>', 1)
           p.write_text(s,encoding='utf-8')
           PY
       - name: Commit injected scripts
@@ -35,6 +35,7 @@ jobs:
           if git diff --cached --quiet; then
             echo 'Nothing to commit'
           else
-            git commit -m 'fix: handle signup confirmation and password recovery'
+            git commit -m 'fix: make library persistence resilient across refresh'
+            git pull --rebase origin main
             git push
           fi
