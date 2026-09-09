@@ -69,9 +69,72 @@ header::before{
 .table{
   box-shadow:0 22px 70px rgba(0,0,0,.48),0 0 35px rgba(28,126,255,.035)!important;
 }
-@keyframes onebaseBrandShine{
-  0%,65%,100%{background-position:0% 50%}
-  82%{background-position:100% 50%}
+
+/* Anime status effects. Visual only: no clicks, storage or data changes. */
+.row.onebase-status-watching{
+  position:relative;
+  border-left:2px solid #39a9ff;
+  box-shadow:inset 5px 0 18px rgba(57,169,255,.10);
+}
+.row.onebase-status-watching::before{
+  content:"";
+  position:absolute;
+  left:-2px;top:0;bottom:0;width:2px;
+  background:#39a9ff;
+  box-shadow:0 0 12px rgba(57,169,255,.75);
+  animation:onebaseWatchingPulse 2.2s ease-in-out infinite;
+}
+.row.onebase-status-watching .chip{
+  border-color:rgba(57,169,255,.48)!important;
+  color:#8fe7ff!important;
+  box-shadow:0 0 12px rgba(57,169,255,.12);
+}
+.row.onebase-status-completed{
+  border-left:2px solid #49d17d;
+  box-shadow:inset 5px 0 18px rgba(73,209,125,.07);
+}
+.row.onebase-status-completed .chip{
+  border-color:rgba(73,209,125,.42)!important;
+  color:#8af0ae!important;
+}
+.row.onebase-status-completed .chip::before{content:"✓ ";}
+.row.onebase-status-pending{
+  border-left:2px solid #e5b84b;
+  box-shadow:inset 5px 0 18px rgba(229,184,75,.06);
+}
+.row.onebase-status-pending .chip{
+  border-color:rgba(229,184,75,.42)!important;
+  color:#f4d27b!important;
+}
+.row.onebase-status-pending .chip::before{content:"◷ ";}
+.row.onebase-status-paused{
+  border-left:2px dashed #8995a1;
+  box-shadow:inset 5px 0 18px rgba(137,149,161,.06);
+}
+.row.onebase-status-paused .chip{
+  border-color:rgba(137,149,161,.38)!important;
+  color:#b7c0c9!important;
+}
+.row.onebase-status-paused .chip::before{content:"⏸ ";}
+.row.onebase-status-abandoned{
+  border-left:2px solid #e34b5f;
+  box-shadow:inset 5px 0 20px rgba(227,75,95,.08);
+}
+.row.onebase-status-abandoned .chip{
+  border-color:rgba(227,75,95,.48)!important;
+  color:#ff8392!important;
+  text-shadow:0 0 8px rgba(227,75,95,.18);
+}
+.row.onebase-status-abandoned .chip::before{content:"☠ ";}
+.row.onebase-status-abandoned .name{
+  color:#ffb0b9;
+}
+@keyframes onebaseWatchingPulse{
+  0%,100%{opacity:.45}
+  50%{opacity:1}
+}
+@media (prefers-reduced-motion: reduce){
+  .brand h1,.row.onebase-status-watching::before{animation:none!important}
 }
 @media(max-width:760px){
   header{align-items:flex-start!important;padding-top:22px!important}
