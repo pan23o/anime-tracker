@@ -1,47 +1,105 @@
-(()=>{'use strict';
+/* AnimeTracker persistence engine v2 - local-first + durable cloud snapshots */
+(function(){
+'use strict';
 const SUPABASE_URL='https://djfjqecahztogacliavh.supabase.co';
 const SUPABASE_KEY='sb_publishable_tm8Tid_HSYtu6cxXQ3ddKA_RWN15BSB';
-const LIB='anime_tracker_v6',PROFILE='anime_tracker_profile_v1',SETTINGS='anime_tracker_settings_v1',LAST_SAVE='anime_tracker_last_save',MODE='anime_tracker_mode_v2',INIT='anime_tracker_local_initialized_v1';
-const KEYS=[LIB,PROFILE,SETTINGS,'anime_tracker_activity','anime_tracker_v6_unlocked_achievements','anime_tracker_trash_v1','anime_tracker_backups_v1','anime_tracker_theme','anime_tracker_custom_theme',LAST_SAVE];
-const sb=window.__animeTrackerSupabase||(window.supabase?.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}));window.__animeTrackerSupabase=sb;if(!sb)return;
-const $=id=>document.getElementById(id),toast=m=>window.toast?window.toast(m):console.info('[AnimeTracker]',m);
-const read=(k,f=null)=>{try{const v=JSON.parse(localStorage.getItem(k)||'null');return v==null?f:v}catch{return f}};
-const lib=()=>{const a=read(LIB,[]);return Array.isArray(a)?a.filter(x=>String(x?.anime||'').trim()):[]};
-const name=s=>String(s||'').trim().replace(/\s+/g,' ').toUpperCase();
-const snapshot=()=>{const o={};for(const k of KEYS){const v=localStorage.getItem(k);if(v!==null)o[k]=v}return o};
-const applySnapshot=s=>{if(!s||typeof s!=='object')return false;for(const [k,v] of Object.entries(s)){if(KEYS.includes(k)&&typeof v==='string')localStorage.setItem(k,v)}return true};
-const parseLib=s=>{try{const a=JSON.parse(s?.[LIB]||'[]');return Array.isArray(a)?a.filter(x=>String(x?.anime||'').trim()):[]}catch{return[]}};
-function merge(local,cloud){const m=new Map();for(const x of cloud||[])m.set(name(x.anime),x);for(const x of local||[])m.set(name(x.anime),x);return [...m.values()]}
-function markInitialized(){localStorage.setItem(INIT,'1')}
-function mode(){return localStorage.getItem(MODE)||''}function setMode(v){if(v)localStorage.setItem(MODE,v);else localStorage.removeItem(MODE)}
-function overlay(show){const o=$('cloudAuthOverlay');if(!o)return;o.classList.toggle('show',!!show);o.setAttribute('aria-hidden',show?'false':'true')}
-function closeTransient(){overlay(false);$('cloudUserMenu')?.classList.remove('show')}
-let sessionUser=null,loginBusy=false,bootPromise=null,authSyncPromise=null,watchTimer=0,fp='';
-function cleanAuthUrl(){try{const u=new URL(location.href),keys=['code','type','access_token','refresh_token','expires_at','expires_in','token_type','sb','confirmed'];if(u.hash||keys.some(k=>u.searchParams.has(k))){u.hash='';keys.forEach(k=>u.searchParams.delete(k));history.replaceState({},document.title,u.href)}}catch{}}
-function showResetModal(){if(document.querySelector('.at-reset'))return;let st=$('atResetStyle');if(!st){st=document.createElement('style');st.id='atResetStyle';st.textContent='.at-reset{position:fixed;inset:0;z-index:100001;display:grid;place-items:center;padding:24px;background:rgba(0,0,0,.84);backdrop-filter:blur(16px)}.at-reset-card{width:min(440px,100%);padding:28px;border:1px solid #303030;border-radius:20px;background:#111;box-shadow:0 30px 100px rgba(0,0,0,.55)}.at-reset-card h2{margin:8px 0}.at-reset-card p{margin:0 0 14px;color:#999;font-size:11px;line-height:1.5}.at-reset-card input{width:100%;padding:12px;border:1px solid #333;border-radius:10px;background:#181818;color:#eee;margin-top:8px}.at-reset-actions{display:flex;gap:8px;margin-top:14px}.at-reset button{border:1px solid #333;border-radius:10px;padding:11px 14px;background:#eee;color:#111;font-weight:800}.at-reset button.secondary{background:#181818;color:#ddd}.at-reset-msg{margin-top:10px;color:#aaa;font-size:10px;min-height:16px}';document.head.appendChild(st)}const d=document.createElement('div');d.className='at-reset';d.innerHTML='<div class="at-reset-card"><h2>Nueva contraseña</h2><p>El enlace es válido. Elige tu nueva contraseña para terminar.</p><input id="atReset1" type="password" placeholder="Nueva contraseña"><input id="atReset2" type="password" placeholder="Repite la contraseña"><div class="at-reset-actions"><button id="atResetSave">Guardar contraseña</button><button id="atResetClose" class="secondary">Cerrar</button></div><div id="atResetMsg" class="at-reset-msg"></div></div>';document.body.appendChild(d);$('atResetClose').onclick=()=>{d.remove();cleanAuthUrl()};$('atResetSave').onclick=async()=>{const a=$('atReset1').value,b=$('atReset2').value,m=$('atResetMsg'),btn=$('atResetSave');if(a.length<6){m.textContent='La contraseña debe tener al menos 6 caracteres.';return}if(a!==b){m.textContent='Las contraseñas no coinciden.';return}btn.disabled=true;btn.textContent='Guardando…';try{const {error}=await sb.auth.updateUser({password:a});if(error){m.textContent=error.message;return}m.textContent='Contraseña actualizada.';setTimeout(()=>{d.remove();cleanAuthUrl()},700)}catch(e){m.textContent=e?.message||'No se pudo actualizar la contraseña.'}finally{btn.disabled=false;btn.textContent='Guardar contraseña'}}}
-function setupAuthUi(){const close=$('cloudClose'),loginBtn=$('cloudLogin'),regBtn=$('cloudRegister'),resetBtn=$('cloudReset'),account=$('cloudAccountBtn');if(close)close.onclick=closeTransient;const o=$('cloudAuthOverlay');if(o&&!o.dataset.bound){o.dataset.bound='1';o.addEventListener('click',e=>{if(e.target===o)closeTransient()})}if(!document.documentElement.dataset.atEscape){document.documentElement.dataset.atEscape='1';document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeTransient();document.querySelector('.at-reset')?.remove();cleanAuthUrl()}},{passive:true})}if(account)account.onclick=()=>{if(sessionUser)$('cloudUserMenu')?.classList.toggle('show');else overlay(true)};if(loginBtn)loginBtn.onclick=async()=>{if(loginBusy||sessionUser)return;const email=$('cloudEmail')?.value.trim()||'',password=$('cloudPassword')?.value||'',box=$('cloudStatus');if(!email||!password){if(box)box.textContent='Escribe correo y contraseña.';return}loginBusy=true;if(box)box.textContent='Iniciando sesión…';try{const {data,error}=await sb.auth.signInWithPassword({email,password});if(error){if(box)box.textContent=error.message;return}sessionUser=data?.user||null;if(sessionUser){setMode('account');closeTransient();updateUi();await finishSession()}}catch(e){if(box)box.textContent=e?.message||'No se pudo iniciar sesión.'}finally{loginBusy=false}};if(regBtn)regBtn.onclick=async()=>{if(loginBusy)return;const email=$('cloudEmail')?.value.trim()||'',password=$('cloudPassword')?.value||'',nv=$('cloudName')?.value.trim()||'',box=$('cloudStatus');if(!email||!password){if(box)box.textContent='Escribe correo y contraseña.';return}if(password.length<6){if(box)box.textContent='La contraseña debe tener al menos 6 caracteres.';return}loginBusy=true;if(box)box.textContent='Creando cuenta…';localStorage.setItem('anime_tracker_pending_signup_name',nv.slice(0,32));try{const {data,error}=await sb.auth.signUp({email,password,options:{data:{username:nv},emailRedirectTo:location.origin+location.pathname}});if(error){if(box)box.textContent=error.message;return}if(data?.session&&data.user){sessionUser=data.user;setMode('account');closeTransient();updateUi();await finishSession()}else if(box)box.textContent='Cuenta creada. Revisa tu correo para confirmar el email.'}catch(e){if(box)box.textContent=e?.message||'No se pudo crear la cuenta.'}finally{loginBusy=false}};if(resetBtn)resetBtn.onclick=async()=>{const email=$('cloudEmail')?.value.trim()||'';if(!email){$('cloudStatus').textContent='Escribe tu correo primero.';return}try{const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});$('cloudStatus').textContent=error?'No se pudo enviar el correo.':'Te hemos enviado un correo para restablecer la contraseña.'}catch(e){$('cloudStatus').textContent=e?.message||'No se pudo enviar el correo.'}}}
-async function getSession(){try{const {data,error}=await sb.auth.getSession();if(error){console.warn('[AnimeTracker] session',error);return null}return data?.session?.user||null}catch(e){console.warn('[AnimeTracker] session',e);return null}}
-async function cloudRow(user){const {data,error}=await sb.from('tracker_state').select('state,updated_at').eq('user_id',user.id).maybeSingle();if(error)throw error;return data||null}
-async function push(user){const {error}=await sb.from('tracker_state').upsert({user_id:user.id,state:snapshot(),updated_at:new Date().toISOString()},{onConflict:'user_id'});if(error)throw error}
-async function profile(user){try{const {data,error}=await sb.from('profiles').select('username,avatar_data,created_at').eq('id',user.id).maybeSingle();if(error)throw error;const p=read(PROFILE,{})||{};const pending=localStorage.getItem('anime_tracker_pending_signup_name')||'';const localName=String(p.name||pending||'Usuario').trim().slice(0,32)||'Usuario';const localAvatar=String(p.avatar||'');if(!data){const {error:upsertError}=await sb.from('profiles').upsert({id:user.id,username:localName,avatar_data:localAvatar,updated_at:new Date().toISOString()},{onConflict:'id'});if(upsertError)throw upsertError;localStorage.removeItem('anime_tracker_pending_signup_name');}else{const next={...p,name:localName,email:user.email||'',avatar:localAvatar,createdAt:p.createdAt||Date.parse(data.created_at||'')||Date.now()};localStorage.setItem(PROFILE,JSON.stringify(next));localStorage.removeItem('anime_tracker_pending_signup_name')}}catch(e){console.warn('[AnimeTracker] profile',e)}}
-async function pushProfile(user){try{const p=read(PROFILE,{})||{};const {error}=await sb.from('profiles').upsert({id:user.id,username:String(p.name||'Usuario').trim().slice(0,32)||'Usuario',avatar_data:String(p.avatar||''),updated_at:new Date().toISOString()},{onConflict:'id'});if(error)throw error}catch(e){console.warn('[AnimeTracker] profile push',e)}}
-async function reconcile(){if(!sessionUser)return;const localSnap=snapshot();const localList=lib();const row=await cloudRow(sessionUser);if(!row){await push(sessionUser);markInitialized();return}const cloudList=parseLib(row.state);const cloudTime=Date.parse(row.updated_at||0)||0;const localTime=Number(localStorage.getItem(LAST_SAVE)||0)||0;
-// Never replace non-empty local data with empty cloud data.
-if(localList.length===0&&cloudList.length>0){applySnapshot(row.state);localStorage.setItem(LIB,JSON.stringify(cloudList));localStorage.setItem(LAST_SAVE,String(cloudTime||Date.now()));markInitialized();window.dispatchEvent(new CustomEvent('animetracker:restored'));return}
-if(localList.length>0&&cloudList.length===0){await push(sessionUser);markInitialized();return}
-// Merge by title and keep the local version on conflicts, then persist the complete snapshot.
-const merged=merge(localList,cloudList);localStorage.setItem(LIB,JSON.stringify(merged));const mergedSnap=snapshot();const changed=JSON.stringify(localSnap)!==JSON.stringify(mergedSnap);const localNewer=localTime>=cloudTime;
-if(localNewer||merged.length!==cloudList.length||changed)await push(sessionUser);markInitialized();window.dispatchEvent(new CustomEvent('animetracker:restored'));}
-async function finishSession(){if(!sessionUser)return;if(authSyncPromise)return authSyncPromise;authSyncPromise=(async()=>{setMode('account');saveVault();try{await profile(sessionUser);await reconcile();await pushProfile(sessionUser);updateUi()}catch(e){console.error('[AnimeTracker] account sync',e);toast('Sesión iniciada. Tus datos locales siguen intactos.')}finally{authSyncPromise=null}})();return authSyncPromise}
-async function manualSync(){if(!sessionUser){setMode('account');overlay(true);return}try{await reconcile();toast('☁️ Sincronización completada')}catch(e){console.error(e);toast('No se pudo sincronizar; la lista local sigue intacta')}}
-async function logout(){if(!sessionUser)return;if(!confirm('¿Cerrar sesión? Tus datos locales permanecerán guardados.'))return;saveVault();try{await sb.auth.signOut()}finally{sessionUser=null;setMode('');closeTransient();updateUi();showChoice(true);toast('Sesión cerrada')}}
-function updateUi(){if($('cloudUserLabel'))$('cloudUserLabel').textContent=sessionUser?.email||'';if($('cloudAccountBtn'))$('cloudAccountBtn').textContent=sessionUser?'👤':'☁️';if($('cloudSyncBtn'))$('cloudSyncBtn').style.display=sessionUser?'':'none';if($('cloudLogoutBtn'))$('cloudLogoutBtn').style.display=sessionUser?'':'none';if($('cloudStatus')&&sessionUser)$('cloudStatus').textContent='Sesión activa'}
-function showChoice(force=false){if(sessionUser)return;if(!force&&mode())return;let o=$('animeModeChoice');if(!o){o=document.createElement('div');o.id='animeModeChoice';o.innerHTML=`<div class="modeBackdrop"></div><div class="modeCard"><span class="modeKicker">ANIMETRACKER</span><h2>¿Cómo quieres usar tu biblioteca?</h2><p>Elige una vez. Esta elección no volverá a aparecer al recargar la página.</p><div class="modeOptions"><button id="modeLocal" class="modeOption"><strong>💾 Continuar en local</strong><span>Sin cuenta. Todo queda en este navegador.</span></button><button id="modeAccount" class="modeOption featured"><strong>☁️ Usar una cuenta</strong><span>Guarda tu biblioteca, progreso y perfil en tu cuenta.</span><em>Recomendado</em></button></div><button id="modeLater" class="modeLater">Seguir sin decidir</button></div>`;document.body.appendChild(o);$('modeLocal').onclick=()=>{setMode('local');markInitialized();o.remove();updateUi()};$('modeAccount').onclick=()=>{setMode('account');o.remove();overlay(true)};$('modeLater').onclick=()=>{setMode('local');markInitialized();o.remove();updateUi()}}o.style.display='grid'}
-async function boot(){if(bootPromise)return bootPromise;bootPromise=(async()=>{setupAuthUi();updateUi();sessionUser=await getSession();if(sessionUser){setMode('account');updateUi();await finishSession()}else if(!mode())showChoice(false)})();return bootPromise}
-function watch(){try{const a=lib(),f=JSON.stringify(a);if(f!==fp){fp=f;markInitialized();if(sessionUser){clearTimeout(watchTimer);watchTimer=setTimeout(()=>push(sessionUser).catch(console.warn),800)}}}catch(e){console.warn('[AnimeTracker] watcher',e)}}
-window.addEventListener('animetracker:saved',()=>{if(!lib().length)return;markInitialized();saveVault();if(sessionUser){clearTimeout(watchTimer);watchTimer=setTimeout(()=>push(sessionUser).catch(console.warn),500);pushProfile(sessionUser).catch(console.warn)}});
-window.addEventListener('storage',e=>{if(!sessionUser)return;if(e.key===PROFILE){pushProfile(sessionUser).catch(console.warn)}});
-sb.auth.onAuthStateChange((event,session)=>{if(event==='PASSWORD_RECOVERY')showResetModal();if(event==='SIGNED_IN'&&session?.user){sessionUser=session.user;setMode('account');updateUi();if(!loginBusy)setTimeout(()=>finishSession().catch(console.warn),0);cleanAuthUrl()}if(event==='SIGNED_OUT'){sessionUser=null;setMode('');updateUi()}});
-window.AnimeTrackerCloud={sync:manualSync,refresh:updateUi};
-window.addEventListener('load',()=>{const h=location.hash||'',t=new URLSearchParams(h.replace(/^#/,'')).get('type');if(t==='recovery')showResetModal();else if(t==='signup'||t==='email')cleanAuthUrl();boot().catch(console.error);setInterval(watch,500);const s=$('cloudSyncBtn');if(s)s.onclick=manualSync;const l=$('cloudLogoutBtn');if(l)l.onclick=logout});
+const LIB='anime_tracker_v6';
+const META='anime_tracker_persistence_v2';
+const PROFILE='anime_tracker_profile_v1';
+const SETTINGS='anime_tracker_settings_v1';
+const OTHER=['anime_tracker_activity','anime_tracker_v6_unlocked_achievements','anime_tracker_trash_v1','anime_tracker_backups_v1','anime_tracker_theme','anime_tracker_custom_theme'];
+const ALL=[LIB,PROFILE,SETTINGS,...OTHER];
+const sb=window.supabase?.createClient?.(SUPABASE_URL,SUPABASE_KEY);
+if(!sb){console.error('[AnimeTracker] Supabase client unavailable');return}
+
+const safeParse=(s,f)=>{try{return JSON.parse(s)}catch{return f}};
+const now=()=>Date.now();
+const uuid=()=>crypto.randomUUID?crypto.randomUUID():Math.random().toString(36).slice(2)+Date.now();
+function meta(){return safeParse(localStorage.getItem(META),'')||{}}
+function setMeta(m){localStorage.setItem(META,JSON.stringify(m))}
+function ensureMeta(){const m=meta();if(!m.deviceId)m.deviceId=uuid();if(!Number.isFinite(m.revision))m.revision=0;if(!Number.isFinite(m.savedAt))m.savedAt=0;setMeta(m);return m}
+function animeList(){const a=safeParse(localStorage.getItem(LIB)||'[]',[]);return Array.isArray(a)?a:[]}
+function hasAnime(){return animeList().some(x=>String(x?.anime||'').trim())}
+function snapshot(){const out={};for(const k of ALL){const v=localStorage.getItem(k);if(v!==null)out[k]=v}return out}
+function restore(s){if(!s||typeof s!=='object')return false;for(const k of ALL){if(typeof s[k]==='string')localStorage.setItem(k,s[k])}return true}
+function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(16)}
+function state(){const m=ensureMeta(),snap=snapshot(),json=JSON.stringify(snap);return {snapshot:snap,checksum:hash(json),revision:m.revision||0,savedAt:m.savedAt||0,deviceId:m.deviceId}}
+function setLocalRevision(revision,savedAt){const m=ensureMeta();m.revision=revision;m.savedAt=savedAt;setMeta(m)}
+function key(x){return String(x?.anime||'').trim().toLocaleLowerCase('es-ES')}
+function itemTime(x){return Number(x?.updatedAt||x?.addedAt||0)}
+function mergeLists(a,b){const m=new Map();for(const x of [...a,...b]){const k=key(x);if(!k)continue;const old=m.get(k);if(!old||itemTime(x)>=itemTime(old))m.set(k,x)}return [...m.values()]}
+function mergeSnapshots(local,cloud){const out={...cloud,...local};const la=safeParse(local[LIB]||'[]',[]),ca=safeParse(cloud[LIB]||'[]',[]);out[LIB]=JSON.stringify(mergeLists(Array.isArray(ca)?ca:[],Array.isArray(la)?la:[]));return out}
+let user=null, timer=null, syncing=false, queued=false, lastSeen='';
+
+async function getUser(){const {data:{user:u},error}=await sb.auth.getUser();if(error)return null;return u||null}
+async function loadRemote(){if(!user)return null;const {data,error}=await sb.from('tracker_state').select('state,revision,checksum,device_id,saved_at,updated_at').eq('user_id',user.id).maybeSingle();if(error)throw error;return data||null}
+async function saveRemote(force=false){
+ if(!user)return false;
+ const st=state();
+ if(!hasAnime()&&!force)return true;
+ const nextRevision=st.revision+1;
+ const savedAt=now();
+ const {error}=await sb.from('tracker_state').upsert({
+   user_id:user.id,state:st.snapshot,revision:nextRevision,checksum:st.checksum,device_id:st.deviceId,saved_at:new Date(savedAt).toISOString(),updated_at:new Date(savedAt).toISOString()
+ },{onConflict:'user_id'});
+ if(error)throw error;
+ setLocalRevision(nextRevision,savedAt);
+ return true;
+}
+async function bootstrap(){
+ user=await getUser();
+ if(!user)return;
+ const remote=await loadRemote();
+ const local=state();
+ if(!remote){
+   if(Object.keys(local.snapshot).length) await saveRemote(true);
+   return;
+ }
+ const cloudSnap=remote.state&&typeof remote.state==='object'?remote.state:{};
+ const cloudHas=Array.isArray(safeParse(cloudSnap[LIB]||'[]',[]))&&safeParse(cloudSnap[LIB]||'[]',[]).some(x=>String(x?.anime||'').trim());
+ const localHas=hasAnime();
+ if(!localHas&&cloudHas){
+   restore(cloudSnap);
+   setLocalRevision(Number(remote.revision)||0,Date.parse(remote.saved_at||remote.updated_at)||now());
+   lastSeen=JSON.stringify(animeList());
+   window.dispatchEvent(new CustomEvent('animetracker:restored'));
+   return;
+ }
+ if(localHas&&!cloudHas){await saveRemote(true);return}
+ if(localHas&&cloudHas){
+   const merged=mergeSnapshots(local.snapshot,cloudSnap);
+   restore(merged);
+   lastSeen=JSON.stringify(animeList());
+   const localChanged=JSON.stringify(merged)!==JSON.stringify(cloudSnap);
+   if(localChanged)await saveRemote(true);
+ }
+}
+async function sync(){
+ if(syncing){queued=true;return}
+ syncing=true;
+ try{await saveRemote(false)}
+ catch(e){console.error('[AnimeTracker] cloud save failed',e)}
+ finally{syncing=false;if(queued){queued=false;sync()}}
+}
+function schedule(){clearTimeout(timer);timer=setTimeout(sync,700)}
+function observe(){
+ lastSeen=JSON.stringify(animeList());
+ window.setInterval(()=>{
+   const cur=JSON.stringify(animeList());
+   if(cur!==lastSeen){lastSeen=cur;schedule()}
+ },350);
+ window.addEventListener('animetracker:saved',schedule);
+ window.addEventListener('beforeunload',()=>{if(user&&hasAnime())sync()});
+}
+async function saveProfile(){
+ if(!user)return;
+ const p=safeParse(localStorage.getItem(PROFILE)||'{}',{});
+ const {error}=await sb.from('profiles').upsert({id:user.id,username:String(p.name||'Usuario').slice(0,32),avatar_data:String(p.avatar||''),updated_at:new Date().toISOString()},{onConflict:'id'});
+ if(error)console.warn('[AnimeTracker] profile save',error);
+}
+sb.auth.onAuthStateChange(async(_event,session)=>{
+ user=session?.user||null;
+ if(user){try{await bootstrap();await saveProfile()}catch(e){console.error('[AnimeTracker] bootstrap',e)}}
+});
+(async()=>{try{await bootstrap();observe()}catch(e){console.error('[AnimeTracker] persistence init',e)}})();
 })();
