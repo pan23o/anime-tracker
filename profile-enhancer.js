@@ -1,4 +1,4 @@
-/* AnimeTracker persistence engine v4 - block 2: account profile is authoritative on login, local after sync */
+/* AnimeTracker persistence engine v5 - block 3: library is account-scoped and merge-safe */
 (function(){
 'use strict';
 const SUPABASE_URL='https://djfjqecahztogacliavh.supabase.co';
@@ -23,14 +23,26 @@ function ensureMeta(){const m=meta();if(!m.deviceId)m.deviceId=uuid();if(!Number
 function animeList(){const a=safeParse(localStorage.getItem(LIB)||'[]',[]);return Array.isArray(a)?a:[]}
 function hasAnime(){return animeList().some(x=>String(x?.anime||'').trim())}
 function snapshot(){const out={};for(const k of ALL){const v=localStorage.getItem(k);if(v!==null)out[k]=v}return out}
-function restore(s){if(!s||typeof s!=='object')return false;for(const k of ALL){if(typeof s[k]==='string')localStorage.setItem(k,s[k])}return true}
 function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(16)}
 function state(){const m=ensureMeta(),snap=snapshot(),json=JSON.stringify(snap);return {snapshot:snap,checksum:hash(json),revision:m.revision||0,savedAt:m.savedAt||0,deviceId:m.deviceId}}
 function setLocalRevision(revision,savedAt){const m=ensureMeta();m.revision=revision;m.savedAt=savedAt;setMeta(m)}
-function key(x){return String(x?.anime||'').trim().toLocaleLowerCase('es-ES')}
-function itemTime(x){return Number(x?.updatedAt||x?.addedAt||0)}
-function mergeLists(a,b){const m=new Map();for(const x of [...a,...b]){const k=key(x);if(!k)continue;const old=m.get(k);if(!old||itemTime(x)>=itemTime(old))m.set(k,x)}return [...m.values()]}
-function mergeSnapshots(local,cloud){const out={...cloud,...local};const la=safeParse(local[LIB]||'[]',[]),ca=safeParse(cloud[LIB]||'[]',[]);out[LIB]=JSON.stringify(mergeLists(Array.isArray(ca)?ca:[],Array.isArray(la)?la:[]));return out}
+function titleKey(title){return String(title||'').trim().toLocaleLowerCase('es-ES').replace(/\s+/g,' ')}
+function key(x){const aniId=String(x?.aniId||'').trim();return aniId?`id:${aniId}`:`title:${titleKey(x?.anime)}`}
+function itemTime(x){const updated=Number(x?.updatedAt);if(Number.isFinite(updated)&&updated>0)return updated;const added=Number(x?.addedAt);return Number.isFinite(added)?added:0}
+function cleanList(value){return Array.isArray(value)?value.filter(x=>x&&typeof x==='object'&&String(x.anime||'').trim()):[]}
+function mergeLists(cloudList,localList){
+  const merged=new Map();
+  for(const source of [cloudList,localList]){
+    for(const raw of cleanList(source)){
+      const x={...raw};
+      const k=key(x);if(k==='title:')continue;
+      const old=merged.get(k);
+      if(!old||itemTime(x)>=itemTime(old))merged.set(k,x);
+    }
+  }
+  return [...merged.values()];
+}
+function serializeList(list){return JSON.stringify(cleanList(list))}
 
 function profileLocal(){return safeParse(localStorage.getItem(PROFILE)||'{}',{})||{}}
 function normalizeProfile(p,user){
@@ -99,20 +111,39 @@ function bindAccountUi(){
 }
 
 async function getUser(){try{const{data,error}=await sb.auth.getUser();if(error)return null;return data?.user||null}catch{return null}}
-async function loadRemote(){if(!user)return null;const{data,error}=await sb.from('tracker_state').select('state,revision,checksum,device_id,saved_at,updated_at').eq('user_id',user.id).maybeSingle();if(error)throw error;return data||null}
-async function saveRemote(force=false){
-  if(!user)return false;
-  const st=state();if(!hasAnime()&&!force)return true;
-  const nextRevision=st.revision+1,savedAt=now();
-  const{error}=await sb.from('tracker_state').upsert({user_id:user.id,state:st.snapshot,revision:nextRevision,checksum:st.checksum,device_id:st.deviceId,saved_at:new Date(savedAt).toISOString(),updated_at:new Date(savedAt).toISOString()},{onConflict:'user_id'});
-  if(error)throw error;setLocalRevision(nextRevision,savedAt);return true;
-}
-
-async function getCloudProfile(){
+async function loadRemote(){
   if(!user)return null;
-  const{data,error}=await sb.from('profiles').select('username,avatar_data,created_at,updated_at').eq('id',user.id).maybeSingle();
+  const{data,error}=await sb.from('tracker_state').select('state,revision,checksum,device_id,saved_at,updated_at').eq('user_id',user.id).maybeSingle();
   if(error)throw error;
   return data||null;
+}
+async function writeRemoteState(nextState,baseRemote=null){
+  if(!user)return false;
+  const baseRevision=Number(baseRemote?.revision)||0;
+  const localRevision=Number(ensureMeta().revision)||0;
+  const nextRevision=Math.max(baseRevision,localRevision)+1;
+  const savedAt=now();
+  const json=JSON.stringify(nextState);
+  const payload={user_id:user.id,state:nextState,revision:nextRevision,checksum:hash(json),device_id:ensureMeta().deviceId,saved_at:new Date(savedAt).toISOString(),updated_at:new Date(savedAt).toISOString()};
+  const{error}=await sb.from('tracker_state').upsert(payload,{onConflict:'user_id'});
+  if(error)throw error;
+  setLocalRevision(nextRevision,savedAt);
+  return true;
+}
+async function saveLibraryRemote(force=false){
+  if(!user)return false;
+  const localList=animeList();
+  if(!localList.length&&!force)return true;
+  const remote=await loadRemote();
+  const base=remote&&remote.state&&typeof remote.state==='object'?remote.state:{};
+  const next={...base,[LIB]:serializeList(localList)};
+  if(remote&&String(base[LIB]||'')===next[LIB])return true;
+  return writeRemoteState(next,remote);
+}
+
+function getCloudProfile(){
+  if(!user)return Promise.resolve(null);
+  return sb.from('profiles').select('username,avatar_data,created_at,updated_at').eq('id',user.id).maybeSingle().then(({data,error})=>{if(error)throw error;return data||null});
 }
 async function putCloudProfile(p){
   if(!user)return;
@@ -135,27 +166,45 @@ function applyProfileLocal(p){
 }
 
 let user=null,timer=null,profileTimer=null,syncing=false,profileSyncing=false,queued=false,lastSeen='',lastProfileSeen='';
-let accountUiBound=false;
+let accountUiBound=false,bootstrapPromise=null;
 
 async function bootstrap(){
-  const found=await getUser();
-  if(found)user=found;else return;
-  updateAccountUi();
-  const remote=await loadRemote(),local=state();
-  if(!remote){
-    if(Object.keys(local.snapshot).length)await saveRemote(true);
-  }else{
-    const cloudSnap=remote.state&&typeof remote.state==='object'?remote.state:{};
-    const cloudHas=Array.isArray(safeParse(cloudSnap[LIB]||'[]',[]))&&safeParse(cloudSnap[LIB]||'[]',[]).some(x=>String(x?.anime||'').trim());
-    const localHas=hasAnime();
-    if(!localHas&&cloudHas){restore(cloudSnap);setLocalRevision(Number(remote.revision)||0,Date.parse(remote.saved_at||remote.updated_at)||now());window.dispatchEvent(new CustomEvent('animetracker:restored'));}
-    else if(localHas&&!cloudHas){await saveRemote(true);}
-    else if(localHas&&cloudHas){const merged=mergeSnapshots(local.snapshot,cloudSnap);const changed=JSON.stringify(merged)!==JSON.stringify(local.snapshot);restore(merged);if(changed)await saveRemote(true);}
-  }
-  await syncProfileFromAccount();
-  lastSeen=JSON.stringify(animeList());
-  lastProfileSeen=localStorage.getItem(PROFILE)||'';
-  updateAccountUi();
+  if(bootstrapPromise)return bootstrapPromise;
+  bootstrapPromise=(async()=>{
+    const found=await getUser();
+    if(!found){user=null;return}
+    user=found;
+    updateAccountUi();
+    const remote=await loadRemote();
+    const localList=animeList();
+    const cloudList=cleanList(safeParse(remote?.state?.[LIB]||'[]',[]));
+    const localHas=localList.length>0;
+    const cloudHas=cloudList.length>0;
+
+    if(!remote){
+      if(localHas)await saveLibraryRemote(true);
+    }else if(!localHas&&cloudHas){
+      localStorage.setItem(LIB,serializeList(cloudList));
+      setLocalRevision(Number(remote.revision)||0,Date.parse(remote.saved_at||remote.updated_at)||now());
+      window.dispatchEvent(new CustomEvent('animetracker:restored',{detail:{source:'cloud',count:cloudList.length}}));
+    }else if(localHas&&!cloudHas){
+      await saveLibraryRemote(true);
+    }else if(localHas&&cloudHas){
+      const merged=mergeLists(cloudList,localList);
+      const before=serializeList(localList),after=serializeList(merged);
+      if(before!==after){
+        localStorage.setItem(LIB,after);
+        window.dispatchEvent(new CustomEvent('animetracker:restored',{detail:{source:'merge',count:merged.length}}));
+      }
+      if(after!==serializeList(cloudList)||before!==after)await saveLibraryRemote(true);
+    }
+
+    await syncProfileFromAccount();
+    lastSeen=JSON.stringify(animeList());
+    lastProfileSeen=localStorage.getItem(PROFILE)||'';
+    updateAccountUi();
+  })();
+  try{return await bootstrapPromise}finally{bootstrapPromise=null}
 }
 
 async function syncProfileFromAccount(){
@@ -166,7 +215,6 @@ async function syncProfileFromAccount(){
     const cloud=await getCloudProfile();
     if(cloud){
       const cloudProfile=normalizeProfile({name:cloud.username||'Usuario',email:user.email||'',avatar:cloud.avatar_data||'',createdAt:Date.parse(cloud.created_at||'')||local.createdAt||Date.now()},user);
-      // On account entry, the account profile is authoritative and replaces the local copy.
       applyProfileLocal(cloudProfile);
     }else{
       const seed=normalizeProfile({...local,email:user.email||local.email||'',name:local.name||user.user_metadata?.username||'Usuario'},user);
@@ -190,7 +238,13 @@ async function syncProfileToAccount(){
   },500);
 }
 
-async function sync(){if(syncing){queued=true;return}syncing=true;try{await saveRemote(false)}catch(e){console.error('[AnimeTracker] cloud save failed',e);toast('No se pudo guardar en la nube. La biblioteca local permanece intacta.')}finally{syncing=false;if(queued){queued=false;sync()}}}
+async function sync(){
+  if(syncing){queued=true;return}
+  syncing=true;
+  try{await saveLibraryRemote(false)}
+  catch(e){console.error('[AnimeTracker] cloud library save failed',e);toast('No se pudo guardar la biblioteca en la nube. La biblioteca local permanece intacta.')}
+  finally{syncing=false;if(queued){queued=false;sync()}}
+}
 function schedule(){clearTimeout(timer);timer=setTimeout(sync,700)}
 function observe(){
   lastSeen=JSON.stringify(animeList());
