@@ -1,146 +1,40 @@
 /* ONEBASE visual identity — presentation layer only. */
-:root{
-  --onebase-blue:#39a9ff;
-  --onebase-blue-2:#1477ff;
-  --onebase-cyan:#8fe7ff;
-  --onebase-glow:rgba(57,169,255,.28);
-}
-header{
-  position:relative;
-  isolation:isolate;
-  padding-top:34px!important;
-}
-header::before{
-  content:"";
-  position:absolute;
-  left:-8%;right:-8%;top:8px;height:120px;
-  pointer-events:none;z-index:-1;
-  background:radial-gradient(ellipse at 18% 45%,rgba(28,126,255,.14),transparent 48%),radial-gradient(ellipse at 82% 30%,rgba(79,205,255,.08),transparent 45%);
-  filter:blur(8px);
-}
-.brand{
-  position:relative;
-  display:flex;
-  align-items:center;
-  gap:14px;
-}
-.brand::before{
-  content:"";
-  width:46px;height:46px;flex:0 0 46px;
-  border-radius:14px;
-  background:#020307 url('/favicon.svg?v=7') center/82% no-repeat;
-  border:1px solid rgba(92,190,255,.42);
-  box-shadow:0 0 0 1px rgba(255,255,255,.04) inset,0 0 22px rgba(44,155,255,.22),0 10px 30px rgba(0,0,0,.35);
-}
-.brand h1{
-  font-size:44px!important;
-  letter-spacing:-2.8px!important;
-  background:linear-gradient(105deg,#fff 0%,#fff 45%,#a9e8ff 62%,#3ba9ff 82%,#fff 100%);
-  background-size:220% 100%;
-  -webkit-background-clip:text;background-clip:text;
-  -webkit-text-fill-color:transparent;
-  text-shadow:0 0 26px rgba(53,166,255,.10);
-  animation:onebaseBrandShine 8s ease-in-out infinite;
-}
-.brand .tag{
-  color:#6f9fbd!important;
-  letter-spacing:2px!important;
-  font-weight:700;
-}
-.brand .tag::after{
-  content:"  •  YOUR PERSONAL ANIME DATABASE";
-  color:#4e6473;
-}
-.controls .btn:hover,.controls .select:hover{
-  border-color:rgba(57,169,255,.52)!important;
-  box-shadow:0 0 18px rgba(57,169,255,.10);
-}
-.stat,.toolbar,.table{
-  border-color:rgba(70,150,205,.15)!important;
-}
-.stat:hover{
-  border-color:rgba(57,169,255,.25)!important;
-  box-shadow:0 12px 35px rgba(0,0,0,.24),0 0 22px rgba(57,169,255,.05)!important;
-}
-.progressBar span{
-  background:linear-gradient(90deg,#1477ff,#57c7ff,#dff8ff)!important;
-  box-shadow:0 0 12px rgba(57,169,255,.42);
-}
-.table{
-  box-shadow:0 22px 70px rgba(0,0,0,.48),0 0 35px rgba(28,126,255,.035)!important;
-}
+:root{--onebase-blue:#39a9ff;--onebase-blue-2:#1477ff;--onebase-cyan:#8fe7ff;--onebase-glow:rgba(57,169,255,.28)}
+header{position:relative;isolation:isolate;padding-top:34px!important}
+header::before{content:"";position:absolute;left:-8%;right:-8%;top:8px;height:120px;pointer-events:none;z-index:-1;background:radial-gradient(ellipse at 18% 45%,rgba(28,126,255,.14),transparent 48%),radial-gradient(ellipse at 82% 30%,rgba(79,205,255,.08),transparent 45%);filter:blur(8px)}
+.brand{position:relative;display:flex;align-items:center;gap:14px}
+.brand::before{content:"";width:46px;height:46px;flex:0 0 46px;border-radius:14px;background:#020307 url('/favicon.svg?v=7') center/82% no-repeat;border:1px solid rgba(92,190,255,.42);box-shadow:0 0 0 1px rgba(255,255,255,.04) inset,0 0 22px rgba(44,155,255,.22),0 10px 30px rgba(0,0,0,.35)}
+.brand h1{font-size:44px!important;letter-spacing:-2.8px!important;background:linear-gradient(105deg,#fff 0%,#fff 45%,#a9e8ff 62%,#3ba9ff 82%,#fff 100%);background-size:220% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 0 26px rgba(53,166,255,.10);animation:onebaseBrandShine 8s ease-in-out infinite}
+.brand .tag{color:#6f9fbd!important;letter-spacing:2px!important;font-weight:700}
+.brand .tag::after{content:"  •  YOUR PERSONAL ANIME DATABASE";color:#4e6473}
 
-/* Anime status effects. Visual only: no clicks, storage or data changes. */
-.row.onebase-status-watching{
-  position:relative;
-  border-left:2px solid #39a9ff;
-  box-shadow:inset 5px 0 18px rgba(57,169,255,.10);
-}
-.row.onebase-status-watching::before{
-  content:"";
-  position:absolute;
-  left:-2px;top:0;bottom:0;width:2px;
-  background:#39a9ff;
-  box-shadow:0 0 12px rgba(57,169,255,.75);
-  animation:onebaseWatchingPulse 2.2s ease-in-out infinite;
-}
-.row.onebase-status-watching .chip{
-  border-color:rgba(57,169,255,.48)!important;
-  color:#8fe7ff!important;
-  box-shadow:0 0 12px rgba(57,169,255,.12);
-}
-.row.onebase-status-completed{
-  border-left:2px solid #49d17d;
-  box-shadow:inset 5px 0 18px rgba(73,209,125,.07);
-}
-.row.onebase-status-completed .chip{
-  border-color:rgba(73,209,125,.42)!important;
-  color:#8af0ae!important;
-}
-.row.onebase-status-completed .chip::before{content:"✓ ";}
-.row.onebase-status-pending{
-  border-left:2px solid #e5b84b;
-  box-shadow:inset 5px 0 18px rgba(229,184,75,.06);
-}
-.row.onebase-status-pending .chip{
-  border-color:rgba(229,184,75,.42)!important;
-  color:#f4d27b!important;
-}
-.row.onebase-status-pending .chip::before{content:"◷ ";}
-.row.onebase-status-paused{
-  border-left:2px dashed #8995a1;
-  box-shadow:inset 5px 0 18px rgba(137,149,161,.06);
-}
-.row.onebase-status-paused .chip{
-  border-color:rgba(137,149,161,.38)!important;
-  color:#b7c0c9!important;
-}
-.row.onebase-status-paused .chip::before{content:"⏸ ";}
-.row.onebase-status-abandoned{
-  border-left:2px solid #e34b5f;
-  box-shadow:inset 5px 0 20px rgba(227,75,95,.08);
-}
-.row.onebase-status-abandoned .chip{
-  border-color:rgba(227,75,95,.48)!important;
-  color:#ff8392!important;
-  text-shadow:0 0 8px rgba(227,75,95,.18);
-}
-.row.onebase-status-abandoned .chip::before{content:"☠ ";}
-.row.onebase-status-abandoned .name{
-  color:#ffb0b9;
-}
-@keyframes onebaseWatchingPulse{
-  0%,100%{opacity:.45}
-  50%{opacity:1}
-}
-@media (prefers-reduced-motion: reduce){
-  .brand h1,.row.onebase-status-watching::before{animation:none!important}
-}
-@media(max-width:760px){
-  header{align-items:flex-start!important;padding-top:22px!important}
-  .brand{gap:10px}
-  .brand::before{width:38px;height:38px;flex-basis:38px;border-radius:11px}
-  .brand h1{font-size:32px!important;letter-spacing:-1.8px!important}
-  .brand .tag{font-size:9px!important}
-  .brand .tag::after{content:""}
-}
+/* White themes: darken the ONEBASE wordmark so it never disappears on white. */
+body[data-theme="high-white"] .brand h1,body[data-theme="manga"] .brand h1{background:linear-gradient(105deg,#111 0%,#111 42%,#174f78 68%,#1477ff 86%,#111 100%);background-size:220% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;text-shadow:none}
+body[data-theme="high-white"] .brand .tag,body[data-theme="manga"] .brand .tag{color:#31556d!important}
+body[data-theme="high-white"] .brand .tag::after,body[data-theme="manga"] .brand .tag::after{color:#526b7a}
+
+.controls .btn:hover,.controls .select:hover{border-color:rgba(57,169,255,.52)!important;box-shadow:0 0 18px rgba(57,169,255,.10)}
+.stat,.toolbar,.table{border-color:rgba(70,150,205,.15)!important}
+.stat:hover{border-color:rgba(57,169,255,.25)!important;box-shadow:0 12px 35px rgba(0,0,0,.24),0 0 22px rgba(57,169,255,.05)!important}
+.progressBar span{background:linear-gradient(90deg,#1477ff,#57c7ff,#dff8ff)!important;box-shadow:0 0 12px rgba(57,169,255,.42)}
+.table{box-shadow:0 22px 70px rgba(0,0,0,.48),0 0 35px rgba(28,126,255,.035)!important}
+
+.row.onebase-status-watching{position:relative;border-left:2px solid #39a9ff;box-shadow:inset 5px 0 18px rgba(57,169,255,.10)}
+.row.onebase-status-watching::before{content:"";position:absolute;left:-2px;top:0;bottom:0;width:2px;background:#39a9ff;box-shadow:0 0 12px rgba(57,169,255,.75);animation:onebaseWatchingPulse 2.2s ease-in-out infinite}
+.row.onebase-status-watching .chip{border-color:rgba(57,169,255,.48)!important;color:#8fe7ff!important;box-shadow:0 0 12px rgba(57,169,255,.12)}
+.row.onebase-status-completed{border-left:2px solid #49d17d;box-shadow:inset 5px 0 18px rgba(73,209,125,.07)}
+.row.onebase-status-completed .chip{border-color:rgba(73,209,125,.42)!important;color:#8af0ae!important}
+.row.onebase-status-completed .chip::before{content:"✓ "}
+.row.onebase-status-pending{border-left:2px solid #e5b84b;box-shadow:inset 5px 0 18px rgba(229,184,75,.06)}
+.row.onebase-status-pending .chip{border-color:rgba(229,184,75,.42)!important;color:#f4d27b!important}
+.row.onebase-status-pending .chip::before{content:"◷ "}
+.row.onebase-status-paused{border-left:2px dashed #8995a1;box-shadow:inset 5px 0 18px rgba(137,149,161,.06)}
+.row.onebase-status-paused .chip{border-color:rgba(137,149,161,.38)!important;color:#b7c0c9!important}
+.row.onebase-status-paused .chip::before{content:"⏸ "}
+.row.onebase-status-abandoned{border-left:2px solid #e34b5f;box-shadow:inset 5px 0 20px rgba(227,75,95,.08)}
+.row.onebase-status-abandoned .chip{border-color:rgba(227,75,95,.48)!important;color:#ff8392!important;text-shadow:0 0 8px rgba(227,75,95,.18)}
+.row.onebase-status-abandoned .chip::before{content:"☠ "}
+.row.onebase-status-abandoned .name{color:#ffb0b9}
+@keyframes onebaseWatchingPulse{0%,100%{opacity:.45}50%{opacity:1}}
+@media(prefers-reduced-motion:reduce){.brand h1,.row.onebase-status-watching::before{animation:none!important}}
+@media(max-width:760px){header{align-items:flex-start!important;padding-top:22px!important}.brand{gap:10px}.brand::before{width:38px;height:38px;flex-basis:38px;border-radius:11px}.brand h1{font-size:32px!important;letter-spacing:-1.8px!important}.brand .tag{font-size:9px!important}.brand .tag::after{content:""}}
