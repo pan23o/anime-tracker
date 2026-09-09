@@ -26,7 +26,7 @@ let html = await readFile(indexPath, 'utf8');
 html = html.replace(/\s*<link[^>]+rel=["'](?:shortcut )?icon["'][^>]*>/gi, '');
 html = html.replace(/<title>\s*AnimeTracker\s*<\/title>/i, '<title>ONEBASE</title>');
 
-const brandAssets = `\n<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=6">\n<link rel="stylesheet" href="/onebase-brand.css?v=2">\n<script src="/onebase-brand.js?v=2" defer></script>`;
+const brandAssets = `\n<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=7">\n<link rel="stylesheet" href="/onebase-brand.css?v=3">\n<script src="/onebase-brand.js?v=3" defer></script>`;
 html = html.replace(/<\/head>/i, `${brandAssets}\n</head>`);
 
 await writeFile(indexPath, html, 'utf8');
