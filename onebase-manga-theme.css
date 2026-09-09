@@ -1,0 +1,170 @@
+/* ONEBASE Manga theme — presentation only.
+   Safe CSS layer: no data, storage, render or observer changes. */
+
+body[data-theme="manga"]{
+  --manga-bg:#dedede;
+  --manga-bg2:#d2d2d2;
+  --manga-panel:#e4e4e4;
+  --manga-panel2:#d8d8d8;
+  --manga-line:#7a7a7a;
+  --manga-line2:#555;
+  --manga-text:#161616;
+  --manga-muted:#4e4e4e;
+  --manga-soft:#c8c8c8;
+  background:
+    radial-gradient(circle at 12% 8%,rgba(255,255,255,.42),transparent 27%),
+    radial-gradient(circle at 88% 88%,rgba(0,0,0,.07),transparent 31%),
+    linear-gradient(135deg,var(--manga-bg),var(--manga-bg2));
+  color:var(--manga-text);
+}
+
+/* Subtle screentone texture, inspired by printed manga but kept very light. */
+body[data-theme="manga"]::after{
+  opacity:.075;
+  background-image:radial-gradient(circle,rgba(20,20,20,.34) 0 1px,transparent 1.3px);
+  background-size:7px 7px;
+}
+
+body[data-theme="manga"] header{
+  position:relative;
+}
+body[data-theme="manga"] header::after{
+  content:"";
+  position:absolute;
+  left:-2vw;right:-2vw;bottom:4px;height:3px;
+  background:linear-gradient(90deg,transparent 0%,#555 10%,#222 50%,#555 90%,transparent 100%);
+  opacity:.72;
+  transform:skewX(-12deg);
+  pointer-events:none;
+}
+
+/* Manga-style framed surfaces: stronger gray ink borders, not pure black. */
+body[data-theme="manga"] .stat,
+body[data-theme="manga"] .toolbar,
+body[data-theme="manga"] .table{
+  border-color:var(--manga-line)!important;
+  background:rgba(228,228,228,.88)!important;
+  box-shadow:5px 5px 0 rgba(55,55,55,.13),0 14px 35px rgba(0,0,0,.08)!important;
+}
+
+body[data-theme="manga"] .stat:hover{
+  border-color:#505050!important;
+  box-shadow:6px 6px 0 rgba(55,55,55,.16),0 16px 38px rgba(0,0,0,.1)!important;
+}
+
+body[data-theme="manga"] .toolbar{
+  position:relative;
+}
+body[data-theme="manga"] .toolbar::before{
+  content:"";
+  position:absolute;
+  width:72px;height:7px;
+  top:-4px;right:28px;
+  background:repeating-linear-gradient(135deg,#666 0 2px,transparent 2px 6px);
+  opacity:.55;
+  transform:rotate(-3deg);
+  pointer-events:none;
+}
+
+body[data-theme="manga"] .row{
+  border-bottom-color:#9a9a9a!important;
+}
+body[data-theme="manga"] .head{
+  background:#c9c9c9!important;
+  color:#454545!important;
+  border-bottom:2px solid #707070;
+}
+body[data-theme="manga"] .row:not(.head):hover{
+  background:rgba(255,255,255,.34)!important;
+}
+
+body[data-theme="manga"] .animeInput,
+body[data-theme="manga"] .watched,
+body[data-theme="manga"] .searchBox,
+body[data-theme="manga"] .toolbar select{
+  color:#171717!important;
+}
+body[data-theme="manga"] .animeInput:focus,
+body[data-theme="manga"] .watched:focus,
+body[data-theme="manga"] .searchBox:focus{
+  border-color:#666!important;
+  background:#eeeeee!important;
+  box-shadow:3px 3px 0 rgba(60,60,60,.11);
+}
+body[data-theme="manga"] .animeLink{color:#171717!important}
+body[data-theme="manga"] .animeLink:hover{background:#eeeeee!important}
+body[data-theme="manga"] .animeLink.name-favorite{color:#856600!important}
+body[data-theme="manga"] .animeLink.name-poop{color:#68482f!important}
+body[data-theme="manga"] .animeLink.name-diamond{
+  background:linear-gradient(110deg,#256aa1 0%,#5d91b5 35%,#f8f8f8 50%,#5d91b5 65%,#256aa1 100%);
+  -webkit-background-clip:text;background-clip:text;
+}
+
+body[data-theme="manga"] .chip{
+  border-color:#8a8a8a!important;
+  background:#d0d0d0!important;
+  color:#414141!important;
+}
+body[data-theme="manga"] .chip.new{border-color:#606060!important;background:#bdbdbd!important;color:#222!important}
+
+/* Progress eye becomes an inked manga eye without changing its behavior. */
+body[data-theme="manga"] .eye{
+  border-color:#666!important;
+  background:radial-gradient(ellipse at 50% 50%,#fafafa 0 30%,#bdbdbd 31% 56%,#656565 57% 100%);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.55),3px 3px 0 rgba(50,50,50,.12);
+}
+body[data-theme="manga"] .eye::after{background:#222;box-shadow:none}
+
+body[data-theme="manga"] .progressBar{background:#bcbcbc!important;border:1px solid #888}
+body[data-theme="manga"] .progressBar span{background:#444!important;box-shadow:none!important}
+
+/* Buttons get a printed-panel / ink-outline treatment. */
+body[data-theme="manga"] .btn,
+body[data-theme="manga"] .select{
+  color:#222!important;
+  background:#dedede!important;
+  border-color:#777!important;
+  box-shadow:3px 3px 0 rgba(60,60,60,.12);
+}
+body[data-theme="manga"] .btn:hover,
+body[data-theme="manga"] .select:hover{
+  background:#eeeeee!important;
+  border-color:#444!important;
+  transform:translate(-1px,-1px);
+}
+
+/* Modals use the same gray paper + ink language. */
+body[data-theme="manga"] .modalCard,
+body[data-theme="manga"] .modeCard,
+body[data-theme="manga"] .cloud-auth-card{
+  background:#dedede!important;
+  color:#171717!important;
+  border-color:#686868!important;
+  box-shadow:8px 8px 0 rgba(45,45,45,.15),0 30px 70px rgba(0,0,0,.2)!important;
+}
+body[data-theme="manga"] .modalCard p,
+body[data-theme="manga"] .modeCard>p,
+body[data-theme="manga"] .modeOption span{
+  color:#555!important;
+}
+body[data-theme="manga"] .modalCard input,
+body[data-theme="manga"] .modalCard select{
+  background:#ededed!important;color:#171717!important;border-color:#858585!important;
+}
+
+/* Small hand-ink accents: restrained, decorative and pointer-events safe. */
+body[data-theme="manga"] .table::before{
+  content:"";
+  position:absolute;
+  width:90px;height:90px;
+  margin:-20px 0 0 -20px;
+  border:2px solid rgba(70,70,70,.18);
+  border-radius:48% 52% 55% 45%;
+  transform:rotate(-18deg);
+  pointer-events:none;
+}
+body[data-theme="manga"] .table{position:relative}
+
+@media (prefers-reduced-motion:reduce){
+  body[data-theme="manga"] *{transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}
+}
