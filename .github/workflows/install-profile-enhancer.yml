@@ -18,27 +18,23 @@ jobs:
           import re
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
-          s = re.sub(r'<script[^>]+profile-enhancer(?:-v2|-v3|-v4|-v5)?\.js[^>]*></script>\s*', '', s)
+          s = re.sub(r'<script[^>]+profile-enhancer(?:-v2|-v3|-v4|-v5|-v6)?\.js[^>]*></script>\s*', '', s)
           s = re.sub(r'<link[^>]+profile-enhancer\.css[^>]*>\s*', '', s)
           s = re.sub(r'<script[^>]+password-recovery\.js[^>]*></script>\s*', '', s)
-          s = re.sub(r'<script[^>]+auth-flow\.js[^>]*></script>\s*', '', s)
+          s = re.sub(r'<script[^>]+auth-flow(?:-v2)?\.js[^>]*></script>\s*', '', s)
 
-          # Delete any old inline cloud script that contains both of the
-          # legacy identifiers. This deliberately ignores every other script.
+          # Remove all legacy inline cloud/auth synchronizers. The current layer
+          # is external and must be the only component talking to tracker_state.
           scripts = re.compile(r'<script(?:\s[^>]*)?>.*?</script>', re.S | re.I)
-          removed = 0
           def clean(m):
-              global removed
               block = m.group(0)
-              if 'SUPABASE_URL' in block and 'tracker_state' in block:
-                  removed += 1
-                  return ''
-              return block
+              low = block.lower()
+              legacy = ('supabase.co' in low and ('tracker_state' in low or 'signInWithPassword'.lower() in low or 'cloudAuthOverlay'.lower() in low))
+              return '' if legacy else block
           s = scripts.sub(clean, s)
-          print(f'legacy inline tracker scripts removed: {removed}')
 
           s = s.replace('</head>', '<link rel="stylesheet" href="./profile-enhancer.css">\n</head>', 1)
-          s = s.replace('</body>', '<script src="./profile-enhancer-v5.js"></script>\n<script src="./auth-flow.js"></script>\n</body>', 1)
+          s = s.replace('</body>', '<script src="./profile-enhancer-v6.js"></script>\n<script src="./auth-flow-v2.js"></script>\n</body>', 1)
           p.write_text(s, encoding='utf-8')
           PY
       - name: Validate generated page
@@ -48,12 +44,12 @@ jobs:
           from pathlib import Path
           import re
           s=Path('index.html').read_text(encoding='utf-8')
-          assert s.count('profile-enhancer-v5.js') == 1, 'v5 include count is not 1'
-          assert s.count('auth-flow.js') == 1, 'auth-flow include count is not 1'
+          assert s.count('profile-enhancer-v6.js') == 1, 'v6 include count is not 1'
+          assert s.count('auth-flow-v2.js') == 1, 'auth-flow-v2 include count is not 1'
           inline = re.findall(r'<script(?:\s[^>]*)?>.*?</script>', s, re.S | re.I)
-          legacy = [x for x in inline if 'SUPABASE_URL' in x and 'tracker_state' in x]
-          assert not legacy, 'legacy inline cloud tracker is still present'
-          print('index.html validation passed')
+          legacy = [x for x in inline if 'supabase.co' in x.lower() and ('tracker_state' in x.lower() or 'signinwithpassword' in x.lower() or 'cloudAuthOverlay'.lower() in x.lower())]
+          assert not legacy, 'legacy inline auth/cloud script is still present'
+          print('index.html validation passed: v6 + auth-v2 only')
           PY
       - name: Commit injected page
         shell: bash
@@ -64,7 +60,7 @@ jobs:
           if git diff --cached --quiet; then
             echo 'Nothing to commit'
           else
-            git commit -m 'fix: use a single local-first account persistence layer'
+            git commit -m 'fix: isolate session state and local-first persistence'
             git pull --rebase origin main
             git push
           fi
