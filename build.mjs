@@ -11,6 +11,7 @@ const files = [
   'onebase-brand.js',
   'onebase-persistence-repair.js',
   'onebase-status-effects.js',
+  'onebase-manga-theme.css',
   'favicon.svg'
 ];
 
@@ -28,7 +29,7 @@ let html = await readFile(indexPath, 'utf8');
 html = html.replace(/\s*<link[^>]+rel=["'](?:shortcut )?icon["'][^>]*>/gi, '');
 html = html.replace(/<title>\s*AnimeTracker\s*<\/title>/i, '<title>ONEBASE</title>');
 
-const brandAssets = `\n<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=9">\n<link rel="stylesheet" href="/onebase-brand.css?v=5">\n<script src="/onebase-brand.js?v=5" defer></script>\n<script src="/onebase-persistence-repair.js?v=2" defer></script>\n<script src="/onebase-status-effects.js?v=1" defer></script>`;
+const brandAssets = `\n<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=10">\n<link rel="stylesheet" href="/onebase-brand.css?v=6">\n<link rel="stylesheet" href="/onebase-manga-theme.css?v=1">\n<script src="/onebase-brand.js?v=6" defer></script>\n<script src="/onebase-persistence-repair.js?v=3" defer></script>\n<script src="/onebase-status-effects.js?v=1" defer></script>`;
 html = html.replace(/<\/head>/i, `${brandAssets}\n</head>`);
 
 await writeFile(indexPath, html, 'utf8');
