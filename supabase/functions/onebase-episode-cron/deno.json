@@ -1,0 +1,6 @@
+{
+  "imports": {
+    "@supabase/server": "npm:@supabase/server@1.0.0",
+    "web-push-neo": "npm:web-push-neo@0.1.2"
+  }
+}
