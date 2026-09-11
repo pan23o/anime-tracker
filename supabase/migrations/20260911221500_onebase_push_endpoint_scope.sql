@@ -1,0 +1,2 @@
+alter table public.onebase_push_subscriptions drop constraint if exists onebase_push_subscriptions_endpoint_key;
+create unique index if not exists onebase_push_subscriptions_user_endpoint_idx on public.onebase_push_subscriptions(user_id, endpoint);
