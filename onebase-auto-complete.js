@@ -75,13 +75,12 @@
     const rows = document.getElementById('rows');
     if (!rows) return;
 
-    // The original tracker handles the input first; this delegated listener then sees
-    // the new watched value and can promote the item to completed immediately.
+    // Bubble phase: the tracker updates data first, then this reconciliation sees it.
     rows.addEventListener('input', (event) => {
       if (event.target && event.target.classList.contains('watched')) {
         syncCompletedStatuses({ render: true });
       }
-    }, true);
+    });
 
     // Lookup/refresh operations can change the total episode count without an input
     // event on the watched field. Observe DOM changes and run a guarded reconciliation.
