@@ -17,10 +17,12 @@
   function readAll(){try{const r=JSON.parse(localStorage.getItem(STORAGE)||'{}');return Array.isArray(r)?{default:r}:(r&&typeof r==='object'?r:{});}catch(_){return {};}}
   function save(){const all=readAll();all[currentUserKey]=sources.slice(0,MAX_WEBS);try{localStorage.setItem(STORAGE,JSON.stringify(all));}catch(_){}window.dispatchEvent(new CustomEvent('onebase:custom-webs-changed',{detail:{sources:sources.slice()}}));}
   function load(){
-    currentUserKey=profileKey();const all=readAll();let list=Array.isArray(all[currentUserKey])?all[currentUserKey]:[];
-    list=list.map(x=>({id:x.id||id(),name:String(x.name||'Web').trim(),homepage:String(x.homepage||x.url||x.template||'').trim(),createdAt:x.createdAt||Date.now()})).filter(x=>x.homepage);
-    if(currentUserKey!=='default'&&!list.length&&Array.isArray(all.default)&&all.default.length) list=all.default.map(x=>({id:id(),name:String(x.name||'Web').trim(),homepage:String(x.homepage||x.url||x.template||'').trim(),createdAt:Date.now()})).filter(x=>x.homepage);
-    sources=list.slice(0,MAX_WEBS);save();
+    currentUserKey=profileKey();const all=readAll();let list=Array.isArray(all[currentUserKey])?all[currentUserKey]:[];let changed=false;
+    list=list.map(x=>{const next={id:x.id||id(),name:String(x.name||'Web').trim(),homepage:String(x.homepage||x.url||x.template||'').trim(),createdAt:x.createdAt||Date.now()};if(!x.homepage||!x.id)changed=true;return next;}).filter(x=>x.homepage);
+    if(currentUserKey!=='default'&&!list.length&&Array.isArray(all.default)&&all.default.length){list=all.default.map(x=>({id:id(),name:String(x.name||'Web').trim(),homepage:String(x.homepage||x.url||x.template||'').trim(),createdAt:Date.now()})).filter(x=>x.homepage);changed=true;}
+    sources=list.slice(0,MAX_WEBS);
+    // Migra formatos antiguos sin disparar el evento de cambio (evita bucles de refresco).
+    if(changed){all[currentUserKey]=sources.slice();try{localStorage.setItem(STORAGE,JSON.stringify(all));}catch(_){} }
   }
   function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));}
   function validHomepage(v){try{const u=new URL(String(v).trim());return /^https?:$/.test(u.protocol)&&!!u.hostname;}catch(_){return false;}}
@@ -56,8 +58,7 @@
         <div class="ob-custom-error" id="obCustomWebError" aria-live="polite"></div>
         <div class="ob-custom-actions"><button type="button" id="obCustomWebCancel">Cancelar</button><button type="button" class="primary" id="obCustomWebSave">Añadir web</button></div>
       </div>`;
-    document.body.appendChild(m);const close=()=>m.classList.remove('open');
-    m.querySelector('#obCustomWebClose').addEventListener('click',close);m.querySelector('#obCustomWebCancel').addEventListener('click',close);m.addEventListener('click',e=>{if(e.target===m)close()});m.querySelector('#obCustomWebSave').addEventListener('click',addFromForm);m.querySelector('#obCustomWebUrl').addEventListener('keydown',e=>{if(e.key==='Enter')addFromForm()});m.querySelector('#obCustomWebName').addEventListener('keydown',e=>{if(e.key==='Enter')m.querySelector('#obCustomWebUrl').focus()});
+    document.body.appendChild(m);const close=()=>m.classList.remove('open');m.querySelector('#obCustomWebClose').addEventListener('click',close);m.querySelector('#obCustomWebCancel').addEventListener('click',close);m.addEventListener('click',e=>{if(e.target===m)close()});m.querySelector('#obCustomWebSave').addEventListener('click',addFromForm);m.querySelector('#obCustomWebUrl').addEventListener('keydown',e=>{if(e.key==='Enter')addFromForm()});m.querySelector('#obCustomWebName').addEventListener('keydown',e=>{if(e.key==='Enter')m.querySelector('#obCustomWebUrl').focus()});
   }
   function openAdd(){createModal();const m=document.getElementById('onebaseCustomWebModal');m.querySelector('#obCustomWebName').value='';m.querySelector('#obCustomWebUrl').value='';m.querySelector('#obCustomWebError').textContent='';m.classList.add('open');setTimeout(()=>m.querySelector('#obCustomWebName').focus(),30);}
   function addFromForm(){
@@ -90,7 +91,7 @@
     const choices=document.querySelector('#sourceModal .sourceChoices');if(!choices)return;choices.querySelectorAll('[data-custom-web]').forEach(e=>e.remove());sources.forEach(source=>{const b=document.createElement('button');b.type='button';b.dataset.customWeb=source.id;b.textContent=source.name;b.addEventListener('click',()=>openCustomSource(source));choices.appendChild(b)});
   }
   function refresh(){load();renderSettingsSection();injectSourceButtons()}
-  function boot(){css();refresh();const observer=new MutationObserver(()=>{renderSettingsSection();injectSourceButtons()});observer.observe(document.body,{childList:true,subtree:true});window.addEventListener('onebase:custom-webs-changed',refresh);window.addEventListener('storage',e=>{if(e.key===STORAGE)refresh()});}
+  function boot(){css();refresh();const observer=new MutationObserver(()=>{renderSettingsSection();injectSourceButtons()});observer.observe(document.body,{childList:true,subtree:true});window.addEventListener('onebase:custom-webs-changed',()=>{load();renderSettingsSection();injectSourceButtons()});window.addEventListener('storage',e=>{if(e.key===STORAGE)refresh()});}
   window.OneBaseCustomWebs={getAll:()=>sources.slice(),reload:refresh};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
