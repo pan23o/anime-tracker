@@ -1,4 +1,0 @@
-OneBase episode notification configuration check.
-Sources: Nyaa, SubPlease, EXT.to
-Signal: Wikipedia episode count
-Interval: 6 hours
