@@ -3,12 +3,7 @@
   'use strict';
 
   const KEY = 'onebase_settings_v2';
-  const DEFAULTS = {
-    confirmDelete: true,
-    autoBackup: true,
-    achievementPopups: true,
-    episodeNotifications: false
-  };
+  const DEFAULTS = { confirmDelete:true, autoBackup:true, achievementPopups:true, episodeNotifications:false };
 
   const state = () => {
     try {
@@ -56,27 +51,27 @@
   }
 
   function makeSwitch(id, checked) {
-    const label = document.createElement('label');
-    label.className = 'ob-switch';
-    label.innerHTML = `<input id="${id}" type="checkbox" ${checked ? 'checked' : ''}><span class="ob-switch-track"></span>`;
+    const label=document.createElement('label');
+    label.className='ob-switch';
+    label.innerHTML=`<input id="${id}" type="checkbox" ${checked?'checked':''}><span class="ob-switch-track"></span>`;
     return label;
   }
 
-  function row(id, title, description, checked) {
-    const el = document.createElement('div');
-    el.className = 'ob-setting-row';
-    const copy = document.createElement('div'); copy.className = 'ob-setting-copy';
-    copy.innerHTML = `<strong>${title}</strong><span>${description}</span>`;
-    el.append(copy, makeSwitch(id, checked));
+  function row(id,title,description,checked) {
+    const el=document.createElement('div');
+    el.className='ob-setting-row';
+    const copy=document.createElement('div'); copy.className='ob-setting-copy';
+    copy.innerHTML=`<strong>${title}</strong><span>${description}</span>`;
+    el.append(copy,makeSwitch(id,checked));
     return el;
   }
 
   function findOriginalThemeSelect() {
-    return document.getElementById('themeSelect') || document.querySelector('select[data-theme], select[name="theme"]');
+    return document.getElementById('themeSelect') || document.querySelector('header select[data-theme], header select[name="theme"], header .select');
   }
 
   function themeOptions(original) {
-    if (original?.options?.length) return [...original.options].map(o => ({value:o.value,text:o.textContent.trim()}));
+    if(original?.options?.length) return [...original.options].map(o=>({value:o.value,text:o.textContent.trim()}));
     return [
       {value:'high-black',text:'Alto contraste · Negro'},
       {value:'high-white',text:'Alto contraste · Blanco'},
@@ -87,23 +82,19 @@
   }
 
   function applyTheme(value) {
-    const original = findOriginalThemeSelect();
-    if (original) {
-      original.value = value;
-      original.dispatchEvent(new Event('change', {bubbles:true}));
-    }
-    try { localStorage.setItem('onebase_theme_v1', value); } catch (_) {}
-    const theme = document.getElementById('onebaseSettingsTheme');
-    const status = document.getElementById('onebaseSettingsThemeStatus');
-    if (theme && status) status.textContent = `Tema activo: ${theme.selectedOptions[0]?.textContent || value}`;
+    const original=findOriginalThemeSelect();
+    if(original){ original.value=value; original.dispatchEvent(new Event('change',{bubbles:true})); }
+    try{ localStorage.setItem('onebase_theme_v1',value); }catch(_){ }
+    const theme=document.getElementById('onebaseSettingsTheme');
+    const status=document.getElementById('onebaseSettingsThemeStatus');
+    if(theme&&status) status.textContent=`Tema activo: ${theme.selectedOptions[0]?.textContent||value}`;
   }
 
   function buildOverlay() {
-    if (document.getElementById('onebaseSettingsOverlay')) return;
-    const s = state();
-    const overlay = document.createElement('div');
-    overlay.id = 'onebaseSettingsOverlay';
-    overlay.innerHTML = `
+    if(document.getElementById('onebaseSettingsOverlay')) return;
+    const s=state();
+    const overlay=document.createElement('div'); overlay.id='onebaseSettingsOverlay';
+    overlay.innerHTML=`
       <div class="ob-settings-window" role="dialog" aria-modal="true" aria-labelledby="onebaseSettingsTitle">
         <div class="ob-settings-head">
           <div class="ob-settings-title"><span style="font-size:22px">⚙️</span><div><strong id="onebaseSettingsTitle">Ajustes</strong><small>Configuración de OneBase</small></div></div>
@@ -122,7 +113,7 @@
       </div>`;
     document.body.appendChild(overlay);
 
-    const protection = overlay.querySelector('#onebaseProtectionRows');
+    const protection=overlay.querySelector('#onebaseProtectionRows');
     protection.append(
       row('onebaseSettingConfirmDelete','Confirmar eliminaciones','Evita borrar un anime por accidente.',s.confirmDelete),
       row('onebaseSettingAutoBackup','Copias automáticas','Guarda instantáneas locales periódicas de tu biblioteca.',s.autoBackup),
@@ -130,73 +121,97 @@
       row('onebaseSettingEpisodeNotifications','Enviar notificaciones de nuevos episodios','Recibe avisos cuando OneBase detecte un episodio nuevo, incluso con la web cerrada.',s.episodeNotifications)
     );
 
-    const original = findOriginalThemeSelect();
-    const theme = overlay.querySelector('#onebaseSettingsTheme');
-    for (const option of themeOptions(original)) {
-      const o = document.createElement('option'); o.value=option.value; o.textContent=option.text; theme.appendChild(o);
-    }
-    theme.value = original?.value || s.theme || theme.options[0]?.value || '';
-    overlay.querySelector('#onebaseSettingsThemeStatus').textContent = `Tema activo: ${theme.selectedOptions[0]?.textContent || theme.value}`;
-    theme.addEventListener('change', () => applyTheme(theme.value));
+    const original=findOriginalThemeSelect();
+    const theme=overlay.querySelector('#onebaseSettingsTheme');
+    for(const option of themeOptions(original)){ const o=document.createElement('option'); o.value=option.value; o.textContent=option.text; theme.appendChild(o); }
+    theme.value=original?.value||s.theme||theme.options[0]?.value||'';
+    overlay.querySelector('#onebaseSettingsThemeStatus').textContent=`Tema activo: ${theme.selectedOptions[0]?.textContent||theme.value}`;
+    theme.addEventListener('change',()=>applyTheme(theme.value));
 
-    overlay.querySelector('#onebaseSettingsClose').addEventListener('click', close);
-    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+    overlay.querySelector('#onebaseSettingsClose').addEventListener('click',close);
+    overlay.addEventListener('click',e=>{if(e.target===overlay)close();});
 
     bindToggle('onebaseSettingConfirmDelete','confirmDelete');
     bindToggle('onebaseSettingAutoBackup','autoBackup');
     bindToggle('onebaseSettingAchievementPopups','achievementPopups');
-    bindToggle('onebaseSettingEpisodeNotifications','episodeNotifications', async input => {
-      try {
-        if (input.checked) {
-          if (!window.OneBaseEpisodeNotifications?.enablePush) throw new Error('El sistema de notificaciones no está disponible.');
-          await window.OneBaseEpisodeNotifications.enablePush();
-          saveState({episodeNotifications:true});
-          if (window.toast) window.toast('✓ Notificaciones de nuevos episodios activadas.');
-        } else {
-          await window.OneBaseEpisodeNotifications?.disablePush?.();
-          saveState({episodeNotifications:false});
-          if (window.toast) window.toast('Notificaciones de nuevos episodios desactivadas.');
+    bindToggle('onebaseSettingEpisodeNotifications','episodeNotifications',async input=>{
+      try{
+        if(input.checked){
+          if(!window.OneBaseEpisodeNotifications?.enablePush) throw new Error('El sistema de notificaciones no está disponible.');
+          await window.OneBaseEpisodeNotifications.enablePush(); saveState({episodeNotifications:true});
+          if(window.toast)window.toast('✓ Notificaciones de nuevos episodios activadas.');
+        }else{
+          await window.OneBaseEpisodeNotifications?.disablePush?.(); saveState({episodeNotifications:false});
+          if(window.toast)window.toast('Notificaciones de nuevos episodios desactivadas.');
         }
-      } catch (error) {
-        input.checked=false; saveState({episodeNotifications:false});
-        if (window.toast) window.toast(`⚠️ ${error?.message || 'No se pudieron cambiar las notificaciones.'}`);
-      }
+      }catch(error){ input.checked=false; saveState({episodeNotifications:false}); if(window.toast)window.toast(`⚠️ ${error?.message||'No se pudieron cambiar las notificaciones.'}`); }
     });
   }
 
-  function bindToggle(id,key,custom) {
-    const input=document.getElementById(id); if(!input) return;
-    input.addEventListener('change',async()=>{ if(custom){await custom(input);return;} saveState({[key]:input.checked}); });
+  function bindToggle(id,key,custom){
+    const input=document.getElementById(id); if(!input)return;
+    input.addEventListener('change',async()=>{if(custom){await custom(input);return;}saveState({[key]:input.checked});});
   }
 
   function open(){buildOverlay();document.getElementById('onebaseSettingsOverlay').classList.add('open');document.body.style.overflow='hidden';}
   function close(){document.getElementById('onebaseSettingsOverlay')?.classList.remove('open');document.body.style.overflow='';}
 
   function addButton(){
-    if(document.getElementById('onebaseSettingsButton')) return;
-    const controls=document.querySelector('header .controls')||document.querySelector('.controls');
-    if(!controls) return;
+    if(document.getElementById('onebaseSettingsButton'))return;
+    const controls=document.querySelector('header .controls')||document.querySelector('.controls'); if(!controls)return;
     const button=document.createElement('button');
     button.type='button';button.id='onebaseSettingsButton';button.className='btn icon';button.title='Ajustes';button.innerHTML='<span class="ob-settings-icon">⚙</span><span>Ajustes</span>';
     button.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();open();});
     const profile=document.getElementById('profileTopBtn');
-    if(profile && profile.parentElement===controls) controls.insertBefore(button,profile); else controls.appendChild(button);
+    if(profile&&profile.parentElement===controls)controls.insertBefore(button,profile);else controls.appendChild(button);
+  }
+
+  /*
+   * The original header already contains an "Ajustes" shortcut and a theme select.
+   * Keep their underlying functionality available, but remove only those two visual
+   * controls so the new independent Settings window is the single entry point.
+   * Never hide/remove .controls itself: the other header actions must remain intact.
+   */
+  function cleanupLegacyHeaderControls(){
+    const controls=document.querySelector('header .controls')||document.querySelector('.controls');
+    if(controls){
+      [...controls.querySelectorAll('button')].forEach(button=>{
+        if(button.id==='onebaseSettingsButton')return;
+        const text=(button.textContent||'').replace(/\s+/g,' ').trim().toLowerCase();
+        const title=(button.getAttribute('title')||'').trim().toLowerCase();
+        if(text==='ajustes' || (title==='ajustes' && !button.querySelector('img') && !button.id)) button.remove();
+      });
+    }
+
+    /* Keep the original select in the DOM because the existing theme system listens to it,
+       but hide only that select. This avoids breaking the theme listener while removing it
+       from the visible header. */
+    const themeSelect=findOriginalThemeSelect();
+    if(themeSelect && !themeSelect.closest('#onebaseSettingsOverlay')){
+      themeSelect.style.display='none';
+      themeSelect.setAttribute('aria-hidden','true');
+      themeSelect.setAttribute('tabindex','-1');
+      const parent=themeSelect.parentElement;
+      if(parent && parent!==controls && parent.tagName!=='HEADER' && !parent.classList.contains('controls')){
+        const text=(parent.textContent||'').replace(/\s+/g,' ').trim().toLowerCase();
+        if(parent.children.length<=2 && (!text || text==='tinta' || text.includes('tema'))) parent.style.display='none';
+      }
+    }
   }
 
   function installProtection(){
     document.addEventListener('click',e=>{
-      if(!state().confirmDelete) return;
-      const target=e.target.closest?.('.clearAnime,[data-action="delete-anime"],[data-delete-anime]');
-      if(!target) return;
+      if(!state().confirmDelete)return;
+      const target=e.target.closest?.('.clearAnime,[data-action="delete-anime"],[data-delete-anime]'); if(!target)return;
       if(target.dataset.onebaseConfirmed==='1'){delete target.dataset.onebaseConfirmed;return;}
       const ok=window.confirm('¿Seguro que quieres eliminar este anime?');
-      if(!ok){e.preventDefault();e.stopImmediatePropagation();} else target.dataset.onebaseConfirmed='1';
+      if(!ok){e.preventDefault();e.stopImmediatePropagation();}else target.dataset.onebaseConfirmed='1';
     },true);
     if(!window.OneBaseSettingsBackupTimer){
       window.OneBaseSettingsBackupTimer=setInterval(()=>{
-        if(!state().autoBackup) return;
+        if(!state().autoBackup)return;
         try{
-          const list=Array.isArray(window.data)?window.data:[]; if(!list.length)return;
+          const list=Array.isArray(window.data)?window.data:[];if(!list.length)return;
           const key=`onebase_backup_${new Date().toISOString().slice(0,16).replace(/[:T]/g,'-')}`;
           localStorage.setItem(key,JSON.stringify({createdAt:Date.now(),library:list}));
         }catch(_){ }
@@ -206,6 +221,18 @@
 
   window.OneBaseSettings={open,close,state,save:saveState};
 
-  function boot(){css();addButton();installProtection();}
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot,{once:true}); else boot();
+  function boot(){
+    css();
+    addButton();
+    cleanupLegacyHeaderControls();
+    installProtection();
+    /* Some legacy header controls can be rebuilt by the app after startup. Re-apply
+       the narrow cleanup without touching any other controls. */
+    if(!window.OneBaseSettingsLegacyObserver){
+      window.OneBaseSettingsLegacyObserver=new MutationObserver(()=>cleanupLegacyHeaderControls());
+      window.OneBaseSettingsLegacyObserver.observe(document.body,{childList:true,subtree:true});
+    }
+  }
+
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
