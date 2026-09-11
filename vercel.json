@@ -3,11 +3,5 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "crons": [
-    {
-      "path": "/api/cron-episode-updates",
-      "schedule": "0 */6 * * *"
-    }
-  ]
+  "outputDirectory": "dist"
 }
