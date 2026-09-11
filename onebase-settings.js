@@ -76,7 +76,7 @@
   }
 
   function themeOptions(original) {
-    if (original?.options?.length) return [...original.options].map(o => ({ value:o.value, text:o.textContent.trim() }));
+    if (original?.options?.length) return [...original.options].map(o => ({value:o.value,text:o.textContent.trim()}));
     return [
       {value:'high-black',text:'Alto contraste · Negro'},
       {value:'high-white',text:'Alto contraste · Blanco'},
@@ -90,10 +90,12 @@
     const original = findOriginalThemeSelect();
     if (original) {
       original.value = value;
-      original.dispatchEvent(new Event('change', { bubbles:true }));
+      original.dispatchEvent(new Event('change', {bubbles:true}));
     }
     try { localStorage.setItem('onebase_theme_v1', value); } catch (_) {}
-    document.getElementById('onebaseSettingsThemeStatus').textContent = `Tema activo: ${document.getElementById('onebaseSettingsTheme').selectedOptions[0]?.textContent || value}`;
+    const theme = document.getElementById('onebaseSettingsTheme');
+    const status = document.getElementById('onebaseSettingsThemeStatus');
+    if (theme && status) status.textContent = `Tema activo: ${theme.selectedOptions[0]?.textContent || value}`;
   }
 
   function buildOverlay() {
@@ -109,11 +111,8 @@
         </div>
         <div class="ob-settings-body">
           <section class="ob-settings-section">
-            <div class="ob-settings-section-head"><strong>🎨 Apariencia</strong><p>Los temas ya no viven fuera de Ajustes. Aquí se controla toda la apariencia de OneBase.</p></div>
-            <div class="ob-theme-box">
-              <select id="onebaseSettingsTheme" class="ob-theme-select" aria-label="Tema de OneBase"></select>
-              <div class="ob-theme-note" id="onebaseSettingsThemeStatus"></div>
-            </div>
+            <div class="ob-settings-section-head"><strong>🎨 Apariencia</strong><p>La configuración de apariencia está disponible aquí sin eliminar los controles originales.</p></div>
+            <div class="ob-theme-box"><select id="onebaseSettingsTheme" class="ob-theme-select" aria-label="Tema de OneBase"></select><div class="ob-theme-note" id="onebaseSettingsThemeStatus"></div></div>
           </section>
           <section class="ob-settings-section">
             <div class="ob-settings-section-head"><strong>🛡️ Protección</strong><p>Controles para proteger tu biblioteca y controlar los avisos de OneBase.</p></div>
@@ -159,70 +158,54 @@
           if (window.toast) window.toast('Notificaciones de nuevos episodios desactivadas.');
         }
       } catch (error) {
-        input.checked = false; saveState({episodeNotifications:false});
+        input.checked=false; saveState({episodeNotifications:false});
         if (window.toast) window.toast(`⚠️ ${error?.message || 'No se pudieron cambiar las notificaciones.'}`);
       }
     });
   }
 
-  function bindToggle(id, key, custom) {
-    const input = document.getElementById(id); if (!input) return;
-    input.addEventListener('change', async () => {
-      if (custom) { await custom(input); return; }
-      saveState({[key]:input.checked});
-    });
+  function bindToggle(id,key,custom) {
+    const input=document.getElementById(id); if(!input) return;
+    input.addEventListener('change',async()=>{ if(custom){await custom(input);return;} saveState({[key]:input.checked}); });
   }
 
-  function open() { buildOverlay(); document.getElementById('onebaseSettingsOverlay').classList.add('open'); document.body.style.overflow='hidden'; }
-  function close() { document.getElementById('onebaseSettingsOverlay')?.classList.remove('open'); document.body.style.overflow=''; }
+  function open(){buildOverlay();document.getElementById('onebaseSettingsOverlay').classList.add('open');document.body.style.overflow='hidden';}
+  function close(){document.getElementById('onebaseSettingsOverlay')?.classList.remove('open');document.body.style.overflow='';}
 
-  function addButton() {
-    if (document.getElementById('onebaseSettingsButton')) return;
-    const controls = document.querySelector('header .controls') || document.querySelector('.controls');
-    if (!controls) return;
-    const button = document.createElement('button');
-    button.type='button'; button.id='onebaseSettingsButton'; button.className='btn icon'; button.title='Ajustes'; button.innerHTML='<span class="ob-settings-icon">⚙</span><span>Ajustes</span>';
-    button.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); open(); });
-    controls.insertBefore(button, document.getElementById('profileTopBtn') || controls.lastElementChild);
+  function addButton(){
+    if(document.getElementById('onebaseSettingsButton')) return;
+    const controls=document.querySelector('header .controls')||document.querySelector('.controls');
+    if(!controls) return;
+    const button=document.createElement('button');
+    button.type='button';button.id='onebaseSettingsButton';button.className='btn icon';button.title='Ajustes';button.innerHTML='<span class="ob-settings-icon">⚙</span><span>Ajustes</span>';
+    button.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();open();});
+    const profile=document.getElementById('profileTopBtn');
+    if(profile && profile.parentElement===controls) controls.insertBefore(button,profile); else controls.appendChild(button);
   }
 
-  function hideExternalThemeControls() {
-    const original = findOriginalThemeSelect();
-    if (!original) return;
-    const wrapper = original.closest('.themeField,.themeRow,.themeControl,.field,.settingsField,.themeColorField') || original.parentElement;
-    if (wrapper && !wrapper.closest('#onebaseSettingsOverlay')) wrapper.style.display='none';
-  }
-
-  function installProtection() {
-    document.addEventListener('click', e => {
-      if (!state().confirmDelete) return;
-      const target = e.target.closest?.('.clearAnime,[data-action="delete-anime"],[data-delete-anime]');
-      if (!target) return;
-      if (target.dataset.onebaseConfirmed === '1') { delete target.dataset.onebaseConfirmed; return; }
-      const ok = window.confirm('¿Seguro que quieres eliminar este anime?');
-      if (!ok) { e.preventDefault(); e.stopImmediatePropagation(); }
-      else { target.dataset.onebaseConfirmed='1'; }
-    }, true);
-
-    if (!window.OneBaseSettingsBackupTimer) {
-      window.OneBaseSettingsBackupTimer = setInterval(() => {
-        if (!state().autoBackup) return;
-        try {
-          const list = Array.isArray(window.data) ? window.data : [];
-          if (!list.length) return;
-          const key = `onebase_backup_${new Date().toISOString().slice(0,16).replace(/[:T]/g,'-')}`;
-          localStorage.setItem(key, JSON.stringify({createdAt:Date.now(),library:list}));
-        } catch (_) {}
-      }, 30 * 60 * 1000);
+  function installProtection(){
+    document.addEventListener('click',e=>{
+      if(!state().confirmDelete) return;
+      const target=e.target.closest?.('.clearAnime,[data-action="delete-anime"],[data-delete-anime]');
+      if(!target) return;
+      if(target.dataset.onebaseConfirmed==='1'){delete target.dataset.onebaseConfirmed;return;}
+      const ok=window.confirm('¿Seguro que quieres eliminar este anime?');
+      if(!ok){e.preventDefault();e.stopImmediatePropagation();} else target.dataset.onebaseConfirmed='1';
+    },true);
+    if(!window.OneBaseSettingsBackupTimer){
+      window.OneBaseSettingsBackupTimer=setInterval(()=>{
+        if(!state().autoBackup) return;
+        try{
+          const list=Array.isArray(window.data)?window.data:[]; if(!list.length)return;
+          const key=`onebase_backup_${new Date().toISOString().slice(0,16).replace(/[:T]/g,'-')}`;
+          localStorage.setItem(key,JSON.stringify({createdAt:Date.now(),library:list}));
+        }catch(_){ }
+      },30*60*1000);
     }
   }
 
-  window.OneBaseSettings = { open, close, state, save:saveState };
+  window.OneBaseSettings={open,close,state,save:saveState};
 
-  function boot() {
-    css(); addButton(); hideExternalThemeControls(); installProtection();
-    if (document.documentElement.dataset.atSession) saveState({});
-  }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, {once:true});
-  else boot();
+  function boot(){css();addButton();installProtection();}
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot,{once:true}); else boot();
 })();
