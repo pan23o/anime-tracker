@@ -57,6 +57,8 @@
 
     syncing = true;
     try {
+      // save() is the canonical local persistence path and emits animetracker:saved,
+      // which the cloud persistence layer mirrors immediately.
       if (typeof save === 'function') save({ skipBackup: true });
       if (render && typeof window.render === 'function') window.render();
     } catch (error) {
@@ -71,6 +73,16 @@
   function start() {
     // Fix existing entries immediately, including entries restored from cloud storage.
     syncCompletedStatuses({ render: true });
+
+    // The account TXT/Cloud persistence engines restore asynchronously. These events
+    // are the important part: they guarantee a restored 12/12 entry is reconciled
+    // after the server data has actually replaced the client data.
+    window.addEventListener('onebase:txt-restored', () => {
+      setTimeout(() => syncCompletedStatuses({ render: true }), 0);
+    });
+    window.addEventListener('animetracker:restored', () => {
+      setTimeout(() => syncCompletedStatuses({ render: true }), 0);
+    });
 
     const rows = document.getElementById('rows');
     if (!rows) return;
@@ -92,6 +104,7 @@
     // Give async metadata/persistence restoration a chance to populate the final data.
     setTimeout(() => syncCompletedStatuses({ render: true }), 700);
     setTimeout(() => syncCompletedStatuses({ render: true }), 1800);
+    setTimeout(() => syncCompletedStatuses({ render: true }), 4000);
   }
 
   if (document.readyState === 'loading') {
