@@ -10,7 +10,7 @@ const files = [
   'index.html','profile-enhancer.css','profile-enhancer.js','onebase-brand.css','onebase-brand.js',
   'onebase-persistence-repair.js','onebase-status-effects.js','onebase-auto-complete.js','onebase-instant-save.js',
   'onebase-episode-notifications.js','onebase-notification-setup.js','onebase-settings.js','onebase-profile-cleanup.js',
-  'onebase-custom-webs-v3.js','favicon.ico','favicon.png','favicon.svg','onebase-sw.js'
+  'onebase-custom-webs-v3.js','onebase-default-webs.js','favicon.ico','favicon.png','favicon.svg','onebase-sw.js'
 ];
 for (const file of files) {
   const source = path.join(root, file);
@@ -26,7 +26,8 @@ const headAssets = `\n<link rel="icon" type="image/svg+xml" href="/favicon.svg?v
 html = html.replace(/<\/head>/i, `${headAssets}\n</head>`);
 const runtimeScripts = [
   ['onebase-auto-complete.js','v=3'],['onebase-instant-save.js','v=3'],['onebase-notification-setup.js','v=3'],
-  ['onebase-episode-notifications.js','v=3'],['onebase-settings.js','v=6'],['onebase-profile-cleanup.js','v=2'],['onebase-custom-webs-v3.js','v=4']
+  ['onebase-episode-notifications.js','v=3'],['onebase-settings.js','v=6'],['onebase-profile-cleanup.js','v=2'],
+  ['onebase-custom-webs-v3.js','v=5'],['onebase-default-webs.js','v=1']
 ];
 for (const [script,version] of runtimeScripts) {
   const tag = `<script src="/${script}?${version}"></script>`;
