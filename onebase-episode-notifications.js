@@ -6,7 +6,7 @@
   const CHECK_INTERVAL = 6 * 60 * 60 * 1000;
   const SUPABASE_URL = 'https://djfjqecahztogacliavh.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_tm8Tid_HSYtu6cxXQ3ddKA_RWN15BSB';
-  const VAPID_PUBLIC_KEY = 'BJBJ2AcTJh1nFKp2NxgAruEkAyLbG5LPeoAfDKPiiVQMMXejFi_GF5G-6nVFNN5syEfV2NEKOiImLznUnWsCpcc';
+  let vapidPublicKey = '';
 
   function getData() {
     try { return Array.isArray(window.data) ? window.data : []; } catch (_) { return []; }
@@ -44,6 +44,15 @@
     if (Notification.permission === 'default') return Notification.requestPermission();
     return Notification.permission;
   }
+  async function getVapidPublicKey() {
+    if (vapidPublicKey) return vapidPublicKey;
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/onebase-episode-cron?config=vapid`, { headers: { apikey: SUPABASE_KEY } });
+    if (!response.ok) throw new Error('No se pudo inicializar el sistema de notificaciones.');
+    const data = await response.json();
+    if (!data?.publicKey) throw new Error(data?.error || 'No hay clave pública de notificaciones disponible.');
+    vapidPublicKey = data.publicKey;
+    return vapidPublicKey;
+  }
   async function enablePush() {
     const client = await getClient();
     if (!client) throw new Error('Supabase no está disponible.');
@@ -54,7 +63,7 @@
     const registration = await registerServiceWorker();
     if (!registration?.pushManager) throw new Error('Este navegador no admite Push Notifications.');
     let subscription = await registration.pushManager.getSubscription();
-    if (!subscription) subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) });
+    if (!subscription) subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(await getVapidPublicKey()) });
     const { data, error } = await client.functions.invoke('onebase-notifications', { body: { subscription: subscription.toJSON() } });
     if (error) throw error;
     if (!data?.ok) throw new Error(data?.error || 'No se pudo guardar la suscripción.');
