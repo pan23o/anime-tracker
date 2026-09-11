@@ -1,0 +1,6 @@
+ONEBASE CURRENT BUILD
+
+Source branch: main
+Deployment refresh: 2026-09-12
+Current source commit before refresh: d97db0860edba39dab4e29a16d4c669dd7502f26
+Purpose: force a fresh Vercel build so the deployed site is rebuilt from the current main version.
