@@ -69,8 +69,6 @@ header::before{
 .table{
   box-shadow:0 22px 70px rgba(0,0,0,.48),0 0 35px rgba(28,126,255,.035)!important;
 }
-
-/* Anime status effects. Visual only: no clicks, storage or data changes. */
 .row.onebase-status-watching{
   position:relative;
   border-left:2px solid #39a9ff;
@@ -89,53 +87,191 @@ header::before{
   color:#8fe7ff!important;
   box-shadow:0 0 12px rgba(57,169,255,.12);
 }
-.row.onebase-status-completed{
-  border-left:2px solid #49d17d;
-  box-shadow:inset 5px 0 18px rgba(73,209,125,.07);
+.row.onebase-status-completed{border-left:2px solid #49d17d;box-shadow:inset 5px 0 18px rgba(73,209,125,.07)}
+.row.onebase-status-completed .chip{border-color:rgba(73,209,125,.42)!important;color:#8af0ae!important}
+.row.onebase-status-completed .chip::before{content:"✓ "}
+.row.onebase-status-pending{border-left:2px solid #e5b84b;box-shadow:inset 5px 0 18px rgba(229,184,75,.06)}
+.row.onebase-status-pending .chip{border-color:rgba(229,184,75,.42)!important;color:#f4d27b!important}
+.row.onebase-status-pending .chip::before{content:"◷ "}
+.row.onebase-status-paused{border-left:2px dashed #8995a1;box-shadow:inset 5px 0 18px rgba(137,149,161,.06)}
+.row.onebase-status-paused .chip{border-color:rgba(137,149,161,.38)!important;color:#b7c0c9!important}
+.row.onebase-status-paused .chip::before{content:"⏸ "}
+.row.onebase-status-abandoned{border-left:2px solid #e34b5f;box-shadow:inset 5px 0 20px rgba(227,75,95,.08)}
+.row.onebase-status-abandoned .chip{border-color:rgba(227,75,95,.48)!important;color:#ff8392!important;text-shadow:0 0 8px rgba(227,75,95,.18)}
+.row.onebase-status-abandoned .chip::before{content:"☠ "}
+.row.onebase-status-abandoned .name{color:#ffb0b9}
+@keyframes onebaseWatchingPulse{0%,100%{opacity:.45}50%{opacity:1}}
+
+/* ONEBASE GRAND LINE UI — 2026 aesthetic refresh */
+:root{
+  --onebase-bg:#090b0d;
+  --onebase-surface:#101419;
+  --onebase-surface-2:#151a20;
+  --onebase-gold:#d6a84f;
+  --onebase-gold-light:#f0c96a;
+  --onebase-text:#f5f2ea;
+  --onebase-muted:#9299a3;
+  --onebase-border:rgba(214,168,79,.18);
 }
-.row.onebase-status-completed .chip{
-  border-color:rgba(73,209,125,.42)!important;
-  color:#8af0ae!important;
+
+/* Remove the old blob/blue-glow treatment. Keep the background calm and cinematic. */
+body{
+  background:#090b0d!important;
+  color:var(--onebase-text);
 }
-.row.onebase-status-completed .chip::before{content:"✓ ";}
-.row.onebase-status-pending{
-  border-left:2px solid #e5b84b;
-  box-shadow:inset 5px 0 18px rgba(229,184,75,.06);
+body:after{display:none!important}
+header::before{display:none!important}
+
+header{
+  padding-top:34px!important;
+  padding-bottom:26px!important;
+  animation:onebaseReveal .55s cubic-bezier(.2,.8,.2,1) both;
 }
-.row.onebase-status-pending .chip{
-  border-color:rgba(229,184,75,.42)!important;
-  color:#f4d27b!important;
+
+.brand::before{
+  width:44px;height:44px;flex-basis:44px;
+  border-radius:12px;
+  border-color:rgba(214,168,79,.42);
+  box-shadow:0 0 0 1px rgba(255,255,255,.035) inset,0 8px 26px rgba(0,0,0,.42),0 0 22px rgba(214,168,79,.08);
+  transition:transform .3s ease,border-color .3s ease,box-shadow .3s ease;
 }
-.row.onebase-status-pending .chip::before{content:"◷ ";}
-.row.onebase-status-paused{
-  border-left:2px dashed #8995a1;
-  box-shadow:inset 5px 0 18px rgba(137,149,161,.06);
+.brand:hover::before{
+  transform:translateY(-2px) rotate(-2deg);
+  border-color:rgba(240,201,106,.68);
+  box-shadow:0 10px 30px rgba(0,0,0,.48),0 0 26px rgba(214,168,79,.14);
 }
-.row.onebase-status-paused .chip{
-  border-color:rgba(137,149,161,.38)!important;
-  color:#b7c0c9!important;
+.brand h1{
+  background:linear-gradient(110deg,#fff 0%,#fff 42%,#f0c96a 66%,#d6a84f 82%,#fff 100%)!important;
+  background-size:220% 100%!important;
+  animation:onebaseBrandShine 7s ease-in-out infinite!important;
+  text-shadow:none!important;
 }
-.row.onebase-status-paused .chip::before{content:"⏸ ";}
-.row.onebase-status-abandoned{
-  border-left:2px solid #e34b5f;
-  box-shadow:inset 5px 0 20px rgba(227,75,95,.08);
+.brand .tag{color:#8d8a82!important}
+.brand .tag::after{color:#625d53}
+
+.controls .btn,.controls .select{
+  background:#11161b!important;
+  border-color:rgba(214,168,79,.16)!important;
+  color:#d9d5cc!important;
+  border-radius:10px;
+  transition:transform .2s ease,border-color .2s ease,background .2s ease,box-shadow .2s ease!important;
 }
-.row.onebase-status-abandoned .chip{
-  border-color:rgba(227,75,95,.48)!important;
-  color:#ff8392!important;
-  text-shadow:0 0 8px rgba(227,75,95,.18);
+.controls .btn:hover,.controls .select:hover{
+  background:#171c22!important;
+  border-color:rgba(214,168,79,.46)!important;
+  box-shadow:0 8px 24px rgba(0,0,0,.28),0 0 18px rgba(214,168,79,.06)!important;
+  transform:translateY(-1px);
 }
-.row.onebase-status-abandoned .chip::before{content:"☠ ";}
-.row.onebase-status-abandoned .name{
-  color:#ffb0b9;
+
+.dashboard{gap:10px}
+.stat,.toolbar,.table{
+  border-color:var(--onebase-border)!important;
 }
-@keyframes onebaseWatchingPulse{
-  0%,100%{opacity:.45}
-  50%{opacity:1}
+.stat{
+  background:linear-gradient(180deg,rgba(21,26,32,.96),rgba(14,18,22,.96))!important;
+  border-radius:14px!important;
+  box-shadow:0 14px 38px rgba(0,0,0,.22)!important;
+  transition:transform .25s cubic-bezier(.2,.8,.2,1),border-color .25s ease,box-shadow .25s ease!important;
 }
-@media (prefers-reduced-motion: reduce){
-  .brand h1,.row.onebase-status-watching::before{animation:none!important}
+.stat:hover{
+  transform:translateY(-3px);
+  border-color:rgba(214,168,79,.34)!important;
+  box-shadow:0 20px 48px rgba(0,0,0,.36),0 0 20px rgba(214,168,79,.035)!important;
 }
+.stat .label{color:#77736b}
+.stat .value{color:#f5f2ea}
+.stat .sub{color:#777c84}
+.progressBar{background:#20252b!important}
+.progressBar span{
+  background:linear-gradient(90deg,#b88a32,#d6a84f,#f0c96a)!important;
+  box-shadow:0 0 12px rgba(214,168,79,.25)!important;
+}
+
+.toolbar{
+  background:rgba(16,20,25,.94)!important;
+  border-radius:14px!important;
+  box-shadow:0 12px 35px rgba(0,0,0,.2)!important;
+}
+.searchBox,.toolbar select{
+  background:#0f1419!important;
+  border-color:#252c33!important;
+  color:#ece8df!important;
+  transition:border-color .2s ease,box-shadow .2s ease,background .2s ease!important;
+}
+.searchBox:focus{border-color:rgba(214,168,79,.5)!important;box-shadow:0 0 0 3px rgba(214,168,79,.06)!important}
+
+.table{
+  background:#0e1216!important;
+  border-radius:16px!important;
+  box-shadow:0 24px 70px rgba(0,0,0,.42)!important;
+  backdrop-filter:none!important;
+  overflow:hidden;
+}
+.head{background:#151a20!important;color:#85817a!important}
+.row{border-color:#20262d!important;transition:background .22s ease,transform .22s ease,border-color .22s ease!important}
+.row:not(.head):hover{background:rgba(214,168,79,.028)!important}
+.chip{background:#151a20!important;border-color:#293039!important;color:#8f949b!important;transition:border-color .2s ease,color .2s ease,background .2s ease!important}
+
+.animeInput,.watched,.animeLink{color:#f5f2ea!important}
+.animeInput:focus,.watched:focus{border-color:rgba(214,168,79,.35)!important;background:#151a20!important;box-shadow:0 0 0 3px rgba(214,168,79,.045)!important}
+.animeLink:hover{background:#151a20!important;text-decoration:none!important}
+
+/* Gold is the ONEBASE accent; special statuses keep their semantic colors. */
+.onebase-gold{color:var(--onebase-gold-light)!important}
+.profileTopBtn{border-color:rgba(214,168,79,.2)!important;background:#11161b!important;transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease!important}
+.profileTopBtn:hover{border-color:rgba(240,201,106,.58)!important;box-shadow:0 0 0 3px rgba(214,168,79,.08),0 8px 25px rgba(0,0,0,.25)!important}
+
+.infoBtn,.clearAnime{transition:opacity .18s ease,transform .18s ease,color .18s ease,background .18s ease!important}
+.infoBtn:hover,.clearAnime:hover{color:#f0c96a!important;background:#24201a!important;transform:scale(1.05)}
+
+/* Modals: premium surfaces, no excessive blur. */
+.modal{background:rgba(5,7,9,.82)!important;backdrop-filter:blur(5px)!important;animation:onebaseFade .22s ease both}
+.modalCard{
+  background:linear-gradient(180deg,#151a20,#101419)!important;
+  border-color:rgba(214,168,79,.2)!important;
+  border-radius:16px!important;
+  box-shadow:0 30px 90px rgba(0,0,0,.68)!important;
+  animation:onebaseModalIn .35s cubic-bezier(.2,.8,.2,1) both;
+}
+.close{transition:transform .18s ease,color .18s ease!important}
+.close:hover{color:#f0c96a!important;transform:rotate(90deg)}
+.sourceChoices button,.modalActions button,.themeActions .btn{
+  transition:transform .2s ease,background .2s ease,border-color .2s ease,box-shadow .2s ease!important;
+}
+.sourceChoices button:hover{background:#1b2128!important;border-color:rgba(214,168,79,.38)!important;transform:translateY(-2px)!important;box-shadow:0 8px 24px rgba(0,0,0,.22)}
+.modalActions button:first-child,.themeActions .btn:not(.ghost){background:#d6a84f!important;color:#111!important;border-color:#d6a84f!important}
+.modalActions button:first-child:hover,.themeActions .btn:not(.ghost):hover{background:#f0c96a!important;transform:translateY(-1px);box-shadow:0 10px 28px rgba(214,168,79,.16)}
+
+.toast,.achievementToast{
+  background:#12171c!important;
+  border-color:rgba(214,168,79,.22)!important;
+}
+.toast.show,.achievementToast.show{box-shadow:0 20px 60px rgba(0,0,0,.55),0 0 24px rgba(214,168,79,.035)!important}
+
+/* Clear, visible motion across the main dashboard. */
+main{animation:onebaseReveal .65s .05s cubic-bezier(.2,.8,.2,1) both}
+.dashboard .stat:nth-child(1){animation-delay:.06s}
+.dashboard .stat:nth-child(2){animation-delay:.10s}
+.dashboard .stat:nth-child(3){animation-delay:.14s}
+.dashboard .stat:nth-child(4){animation-delay:.18s}
+.dashboard .stat:nth-child(5){animation-delay:.22s}
+.dashboard .stat:nth-child(6){animation-delay:.26s}
+.dashboard .stat{animation-name:onebaseCardIn;animation-duration:.55s;animation-fill-mode:both;animation-timing-function:cubic-bezier(.2,.8,.2,1)}
+.toolbar{animation:onebaseCardIn .55s .18s cubic-bezier(.2,.8,.2,1) both}
+.table{animation:onebaseCardIn .65s .24s cubic-bezier(.2,.8,.2,1) both}
+
+.btn:active,.profileTopBtn:active,.sourceChoices button:active,.modalActions button:active{transform:translateY(1px) scale(.985)!important}
+
+@keyframes onebaseBrandShine{0%,70%,100%{background-position:0% 50%}85%{background-position:100% 50%}}
+@keyframes onebaseReveal{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes onebaseCardIn{from{opacity:0;transform:translateY(14px) scale(.992)}to{opacity:1;transform:none}}
+@keyframes onebaseFade{from{opacity:0}to{opacity:1}}
+@keyframes onebaseModalIn{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:none}}
+
+@media (prefers-reduced-motion:reduce){
+  *,*:before,*:after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+
 @media(max-width:760px){
   header{align-items:flex-start!important;padding-top:22px!important}
   .brand{gap:10px}
