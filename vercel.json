@@ -1,17 +1,10 @@
 {
-  "buildCommand":"npm run build",
-  "outputDirectory":"dist",
-  "cleanUrls":true,
-  "headers":[
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "crons": [
     {
-      "source":"/(.*)",
-      "headers":[
-        {"key":"X-Content-Type-Options","value":"nosniff"},
-        {"key":"Referrer-Policy","value":"strict-origin-when-cross-origin"},
-        {"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, proxy-revalidate"},
-        {"key":"Pragma","value":"no-cache"},
-        {"key":"Expires","value":"0"}
-      ]
+      "path": "/api/cron-episode-updates",
+      "schedule": "0 */6 * * *"
     }
   ]
 }
