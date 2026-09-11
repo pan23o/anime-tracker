@@ -20,7 +20,7 @@ const files = [
   'onebase-notification-setup.js',
   'onebase-settings.js',
   'onebase-profile-cleanup.js',
-  'onebase-custom-webs-v2.js',
+  'onebase-custom-webs-v3.js',
   'favicon.ico',
   'favicon.png',
   'favicon.svg',
@@ -58,7 +58,7 @@ const runtimeScripts = [
   'onebase-episode-notifications.js',
   'onebase-settings.js',
   'onebase-profile-cleanup.js',
-  'onebase-custom-webs-v2.js'
+  'onebase-custom-webs-v3.js'
 ];
 
 for (const script of runtimeScripts) {
