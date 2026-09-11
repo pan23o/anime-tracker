@@ -22,6 +22,7 @@
   function writeSettings(patch) {
     const next = { ...readSettings(), ...patch };
     try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(next)); } catch (_) {}
+    try { settings = next; } catch (_) {}
     return next;
   }
 
@@ -166,13 +167,13 @@
     const open = () => {
       addThemeSection();
       addEpisodeNotificationSetting();
-      const settings = readSettings();
+      const currentSettings = readSettings();
       const confirm = document.getElementById('settingConfirmDelete');
       const backup = document.getElementById('settingAutoBackup');
       const achievements = document.getElementById('settingAchievementPopups');
-      if (confirm) confirm.checked = !!settings.confirmDelete;
-      if (backup) backup.checked = !!settings.autoBackup;
-      if (achievements) achievements.checked = !!settings.achievementPopups;
+      if (confirm) confirm.checked = !!currentSettings.confirmDelete;
+      if (backup) backup.checked = !!currentSettings.autoBackup;
+      if (achievements) achievements.checked = !!currentSettings.achievementPopups;
       void syncEpisodeNotificationState();
     };
     document.getElementById('settingsBtn')?.addEventListener('click', () => setTimeout(open, 0));
