@@ -1,19 +1,14 @@
-# ONEBASE
+# OneBase
 
-Personal anime database and tracker.
+OneBase is a personal anime tracker with account sync, instant persistence, automatic completion handling, and episode-update notifications.
 
-ONEBASE keeps your anime library, favourites, progress and profile together in one place.
+## Episode updates
 
-## Build
+- Wikipedia is used as the external episode-count signal.
+- The app checks tracked anime periodically and detects increases such as `12 → 13`.
+- When a new episode is detected, the library total is updated without changing the watched count.
+- Browser notifications are supported through a service worker when notification permission is granted.
+- A Vercel cron entrypoint runs every 6 hours and is protected when `CRON_SECRET` is configured.
+- Episode source search links are generated for the three sources configured by OneBase: Nyaa, SubPlease and EXT.to.
 
-```bash
-npm run build
-```
-
-The build output is generated in `dist/` for deployment on Vercel.
-
-## Data compatibility
-
-The public-facing brand is now **ONEBASE**. Existing internal persistence identifiers remain unchanged intentionally so existing user libraries and Supabase data continue to work after the rebrand.
-
-<!-- Production recovery marker: keep this commit content-equivalent to PRIME. -->
+OneBase only opens external search pages; it does not download or distribute files.
