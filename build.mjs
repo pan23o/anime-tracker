@@ -19,6 +19,7 @@ const files = [
   'onebase-episode-notifications.js',
   'onebase-notification-setup.js',
   'onebase-settings.js',
+  'onebase-profile-cleanup.js',
   'favicon.ico',
   'favicon.png',
   'favicon.svg',
@@ -54,7 +55,8 @@ const runtimeScripts = [
   'onebase-instant-save.js',
   'onebase-notification-setup.js',
   'onebase-episode-notifications.js',
-  'onebase-settings.js'
+  'onebase-settings.js',
+  'onebase-profile-cleanup.js'
 ];
 
 for (const script of runtimeScripts) {
