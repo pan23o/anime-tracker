@@ -1,13 +1,14 @@
-/* OneBase · búsqueda de fuentes v5
+/* OneBase · búsqueda de fuentes v6
    El modal de fuentes tiene UNA única autoridad.
    Nyaa: usa el resolvedor anterior que ya funcionaba y valida la búsqueda antes de abrirla.
    SubPlease/EXT.to: usan el resolvedor v2.
-   No se fuerza idioma. No se siguen enlaces de descarga/publicidad. */
+   No se fuerza idioma. No se siguen enlaces de descarga/publicidad.
+   Seguridad: el observer se desconecta mientras normaliza el modal para evitar ciclos de mutación. */
 (function(){'use strict';
 const DEFAULTS=[{id:'default-nyaa',name:'Nyaa',homepage:'https://nyaa.si'},{id:'default-subplease',name:'SubPlease',homepage:'https://subplease.org'},{id:'default-ext',name:'EXT.to',homepage:'https://ext.to'}];
 const DEFAULT_NAMES=new Set(['nyaa','subplease','ext.to','ext']);
 const DEFAULT_HOSTS=new Set(['nyaa.si','subsplease.org','ext.to']);
-let state={index:null,title:''};let rebuilding=false;let booted=false;
+let state={index:null,title:''};let rebuilding=false;let booted=false;let observer=null;
 function norm(v){return String(v||'').trim().toLowerCase().replace(/^www\./,'').replace(/\/$/,'')}
 function animeTitle(){return String(document.getElementById('sourceAnime')?.textContent||document.getElementById('sourceAnime')?.value||'').trim()}
 function currentEpisode(){const idx=Number(state.index);if(!Number.isFinite(idx))return 0;const row=document.querySelector(`.row[data-index="${CSS.escape(String(idx))}"]`);const n=Number(row?.querySelector('.watched')?.value||0);return Number.isFinite(n)&&n>0?Math.floor(n):0}
@@ -17,9 +18,25 @@ function isDefaultButton(b){const text=norm(b?.textContent);return DEFAULT_NAMES
 function removeLegacyFooter(modal){modal.querySelectorAll('*').forEach(el=>{if(el.children.length)return;const t=String(el.textContent||'').trim();if(/^(Nyaa|SubPlease)\s*:/i.test(t)||/Nyaa\s*:\s*[^·]+·\s*SubPlease\s*:/i.test(t))el.remove()})}
 function createDefaultButton(source){const b=document.createElement('button');b.type='button';b.dataset.onebaseDefaultWeb=source.id;b.textContent=source.name;return b}
 function rebuildModal(){const modal=document.getElementById('sourceModal');const c=modal?.querySelector('.sourceChoices');if(!c||rebuilding)return;rebuilding=true;try{const custom=[];c.querySelectorAll('button[data-custom-web]').forEach(b=>{if(!isDefaultButton(b))custom.push(b)});c.querySelectorAll('button').forEach(b=>{if(isDefaultButton(b)||!b.dataset.customWeb)b.remove()});DEFAULTS.forEach(s=>c.appendChild(createDefaultButton(s)));custom.forEach(b=>c.appendChild(b));removeLegacyFooter(modal)}finally{rebuilding=false}}
+/*
+ * IMPORTANT:
+ * MutationObserver callbacks are triggered by childList changes. rebuildModal()
+ * removes and adds buttons, so observing <body> while rebuilding creates a
+ * self-sustaining mutation loop. MDN documents disconnect() as the way to stop
+ * an observer from receiving further notifications. We therefore pause the
+ * observer around every DOM normalization and clear queued records before
+ * observing again.
+ */
+function safeRebuildModal(){
+  if(rebuilding)return;
+  if(observer)observer.disconnect();
+  try{rebuildModal()}finally{
+    if(observer){observer.takeRecords();observer.observe(document.body,{childList:true,subtree:true})}
+  }
+}
 function close(){document.getElementById('sourceModal')?.classList.add('hidden')}
 function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
-function failure(source,retry){document.getElementById('onebase-source-failure-v5')?.remove();const m=document.createElement('div');m.id='onebase-source-failure-v5';m.style.cssText='position:fixed;inset:0;z-index:13000;display:grid;place-items:center;padding:20px;background:rgba(0,0,0,.78);backdrop-filter:blur(8px)';m.innerHTML=`<div style="width:min(540px,94vw);box-sizing:border-box;background:var(--panel,#111);color:var(--text,#fff);border:1px solid var(--line2,#353535);border-radius:18px;padding:24px;box-shadow:0 30px 90px rgba(0,0,0,.65)"><div style="font-size:18px;font-weight:800;margin-bottom:8px">No se han encontrado coincidencias</div><div style="color:var(--muted,#9299a3);font-size:12px;line-height:1.6;margin-bottom:20px">No se ha podido confirmar el anime o episodio solicitado en <b>${escapeHtml(source?.name||'esta web')}</b>.</div><div style="display:flex;gap:9px;justify-content:flex-end;flex-wrap:wrap"><button type="button" data-ob-v5-retry style="padding:10px 14px;border-radius:10px;border:1px solid var(--accent,#d6a84f);background:var(--accent,#d6a84f);color:#080808;font-weight:800;cursor:pointer">↻ Volver a intentarlo</button><button type="button" data-ob-v5-other style="padding:10px 14px;border-radius:10px;border:1px solid var(--line2,#353535);background:var(--soft,#1c1c1c);color:var(--text,#fff);font-weight:800;cursor:pointer">🌐 Elegir otra web</button></div></div>`;document.body.appendChild(m);m.querySelector('[data-ob-v5-retry]').onclick=()=>{m.remove();retry()};m.querySelector('[data-ob-v5-other]').onclick=()=>{m.remove();document.getElementById('sourceModal')?.classList.remove('hidden');rebuildModal()}}
+function failure(source,retry){document.getElementById('onebase-source-failure-v6')?.remove();const m=document.createElement('div');m.id='onebase-source-failure-v6';m.style.cssText='position:fixed;inset:0;z-index:13000;display:grid;place-items:center;padding:20px;background:rgba(0,0,0,.78);backdrop-filter:blur(8px)';m.innerHTML=`<div style="width:min(540px,94vw);box-sizing:border-box;background:var(--panel,#111);color:var(--text,#fff);border:1px solid var(--line2,#353535);border-radius:18px;padding:24px;box-shadow:0 30px 90px rgba(0,0,0,.65)"><div style="font-size:18px;font-weight:800;margin-bottom:8px">No se han encontrado coincidencias</div><div style="color:var(--muted,#9299a3);font-size:12px;line-height:1.6;margin-bottom:20px">No se ha podido confirmar el anime o episodio solicitado en <b>${escapeHtml(source?.name||'esta web')}</b>.</div><div style="display:flex;gap:9px;justify-content:flex-end;flex-wrap:wrap"><button type="button" data-ob-v6-retry style="padding:10px 14px;border-radius:10px;border:1px solid var(--accent,#d6a84f);background:var(--accent,#d6a84f);color:#080808;font-weight:800;cursor:pointer">↻ Volver a intentarlo</button><button type="button" data-ob-v6-other style="padding:10px 14px;border-radius:10px;border:1px solid var(--line2,#353535);background:var(--soft,#1c1c1c);color:var(--text,#fff);font-weight:800;cursor:pointer">🌐 Elegir otra web</button></div></div>`;document.body.appendChild(m);m.querySelector('[data-ob-v6-retry]').onclick=()=>{m.remove();retry()};m.querySelector('[data-ob-v6-other]').onclick=()=>{m.remove();document.getElementById('sourceModal')?.classList.remove('hidden');safeRebuildModal()}}
 async function requestJson(path){const r=await fetch(path,{headers:{accept:'application/json'},cache:'no-store'});const d=await r.json().catch(()=>({}));return{r,d}}
 async function search(source,button){const ctx=context();if(!ctx.title){window.toast?.('No se ha podido identificar el anime.');return}const old=button?.textContent||source.name;if(button){button.textContent='Buscando…';button.disabled=true}try{const host=norm(new URL(source.homepage).hostname);let r,d;
   if(host==='nyaa.si'){
@@ -39,6 +56,6 @@ async function search(source,button){const ctx=context();if(!ctx.title){window.t
   window.open(d.url,'_blank','noopener,noreferrer');close()
 }catch(_){failure(source,()=>search(source,button))}finally{if(button){button.textContent=old;button.disabled=false}}}
 function intercept(e){const b=e.target?.closest?.('#sourceModal .sourceChoices button');if(!b)return;const id=b.dataset.onebaseDefaultWeb;if(!id)return;const source=DEFAULTS.find(x=>x.id===id);if(!source)return;e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();search(source,b)}
-function boot(){if(booted)return;booted=true;rebuildModal();document.addEventListener('click',intercept,true);const observer=new MutationObserver(()=>{if(!rebuilding)rebuildModal()});observer.observe(document.body,{childList:true,subtree:true});window.addEventListener('onebase:custom-webs-changed',()=>setTimeout(rebuildModal,0));window.OneBaseSourceSearchV2={getContext:context,search,rebuildModal}}
+function boot(){if(booted)return;booted=true;document.addEventListener('click',intercept,true);observer=new MutationObserver(()=>safeRebuildModal());observer.observe(document.body,{childList:true,subtree:true});safeRebuildModal();window.addEventListener('onebase:custom-webs-changed',()=>setTimeout(safeRebuildModal,0));window.OneBaseSourceSearchV2={getContext:context,search,rebuildModal:safeRebuildModal}}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else setTimeout(boot,0);
 })();
