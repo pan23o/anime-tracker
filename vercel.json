@@ -3,5 +3,23 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "buildCommand": "npm run build",
-  "outputDirectory": "dist"
+  "outputDirectory": "dist",
+  "headers": [
+    {
+      "source": "/",
+      "headers": [{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]
+    },
+    {
+      "source": "/index.html",
+      "headers": [{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]
+    },
+    {
+      "source": "/onebase-source-search-v2.js",
+      "headers": [{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]
+    },
+    {
+      "source": "/onebase-custom-webs-v3.js",
+      "headers": [{"key":"Cache-Control","value":"no-store, no-cache, must-revalidate, max-age=0"}]
+    }
+  ]
 }
