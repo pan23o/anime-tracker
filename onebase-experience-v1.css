@@ -19,23 +19,37 @@ body{
   position:relative;
   isolation:isolate;
   overflow-x:hidden;
-  background:#080a0d!important;
+  background:#050608!important;
 }
-/* Clean technical texture instead of the old noisy/blotchy overlay. */
+
+/* STEP 1 — clean visual foundation.
+   No blobs, stains, grain or noisy textures. The background is a restrained
+   anime/tech surface made only with CSS gradients, so it stays sharp at any size. */
 body::before{
   content:"";
   position:fixed;
   inset:0;
   z-index:-1;
   pointer-events:none;
-  opacity:.26;
+  opacity:1;
   background:
-    linear-gradient(115deg,transparent 0 18%,rgba(225,183,92,.035) 18.1%,transparent 18.3% 62%,rgba(105,201,255,.025) 62.1%,transparent 62.3%),
-    repeating-linear-gradient(90deg,transparent 0 119px,rgba(255,255,255,.018) 120px,transparent 121px),
-    repeating-linear-gradient(0deg,transparent 0 119px,rgba(255,255,255,.012) 120px,transparent 121px);
-  mask-image:linear-gradient(to bottom,rgba(0,0,0,.9),transparent 88%);
+    radial-gradient(circle at 50% -12%,rgba(225,183,92,.075),transparent 32%),
+    linear-gradient(180deg,rgba(255,255,255,.018),transparent 24%),
+    repeating-linear-gradient(90deg,transparent 0 159px,rgba(225,183,92,.018) 160px,transparent 161px),
+    repeating-linear-gradient(0deg,transparent 0 159px,rgba(255,255,255,.012) 160px,transparent 161px),
+    linear-gradient(135deg,#050608 0%,#080b0f 48%,#050608 100%);
 }
-body:after{display:none!important}
+body::after{display:none!important}
+
+/* A thin cinematic frame gives the page a deliberate identity without adding clutter. */
+html::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  pointer-events:none;
+  border:1px solid rgba(225,183,92,.045);
+}
 
 header{
   animation:obxHeaderIn .7s cubic-bezier(.2,.8,.2,1) both!important;
@@ -44,7 +58,6 @@ main{
   animation:obxMainIn .65s .05s cubic-bezier(.2,.8,.2,1) both;
 }
 
-/* More deliberate hierarchy for the dashboard. */
 .dashboard .stat{
   position:relative;
   overflow:hidden;
@@ -63,7 +76,6 @@ main{
 }
 .dashboard .stat:hover::after{transform:scaleX(1);opacity:.58}
 
-/* Toolbar becomes a proper command surface. */
 .toolbar{
   position:relative;
   border-color:var(--obx-border)!important;
@@ -76,7 +88,6 @@ main{
   box-shadow:0 16px 45px rgba(0,0,0,.28),0 0 0 3px rgba(225,183,92,.035)!important;
 }
 
-/* Table rows enter progressively and react like cards without becoming noisy. */
 .table{
   overflow:hidden;
   border-color:var(--obx-border)!important;
@@ -100,24 +111,13 @@ main{
   transform:translateX(2px);
 }
 .table .row:not(.head):hover::before{opacity:.7;transform:scaleY(1)}
-.table .row:nth-child(2){animation-delay:.02s}
-.table .row:nth-child(3){animation-delay:.04s}
-.table .row:nth-child(4){animation-delay:.06s}
-.table .row:nth-child(5){animation-delay:.08s}
-.table .row:nth-child(6){animation-delay:.10s}
-.table .row:nth-child(7){animation-delay:.12s}
-.table .row:nth-child(8){animation-delay:.14s}
-.table .row:nth-child(9){animation-delay:.16s}
-.table .row:nth-child(10){animation-delay:.18s}
 
 .animeLink{transition:color .2s ease,background .2s ease,transform .2s ease!important}
 .animeLink:hover{transform:translateX(2px)}
 .eye{transition:transform .35s cubic-bezier(.2,.85,.2,1),filter .25s ease,box-shadow .25s ease!important}
 .animeWrap:hover .eye{filter:brightness(1.08)}
 
-.btn,.select,.profileTopBtn,.cloud-account-btn{
-  will-change:transform;
-}
+.btn,.select,.profileTopBtn,.cloud-account-btn{will-change:transform}
 .btn:hover,.select:hover{transition-timing-function:cubic-bezier(.2,.8,.2,1)!important}
 .btn:focus-visible,.select:focus-visible,.profileTopBtn:focus-visible,.cloud-account-btn:focus-visible,
 .searchBox:focus-visible,.watched:focus-visible,.animeInput:focus-visible{
@@ -125,7 +125,6 @@ main{
   outline-offset:2px;
 }
 
-/* Modal motion: quick, soft, not flashy. */
 .modal:not(.hidden),#onebaseSettingsOverlay.open,.cloud-auth-overlay.show{
   animation:obxOverlayIn .2s ease both;
 }
@@ -137,7 +136,6 @@ main{
   box-shadow:0 34px 110px rgba(0,0,0,.58)!important;
 }
 
-/* Covers get a premium media treatment. */
 .cover,.coverPlaceholder{
   transition:transform .35s cubic-bezier(.2,.8,.2,1),box-shadow .35s ease,border-color .35s ease!important;
 }
@@ -147,12 +145,10 @@ main{
   box-shadow:0 18px 40px rgba(0,0,0,.36),0 0 25px rgba(225,183,92,.05);
 }
 
-/* Empty states should look intentional. */
 .trashEmpty,.syncNote,.hint,.footerNote{
   transition:color .2s ease,border-color .2s ease,background .2s ease;
 }
 
-/* New data/settings and profile blocks. */
 .obx-data-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 16px}
 .obx-data-card{position:relative;overflow:hidden;padding:14px;border:1px solid var(--line,#292929);border-radius:13px;background:rgba(9,12,16,.58);transition:transform .25s ease,border-color .25s ease,background .25s ease,box-shadow .25s ease}
 .obx-data-card:hover{transform:translateY(-2px);border-color:rgba(225,183,92,.3);background:rgba(15,20,26,.82);box-shadow:0 14px 30px rgba(0,0,0,.2)}
@@ -165,7 +161,6 @@ main{
 .obx-level-ring{width:54px;height:54px;flex:0 0 54px;display:grid;place-items:center;border:1px solid rgba(225,183,92,.55);border-radius:50%;background:radial-gradient(circle,#18130a 0 58%,#0d1014 59%);box-shadow:0 0 24px rgba(225,183,92,.09)}
 .obx-level-ring strong{font-size:17px;color:#f0c96a}.obx-level-copy strong{display:block;font-size:13px}.obx-level-copy span{display:block;margin-top:4px;color:var(--muted,#8b8b8b);font-size:9px}.obx-level-bar{height:5px;margin-top:8px;max-width:330px;border-radius:99px;background:var(--soft,#1c1c1c);overflow:hidden}.obx-level-bar span{display:block;height:100%;width:0;background:linear-gradient(90deg,#9d7428,#e1b75c,#f0c96a);transition:width .5s ease}
 
-/* Keep motion tasteful and respect the operating system preference. */
 @keyframes obxHeaderIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
 @keyframes obxMainIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @keyframes obxOverlayIn{from{opacity:0}to{opacity:1}}
