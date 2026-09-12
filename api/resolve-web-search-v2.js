@@ -32,7 +32,7 @@ function extractLinks(html,base){
 }
 async function fetchHtml(url){
   const u=await assertSafeUrl(url);
-  const r=await fetch(u,{redirect:'follow',headers:{'user-agent':'OneBase/2.0 staged anime search','accept':'text/html,application/xhtml+xml'},signal:AbortSignal.timeout(8000)});
+  const r=await fetch(u,{redirect:'follow',headers:{'user-agent':'OneBase/2.1 staged anime search','accept':'text/html,application/xhtml+xml'},signal:AbortSignal.timeout(8000)});
   if(!r.ok)throw new Error(`HTTP ${r.status}`);
   const type=r.headers.get('content-type')||'';if(!type.includes('text/html'))throw new Error('La respuesta no es HTML.');
   const html=(await r.text()).slice(0,2200000);const final=await assertSafeUrl(r.url);return{url:final,html};
@@ -69,15 +69,15 @@ async function searchNyaa(home,q,episode){
   let titlePage;try{titlePage=await fetchHtml(titleUrl.toString())}catch(_){return{url:titleUrl.toString(),found:true,episodeFound:!episode,mode:'title-search-unverified',languageApplied:false,verification:'unavailable'}}
   if(!verifyTitle(titlePage.html,q).found)return{url:titleUrl.toString(),found:false,episodeFound:false,mode:'title-search',languageApplied:false,verification:'checked'};
   if(!episode)return{url:titlePage.url,found:true,episodeFound:true,mode:'title-search',languageApplied:false,verification:'checked'};
-  const epUrl=new URL('/',home);epUrl.searchParams.set('f','0');epUrl.searchParams.set('c','0_0');epUrl.searchParams.set('q',`${q} ${episode}`);
+  const epUrl=new URL('/',home);epUrl.searchParams.set('f','0');epUrl.searchParams.set('c','0_0');epUrl.searchParams.set('q',`${q} E${episode}`);
   try{const epPage=await fetchHtml(epUrl.toString());const epCheck=verifyEpisode(epPage.html,q);return{url:epUrl.toString(),found:epCheck.found,episodeFound:epCheck.episodeFound,mode:'title-then-episode',languageApplied:false,verification:'checked'}}catch(_){return{url:epUrl.toString(),found:true,episodeFound:true,mode:'title-then-episode-unverified',languageApplied:false,verification:'unavailable'}}
 }
 async function searchExt(home,q,episode,language){
   const titleUrl=new URL('/browse/',home);titleUrl.searchParams.set('q',q);let results;
-  try{results=await fetchHtml(titleUrl.toString())}catch(_){const epUrl=new URL('/browse/',home);epUrl.searchParams.set('q',episode?`${q} ${episode}`:q);return{url:epUrl.toString(),found:true,episodeFound:!episode,mode:'search-unverified',languageApplied:false,verification:'unavailable'}}
+  try{results=await fetchHtml(titleUrl.toString())}catch(_){const epUrl=new URL('/browse/',home);epUrl.searchParams.set('q',episode?`${q} E${episode}`:q);return{url:epUrl.toString(),found:true,episodeFound:!episode,mode:'search-unverified',languageApplied:false,verification:'unavailable'}}
   if(!verifyTitle(results.html,q).found)return{url:titleUrl.toString(),found:false,episodeFound:false,mode:'title-search',languageApplied:false,verification:'checked'};
   const show=firstMatchingShowLink(results.html,results.url,q,'ext.to');
-  if(!show){const epUrl=new URL('/browse/',home);epUrl.searchParams.set('q',episode?`${q} ${episode}`:q);return{url:epUrl.toString(),found:true,episodeFound:!episode,mode:'title-search',languageApplied:false,verification:'checked'}}
+  if(!show){const epUrl=new URL('/browse/',home);epUrl.searchParams.set('q',episode?`${q} E${episode}`:q);return{url:epUrl.toString(),found:true,episodeFound:!episode,mode:'title-search',languageApplied:false,verification:'checked'}}
   let page;try{page=await fetchHtml(show.url)}catch(_){return{url:show.url,found:true,episodeFound:false,mode:'show-page-unverified',languageApplied:false,verification:'unavailable'}}
   const supportsLanguage=detectLanguageSupport(page.html);const ep=exactEpisodeLink(page.html,page.url,episode);const target=ep?ep.url:languageInUrl(page.url,supportsLanguage?language:'');
   return{url:target,found:true,episodeFound:true,episodeResolved:!!ep,mode:ep?'show-episode':'show-page-episode-unverified',languageApplied:!!(supportsLanguage&&language),verification:'checked'};
@@ -85,13 +85,13 @@ async function searchExt(home,q,episode,language){
 function scoreForm(form){const t=form.toLowerCase();let s=0;if(/(type=["']search["']|name=["'](?:q|query|search|keyword|title|anime)["'])/.test(t))s+=8;if(/(placeholder=["'][^"']*(?:buscar|search|anime)[^"']*["'])/.test(t))s+=6;if(/(buscar|search|busca)/.test(t))s+=3;if(/(login|signin|register|password|correo|email)/.test(t))s-=6;return s}
 function findSearchForm(html,base){const forms=html.match(/<form\b[\s\S]*?<\/form>/gi)||[];let best=null;for(const form of forms){const score=scoreForm(form);if(score<=0)continue;const open=form.match(/^<form\b[^>]*>/i)?.[0]||'';const action=absolute(base,attr(open,'action')||base);if(!action)continue;const method=(attr(open,'method')||'get').toLowerCase();const inputs=form.match(/<input\b[^>]*>/gi)||[];let field=null;for(const input of inputs){const type=(attr(input,'type')||'text').toLowerCase(),name=attr(input,'name'),ph=attr(input,'placeholder');if(type==='search'||/^(q|query|search|keyword|title|anime)$/i.test(name)||/buscar|search|anime/i.test(ph)){field=name||'q';break}}if(!field)field='q';const c={score,action,method,field};if(!best||c.score>best.score)best=c}return best}
 async function searchGeneric(home,q,episode){
-  let base;try{base=await fetchHtml(home.toString())}catch(_){const u=new URL('/search',home);u.searchParams.set('q',episode?`${q} ${episode}`:q);return{url:u.toString(),found:true,episodeFound:!episode,mode:'generic-unverified',languageApplied:false,verification:'unavailable'}}
-  const form=findSearchForm(base.html,base.url);if(!form||form.method==='post'){const u=new URL('/search',base.url);u.searchParams.set('q',q);return{url:u.toString(),found:true,episodeFound:!episode,mode:'generic-fallback',languageApplied:false,verification:'unavailable'}}
+  let base;try{base=await fetchHtml(home.toString())}catch(_){const u=new URL('/search',home);u.searchParams.set('q',episode?`${q} E${episode}`:q);return{url:u.toString(),found:true,episodeFound:!episode,mode:'generic-unverified',languageApplied:false,verification:'unavailable'}}
+  const form=findSearchForm(base.html,base.url);if(!form||form.method==='post'){const u=new URL('/search',base.url);u.searchParams.set('q',episode?`${q} E${episode}`:q);return{url:u.toString(),found:true,episodeFound:!episode,mode:'generic-fallback',languageApplied:false,verification:'unavailable'}}
   const build=term=>{const u=new URL(form.action);u.searchParams.set(form.field,term);return u.toString()};const titleUrl=build(q);let titlePage;
   try{titlePage=await fetchHtml(titleUrl)}catch(_){return{url:titleUrl,found:true,episodeFound:!episode,mode:'generic-title-unverified',languageApplied:false,verification:'unavailable'}}
   if(!verifyTitle(titlePage.html,q).found)return{url:titleUrl,found:false,episodeFound:false,mode:'generic-title',languageApplied:false,verification:'checked'};
   if(!episode)return{url:titlePage.url,found:true,episodeFound:true,mode:'generic-title',languageApplied:false,verification:'checked'};
-  const epUrl=build(`${q} ${episode}`);let epPage;try{epPage=await fetchHtml(epUrl)}catch(_){return{url:epUrl,found:true,episodeFound:true,mode:'generic-episode-unverified',languageApplied:false,verification:'unavailable'}}
+  const epUrl=build(`${q} E${episode}`);let epPage;try{epPage=await fetchHtml(epUrl)}catch(_){return{url:epUrl,found:true,episodeFound:true,mode:'generic-episode-unverified',languageApplied:false,verification:'unavailable'}}
   const epCheck=verifyEpisode(epPage.html,q);return{url:epUrl,found:epCheck.found,episodeFound:epCheck.episodeFound,mode:'generic-title-then-episode',languageApplied:false,verification:'checked'};
 }
 module.exports=async function handler(req,res){
