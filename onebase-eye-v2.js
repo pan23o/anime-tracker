@@ -25,9 +25,7 @@
     .eye::after {
       opacity: var(--eye-line-opacity, 1) !important;
       transform: translateY(-50%) scaleX(var(--eye-line-scale, .72)) !important;
-      transition:
-        opacity .24s ease,
-        transform .48s cubic-bezier(.22,.78,.18,1) !important;
+      transition: opacity .24s ease, transform .48s cubic-bezier(.22,.78,.18,1) !important;
     }
 
     .eye:hover {
@@ -48,18 +46,22 @@
     document.head.appendChild(style);
   }
 
+  function setVarIfChanged(el, name, value) {
+    if (el.style.getPropertyValue(name) !== value) el.style.setProperty(name, value);
+  }
+
   function syncEye(eye) {
     const raw = getComputedStyle(eye).getPropertyValue('--open').trim();
     let open = Number.parseFloat(raw);
     if (!Number.isFinite(open)) open = 0;
     open = Math.max(0, Math.min(1, open));
 
-    // Animate the actual opening height. 0 = eyelids closed, 1 = fully open.
-    eye.style.setProperty('--eye-height', `${5 + open * 41}%`);
-    eye.style.setProperty('--eye-hover-height', `${7 + open * 39}%`);
-    eye.style.setProperty('--eye-pupil-scale', `${0.72 + open * 0.28}`);
-    eye.style.setProperty('--eye-line-opacity', `${1 - open}`);
-    eye.style.setProperty('--eye-line-scale', `${0.72 + open * 0.28}`);
+    // The eye opens by changing the visible vertical aperture: no rotation.
+    setVarIfChanged(eye, '--eye-height', `${5 + open * 41}%`);
+    setVarIfChanged(eye, '--eye-hover-height', `${7 + open * 39}%`);
+    setVarIfChanged(eye, '--eye-pupil-scale', `${0.72 + open * 0.28}`);
+    setVarIfChanged(eye, '--eye-line-opacity', `${1 - open}`);
+    setVarIfChanged(eye, '--eye-line-scale', `${0.72 + open * 0.28}`);
   }
 
   function syncAll() {
