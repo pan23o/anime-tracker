@@ -4,10 +4,10 @@
 
   const CSS = `
     .eye {
-      --eye-open: var(--open, 1);
+      --eye-height: 5%;
       transform: none !important;
       transform-origin: center center !important;
-      clip-path: ellipse(50% calc(5% + (var(--eye-open) * 45%)) at 50% 50%) !important;
+      clip-path: ellipse(50% var(--eye-height) at 50% 50%) !important;
       transition:
         clip-path .58s cubic-bezier(.22,.78,.18,1),
         filter .25s ease,
@@ -17,14 +17,14 @@
     }
 
     .eye::before {
-      transform: scale(calc(.72 + (var(--eye-open) * .28))) !important;
+      transform: scale(var(--eye-pupil-scale, .72)) !important;
       transform-origin: center !important;
       transition: transform .48s cubic-bezier(.22,.78,.18,1), opacity .25s ease !important;
     }
 
     .eye::after {
-      opacity: calc(1 - var(--eye-open)) !important;
-      transform: translateY(-50%) scaleX(calc(.72 + (var(--eye-open) * .28))) !important;
+      opacity: var(--eye-line-opacity, 1) !important;
+      transform: translateY(-50%) scaleX(var(--eye-line-scale, .72)) !important;
       transition:
         opacity .24s ease,
         transform .48s cubic-bezier(.22,.78,.18,1) !important;
@@ -32,18 +32,7 @@
 
     .eye:hover {
       transform: scale(1.04) !important;
-      clip-path: ellipse(50% calc(7% + (var(--eye-open) * 43%)) at 50% 50%) !important;
-    }
-
-    /* When the eye is commanded closed, make the slit read as an eyelid. */
-    .eye[style*="--open: 0"],
-    .eye[style*="--open:0"] {
-      animation: onebaseEyeClose .12s ease-out both;
-    }
-
-    @keyframes onebaseEyeClose {
-      from { clip-path: ellipse(50% 46% at 50% 50%); }
-      to   { clip-path: ellipse(50% 5% at 50% 50%); }
+      clip-path: ellipse(50% var(--eye-hover-height, 7%) at 50% 50%) !important;
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -59,17 +48,34 @@
     document.head.appendChild(style);
   }
 
-  function normalize() {
-    document.querySelectorAll('.eye').forEach((eye) => {
-      if (!eye.style.getPropertyValue('--open')) eye.style.setProperty('--open', '1');
-    });
+  function syncEye(eye) {
+    const raw = getComputedStyle(eye).getPropertyValue('--open').trim();
+    let open = Number.parseFloat(raw);
+    if (!Number.isFinite(open)) open = 0;
+    open = Math.max(0, Math.min(1, open));
+
+    // Animate the actual opening height. 0 = eyelids closed, 1 = fully open.
+    eye.style.setProperty('--eye-height', `${5 + open * 41}%`);
+    eye.style.setProperty('--eye-hover-height', `${7 + open * 39}%`);
+    eye.style.setProperty('--eye-pupil-scale', `${0.72 + open * 0.28}`);
+    eye.style.setProperty('--eye-line-opacity', `${1 - open}`);
+    eye.style.setProperty('--eye-line-scale', `${0.72 + open * 0.28}`);
+  }
+
+  function syncAll() {
+    document.querySelectorAll('.eye').forEach(syncEye);
   }
 
   function boot() {
     install();
-    normalize();
-    const observer = new MutationObserver(normalize);
-    observer.observe(document.body, { childList: true, subtree: true });
+    syncAll();
+    const observer = new MutationObserver(() => syncAll());
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['style', 'class']
+    });
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true });
