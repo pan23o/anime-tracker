@@ -492,7 +492,7 @@ body[data-theme] .achievements::-webkit-scrollbar-track{background:var(--soft)}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="./profile-enhancer.css">
 
-<script src="/backup/onebase-safe-boot.js?v=1"></script>
+<script src="/backup/onebase-safe-boot.js?v=2"></script>
 <link rel="icon" type="image/svg+xml" href="/backup/favicon.svg?v=11">
 <link rel="stylesheet" href="/backup/onebase-brand.css?v=7">
 <link rel="stylesheet" href="/backup/onebase-experience-v1.css?v=3">
@@ -2034,6 +2034,7 @@ storeJson(PROFILE_STORAGE,profile);storeJson(SETTINGS_STORAGE,settings);
 pruneTrash();updateSaveStatus();
 if(settings.autoBackup) createBackup("Inicio de sesión local",false);
 render();
+window.__ONEBASE_CORE_READY__=true;
 </script>
 
 <button class="cloud-account-btn" id="cloudAccountBtn" title="Cuenta">☁️</button>
@@ -2041,7 +2042,7 @@ render();
 <div class="cloud-auth-overlay" id="cloudAuthOverlay"><div class="cloud-auth-card"><h2 id="cloudAuthTitle">Tu cuenta</h2><p id="cloudAuthText">Crea una cuenta o inicia sesión para sincronizar tu AnimeTracker.</p><input id="cloudName" placeholder="Nombre de usuario (para registrarte)"><input id="cloudEmail" type="email" placeholder="Correo electrónico"><input id="cloudPassword" type="password" placeholder="Contraseña (mínimo 6 caracteres)"><div class="cloud-auth-actions"><button id="cloudLogin">Iniciar sesión</button><button id="cloudRegister" class="secondary">Crear cuenta</button><button id="cloudReset" class="secondary">Recuperar contraseña</button><button id="cloudClose" class="secondary">Cerrar</button></div><div class="cloud-status" id="cloudStatus"></div></div></div>
 
 
-<script src="/backup/profile-enhancer.js?v=3"></script>
+<script src="/backup/profile-enhancer.js?v=4"></script>
   <script src="/backup/onebase-auto-complete.js?v=4"></script>
   <script src="/backup/onebase-instant-save.js?v=4"></script>
   <script src="/backup/onebase-notification-setup.js?v=4"></script>
