@@ -39,7 +39,7 @@ const headAssets = `
 
 // Mark the core inline application as healthy only after its full script executes.
 // The recovery guard uses this to ignore non-core enhancement errors during startup.
-html = html.replace(/([\\s\\S]*)(<\\/script>\\s*<button class="cloud-account-btn")/i, '$1window.__ONEBASE_CORE_READY__=true;\\n$2');
+html = html.replace(/([\s\S]*)(<\/script>\s*<button class="cloud-account-btn")/i, '$1window.__ONEBASE_CORE_READY__=true;\n$2');
 html = html.replace(/<\/head>/i, `${headAssets}\n</head>`);
 
 const runtimeScripts = [
