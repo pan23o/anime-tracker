@@ -13,7 +13,7 @@ const files = [
   'onebase-episode-notifications.js','onebase-notification-setup.js','onebase-settings.js',
   'onebase-settings-scrollbar.js','onebase-profile-cleanup.js','onebase-level-sync.js',
   'onebase-custom-webs-v3.js','onebase-source-search-v2.js','onebase-anilist-search.js',
-  'onebase-anime-add-cleanup.js','favicon.ico','favicon.png','favicon.svg','onebase-sw.js'
+  'onebase-anime-add-cleanup.js','onebase-safe-boot.js','favicon.ico','favicon.png','favicon.svg','onebase-sw.js'
 ];
 
 for (const file of files) {
@@ -29,6 +29,7 @@ html = html.replace(/\s*<link[^>]+rel=["'](?:shortcut )?icon["'][^>]*>/gi, '');
 html = html.replace(/<title>\s*AnimeTracker\s*<\/title>/i, '<title>ONEBASE</title>');
 
 const headAssets = `
+<script src="/onebase-safe-boot.js?v=1"></script>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=11">
 <link rel="stylesheet" href="/onebase-brand.css?v=7">
 <link rel="stylesheet" href="/onebase-experience-v1.css?v=3">
