@@ -67,5 +67,12 @@ for (const [script, version] of runtimeScripts) {
   html = html.replace('</body>', `  <script src="/${script}?${version}"></script>\n</body>`);
 }
 
+
+// Preserve the immutable stable snapshot in the public build.
+// This directory is never regenerated from the current source tree.
+const backupSource = path.join(root, 'backup');
+const backupOut = path.join(out, 'backup');
+if (fs.existsSync(backupSource)) fs.cpSync(backupSource, backupOut, { recursive: true });
+
 fs.writeFileSync(indexPath, html);
 console.log(`Built current OneBase to ${out}`);
