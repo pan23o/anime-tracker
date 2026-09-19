@@ -1,0 +1,33 @@
+name: OneBase verify
+on:
+  push:
+    branches:
+      - main
+      - feature/onebase-premium-2026-09-19
+  pull_request:
+    branches: [main]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Syntax check
+        run: |
+          node --check onebase-premium.js
+          node --check onebase-anilist-search.js
+          node --check api/onebase-health.js
+          node --check api/anilist-search.js
+          node --check profile/profile.js
+      - name: Build
+        run: npm run build
+      - name: Verify build artifacts
+        run: |
+          test -f dist/index.html
+          test -f dist/onebase-premium.js
+          test -f dist/onebase-premium.css
+          test -f dist/profile/index.html
+          test -f dist/profile/profile.js
+          test -f dist/backup/index.html
