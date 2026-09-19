@@ -809,6 +809,10 @@ try{
   data=Array.isArray(saved)?saved.map(normalizeItem):[];
 }catch(e){ data=[]; }
 
+// Bridge seguro para módulos externos: expone una referencia de solo lectura al estado actual.
+// El núcleo sigue siendo el único dueño de la variable "data".
+Object.defineProperty(window,"__ONEBASE_DATA__",{configurable:true,get:()=>data});
+
 const statusLabels = {
   viendo:"Viendo", terminado:"Terminado", pendiente:"Pendiente",
   pausa:"En pausa", abandonado:"Abandonado"
