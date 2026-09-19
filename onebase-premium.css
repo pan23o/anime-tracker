@@ -14,7 +14,7 @@
 .onebase-mini-sub{margin-top:3px;color:var(--muted,#888);font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .onebase-mini-time{text-align:right;color:var(--accent,#eee);font:800 9px/1.3 "Roboto Mono",monospace;white-space:nowrap}
 .onebase-empty{grid-column:1/-1;padding:20px 10px;text-align:center;color:var(--muted,#777);font-size:10px}
-.onebase-toolbar-extra{display:flex;gap:8px;flex-wrap:wrap;grid-column:1/-1;padding-top:1px}
+.onebase-advanced-hidden{display:none!important}.onebase-toolbar-extra{display:flex;gap:8px;flex-wrap:wrap;grid-column:1/-1;padding-top:1px}
 .onebase-toolbar-extra select{min-width:145px;padding:9px 10px;border:1px solid var(--line2,#353535);border-radius:10px;background:var(--panel2,#171717);color:var(--text,#eee);font-size:10px;font-weight:750;outline:none}
 .onebase-toolbar-extra select:focus{border-color:var(--accent,#eee)}
 .onebase-health-btn{position:relative}
