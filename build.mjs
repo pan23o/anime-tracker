@@ -13,7 +13,7 @@ const files = [
   'onebase-episode-notifications.js','onebase-notification-setup.js','onebase-settings.js',
   'onebase-settings-scrollbar.js','onebase-profile-cleanup.js','onebase-level-sync.js',
   'onebase-custom-webs-v3.js','onebase-source-search-v2.js','onebase-anilist-search.js',
-  'onebase-anime-add-cleanup.js','onebase-safe-boot.js','favicon.ico','favicon.png','favicon.svg','onebase-sw.js'
+  'onebase-anime-add-cleanup.js','onebase-premium.css','onebase-premium.js','onebase-safe-boot.js','favicon.ico','favicon.png','favicon.svg','onebase-sw.js'
 ];
 
 for (const file of files) {
@@ -56,7 +56,8 @@ const runtimeScripts = [
   ['onebase-custom-webs-v3.js', 'v=11'],
   ['onebase-source-search-v2.js', 'v=14'],
   ['onebase-anilist-search.js', 'v=5'],
-  ['onebase-anime-add-cleanup.js', 'v=2']
+  ['onebase-anime-add-cleanup.js', 'v=2'],
+  ['onebase-premium.js', 'v=1']
 ];
 
 // The source index can already contain older copies of these scripts. Remove them
@@ -74,6 +75,10 @@ for (const [script, version] of runtimeScripts) {
 
 // Preserve the immutable stable snapshot in the public build.
 // This directory is never regenerated from the current source tree.
+const profileSource = path.join(root, 'profile');
+const profileOut = path.join(out, 'profile');
+if (fs.existsSync(profileSource)) fs.cpSync(profileSource, profileOut, { recursive: true });
+
 const backupSource = path.join(root, 'backup');
 const backupOut = path.join(out, 'backup');
 if (fs.existsSync(backupSource)) fs.cpSync(backupSource, backupOut, { recursive: true });
