@@ -22,6 +22,7 @@ const QUERY = `
         description(asHtml: false)
         genres
         averageScore
+        nextAiringEpisode { airingAt episode }
         popularity
         favourites
         siteUrl
