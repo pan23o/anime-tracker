@@ -16,7 +16,7 @@ let supa=null;
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 const txt=v=>String(v??'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
-const getData=()=>Array.isArray(window.data)?window.data:[];
+const getData=()=>Array.isArray(window.__ONEBASE_DATA__)?window.__ONEBASE_DATA__:[];
 const fmt=n=>new Intl.NumberFormat('es-ES').format(Math.round(Number(n)||0));
 const profileLocal=()=>{try{return JSON.parse(localStorage.getItem('anime_tracker_profile_v1')||'{}')||{}}catch(_){return{}}};
 const safeTransition=fn=>{
@@ -118,7 +118,7 @@ function applyAdvancedFilters(){
     if(progress==='new'&&Number(item.newEpisodes)<=0)show=false;
     if(airing==='releasing'&&String(item.apiStatus||'')!=='RELEASING')show=false;
     if(airing==='upcoming'&&!(Number(item.nextAiringAt)>0&&Number(item.nextAiringEpisode)>0&&Number(item.nextAiringAt)*1000>Date.now()))show=false;
-    row.classList.toggle('hiddenRow',!show||row.classList.contains('onebase-premium-base-hidden'));
+    row.classList.toggle('onebase-advanced-hidden',!show);
   });
 }
 function decorateRows(){
