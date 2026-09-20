@@ -41,7 +41,7 @@ module.exports=async function handler(req,res){
   }
   const body=req.body&&typeof req.body==='object'?req.body:{};
   const genres=Array.isArray(body.genres)?body.genres.map(String).map(s=>s.trim()).filter(Boolean).slice(0,8):[];
-  const excludeIds=Array.isArray(body.excludeIds)?body.excludeIds.map(Number).filter(Number.isInteger).slice(0,10000):[];
+  const excludeIds=Array.isArray(body.excludeIds)?body.excludeIds.map(Number).filter(Number.isInteger).slice(0,10000):[];\n  const excludeTitles=new Set(Array.isArray(body.excludeTitles)?body.excludeTitles.map(v=>String(v||'').replace(/\\s+/g,' ').trim().toLowerCase()).filter(Boolean).slice(0,10000):[]);
   const page=Math.min(3,Math.max(1,Number.parseInt(body.page,10)||1));
   const selectedGenres=genres.length?genres:['Action','Adventure','Comedy'];
   const dominantGenre=selectedGenres[0];
@@ -57,7 +57,7 @@ module.exports=async function handler(req,res){
       throw new Error('AniList no está disponible en este momento.');
     }
     if(payload?.errors?.length)throw new Error('AniList devolvió un error al preparar la tirada.');
-    return Array.isArray(payload?.data?.Page?.media)?payload.data.Page.media:[];
+    return Array.isArray(payload?.data?.Page?.media)?payload.data.Page.media.filter(m=>!excludeTitles.has(String(m?.title?.userPreferred||m?.title?.english||m?.title?.romaji||'').replace(/\\s+/g,' ').trim().toLowerCase())):[];
   }
   try{
     // First: the user's strongest genre. One genre avoids over-constraining the query.
