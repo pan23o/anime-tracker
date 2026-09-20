@@ -275,3 +275,56 @@ body.onebase-pages-mode header .controls{display:none!important}
 @media(prefers-reduced-motion:reduce){
   .ob-anime-card.is-watching .ob-card-open,.ob-anime-card.is-abandoned .ob-card-open,.ob-anime-card.is-favorite .ob-card-open,.ob-anime-card.is-perfect .ob-card-open{transition:none!important}
 }
+
+
+/* ONEBASE Lootboxes + semantic status palette v2 */
+.onebase-sidebar nav button[data-page="loot"] i{color:#b46cff;text-shadow:0 0 14px rgba(180,108,255,.75)}
+.ob-loot-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:18px;margin-top:18px}
+.ob-loot-box{position:relative;min-width:0;aspect-ratio:1/1.16;perspective:900px}
+.ob-loot-box-button{position:relative;width:100%;height:100%;overflow:hidden;border:1px solid rgba(180,108,255,.25);border-radius:20px;background:radial-gradient(circle at 50% 34%,rgba(180,108,255,.14),transparent 42%),linear-gradient(145deg,#17131f,#0d0d11);color:#fff;cursor:pointer;box-shadow:0 20px 55px rgba(0,0,0,.35),0 0 0 1px rgba(255,255,255,.025) inset;transition:transform .28s ease,border-color .28s ease,box-shadow .28s ease,filter .28s ease}
+.ob-loot-box-button:hover:not(:disabled){transform:translateY(-7px) rotateX(2deg);border-color:rgba(180,108,255,.72);box-shadow:0 24px 70px rgba(0,0,0,.45),0 0 38px rgba(180,108,255,.24),0 0 0 1px rgba(180,108,255,.28) inset}
+.ob-loot-box-button:disabled{cursor:not-allowed}
+.ob-loot-box-rgb{position:absolute;inset:-35%;background:conic-gradient(from 0deg,#6c5cff,#00e5ff,#49f07b,#ffe45c,#ff5e9c,#6c5cff);filter:blur(24px);opacity:.22;animation:obLootRgb 5s linear infinite}
+.ob-loot-box-rgb::after{content:'';position:absolute;inset:25%;border-radius:50%;background:#0b0b0f;filter:blur(18px)}
+.ob-loot-box-lid{position:absolute;left:16%;right:16%;top:18%;height:43%;display:grid;place-items:center;border:1px solid rgba(255,255,255,.14);border-radius:14px 14px 22px 22px;background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(255,255,255,.025));box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 0 30px rgba(108,92,255,.18);transform:translateZ(18px);animation:obLootFloat 2.8s ease-in-out infinite}
+.ob-loot-box-lid i{font-style:normal;font-size:40px;color:#fff;text-shadow:0 0 10px #fff,0 0 28px #7d65ff,0 0 52px #00e5ff}
+.ob-loot-box-number{position:absolute;left:0;right:0;bottom:25%;font:900 28px/1 "Roboto Mono",monospace;letter-spacing:2px;color:#fff;text-shadow:0 0 18px rgba(255,255,255,.24)}
+.ob-loot-box-label{position:absolute;left:0;right:0;bottom:13%;font:900 8px/1 "Roboto Mono",monospace;letter-spacing:2px;color:#777}
+.ob-loot-box.ready .ob-loot-box-label{color:#d8c6ff}
+.ob-loot-box.locked{filter:saturate(.15) brightness(.62)}
+.ob-loot-box.locked .ob-loot-box-rgb,.ob-loot-box.locked .ob-loot-box-lid{animation:none}
+.ob-loot-box.locked .ob-loot-box-lid{opacity:.58}
+.ob-loot-box.resolved{filter:grayscale(.65) brightness(.55)}
+.ob-loot-box.resolved .ob-loot-box-label{color:#555}
+.ob-loot-loading{min-height:300px;display:grid;place-items:center;align-content:center;gap:9px;border:1px solid #29232f;border-radius:20px;background:radial-gradient(circle at 50% 35%,rgba(180,108,255,.1),transparent 45%),#101014;text-align:center;color:#aaa}
+.ob-loot-loading b{font-size:15px;color:#eee}.ob-loot-loading small{font-size:9px;color:#666}
+.ob-loot-loading .ob-page-add{margin-top:8px}
+.ob-loot-reveal{position:relative;display:grid;grid-template-columns:minmax(190px,.45fr) minmax(0,1fr);gap:24px;margin-top:22px;padding:18px;border:1px solid rgba(0,229,255,.32);border-radius:22px;background:linear-gradient(145deg,rgba(12,20,28,.96),rgba(12,12,16,.98));overflow:hidden;box-shadow:0 0 0 1px rgba(0,229,255,.08) inset,0 0 50px rgba(0,229,255,.12),0 24px 70px rgba(0,0,0,.45);animation:obLootReveal .6s cubic-bezier(.16,1,.3,1) both}
+.ob-loot-reveal::before{content:'';position:absolute;inset:-50%;background:conic-gradient(from 90deg,transparent,#00e5ff22,transparent,#ff4fb822,transparent);animation:obLootSpin 5s linear infinite;pointer-events:none}
+.ob-loot-reveal>*{position:relative;z-index:1}
+.ob-loot-reveal-media{min-height:300px;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.1);background:#0c0c10;box-shadow:0 0 35px rgba(0,229,255,.12)}
+.ob-loot-reveal-media img{display:block;width:100%;height:100%;min-height:300px;object-fit:cover}
+.ob-loot-no-cover{height:100%;min-height:300px;display:grid;place-items:center;color:#5e6470;font:900 12px/1 "Roboto Mono",monospace}
+.ob-loot-reveal-copy{padding:8px 8px 8px 0;align-self:center}.ob-loot-reveal-copy h3{margin:8px 0;font-size:clamp(25px,3vw,42px);letter-spacing:-1px}
+.ob-loot-meta{color:#aab2c2;font-size:9px}.ob-loot-score{margin-top:13px;color:#55eaff;font-size:15px;font-weight:900;text-shadow:0 0 18px rgba(85,234,255,.35)}.ob-loot-score span{font-size:8px;color:#6e7785;margin-left:5px}
+.ob-loot-description{max-width:720px;color:#9299a7;font-size:10px;line-height:1.7}
+.ob-loot-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px}.ob-loot-actions button{padding:11px 14px;border-radius:11px;font-size:8px;font-weight:900;cursor:pointer;transition:.2s ease}
+.ob-loot-save{border:1px solid rgba(77,214,157,.5);background:rgba(77,214,157,.1);color:#78e9b4;box-shadow:0 0 22px rgba(77,214,157,.09)}.ob-loot-save:hover{background:rgba(77,214,157,.18);transform:translateY(-2px)}
+.ob-loot-discard{border:1px solid rgba(239,93,93,.45);background:rgba(239,93,93,.07);color:#ff8c8c}.ob-loot-discard:hover{background:rgba(239,93,93,.14);transform:translateY(-2px)}
+@keyframes obLootRgb{to{transform:rotate(360deg)}}@keyframes obLootFloat{0%,100%{transform:translateZ(18px) translateY(0)}50%{transform:translateZ(18px) translateY(-5px)}}@keyframes obLootReveal{from{opacity:0;transform:translateY(20px) scale(.97);filter:brightness(.55)}to{opacity:1;transform:none;filter:none}}@keyframes obLootSpin{to{transform:rotate(360deg)}}
+@media(max-width:980px){.ob-loot-grid{grid-template-columns:repeat(3,1fr)}.ob-loot-reveal{grid-template-columns:1fr}.ob-loot-reveal-media,.ob-loot-reveal-media img{min-height:260px;max-height:420px}}
+@media(max-width:620px){.ob-loot-grid{grid-template-columns:repeat(2,1fr);gap:10px}.ob-loot-box-lid i{font-size:28px}.ob-loot-box-number{font-size:20px}.ob-loot-reveal{padding:12px}.ob-loot-reveal-copy{padding:0}.ob-loot-actions{flex-direction:column}.ob-loot-actions button{width:100%}}
+@media(prefers-reduced-motion:reduce){.ob-loot-box-rgb,.ob-loot-box-lid,.ob-loot-reveal::before,.ob-loot-reveal{animation:none!important}.ob-loot-box-button,.ob-loot-actions button{transition:none!important}}
+
+/* Requested OneBase card semantic palette */
+.ob-anime-card.is-watching .ob-card-open{border-color:rgba(64,230,126,.8);box-shadow:0 0 0 1px rgba(64,230,126,.34),0 0 30px rgba(64,230,126,.26),0 14px 38px rgba(0,0,0,.24)}
+.ob-anime-card.is-watching .ob-card-cover::after{background:linear-gradient(90deg,#23d96b,#73ffae)}
+.ob-anime-card.is-abandoned .ob-card-open{border-color:rgba(255,55,55,.86);box-shadow:0 0 0 1px rgba(255,55,55,.36),0 0 34px rgba(255,55,55,.28),0 14px 38px rgba(0,0,0,.24)}
+.ob-anime-card.is-abandoned .ob-card-cover::after{background:linear-gradient(90deg,#ff3030,#ff6f6f)}
+.ob-anime-card.is-favorite .ob-card-open{border-color:rgba(255,195,40,.9);box-shadow:0 0 0 1px rgba(255,195,40,.38),0 0 36px rgba(255,195,40,.3),0 14px 38px rgba(0,0,0,.24)}
+.ob-anime-card.is-favorite .ob-card-cover::after{background:linear-gradient(90deg,#ffb300,#ffe06a)}
+.ob-anime-card.is-perfect .ob-card-open{border-color:rgba(37,154,255,.95);box-shadow:0 0 0 1px rgba(37,154,255,.46),0 0 42px rgba(37,154,255,.36),0 0 68px rgba(78,196,255,.16),0 14px 38px rgba(0,0,0,.24)}
+.ob-anime-card.is-perfect .ob-card-cover::after{background:linear-gradient(90deg,#0a7dff,#61d5ff)}
+.ob-anime-card.is-pending .ob-card-open{border-color:rgba(180,108,255,.82);box-shadow:0 0 0 1px rgba(180,108,255,.34),0 0 30px rgba(180,108,255,.25),0 14px 38px rgba(0,0,0,.24)}
+.ob-anime-card.is-pending .ob-card-cover::after{background:linear-gradient(90deg,#9c4dff,#df9dff)}
+@media(prefers-reduced-motion:reduce){.ob-anime-card.is-watching .ob-card-open,.ob-anime-card.is-abandoned .ob-card-open,.ob-anime-card.is-favorite .ob-card-open,.ob-anime-card.is-perfect .ob-card-open,.ob-anime-card.is-pending .ob-card-open{transition:none!important}}
