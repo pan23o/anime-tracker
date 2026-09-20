@@ -55,9 +55,9 @@ const runtimeScripts = [
   ['onebase-experience-v1.js', 'v=2'],
   ['onebase-custom-webs-v3.js', 'v=11'],
   ['onebase-source-search-v2.js', 'v=14'],
-  ['onebase-anilist-search.js', 'v=5'],
+  ['onebase-anilist-search.js', 'v=6'],
   ['onebase-anime-add-cleanup.js', 'v=2'],
-  ['onebase-premium.js', 'v=4']
+  ['onebase-premium.js', 'v=5']
 ];
 
 // The source index can already contain older copies of these scripts. Remove them
