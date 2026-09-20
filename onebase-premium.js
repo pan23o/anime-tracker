@@ -464,7 +464,7 @@ async function fetchLootRecommendations(){
   if(!r.ok||!payload?.ok)throw new Error(payload?.error||'No se pudieron cargar las recomendaciones.');
   const picks=lootPick(Array.isArray(payload.results)?payload.results:[],tastes);
   if(picks.length<5)throw new Error('No hay suficientes recomendaciones nuevas para esta tirada.');
-  return picks.map(x=>({id:Number(x.id),title:lootTitle(x),cover:lootCover(x),banner:String(x.bannerImage||''),genres:Array.isArray(x.genres)?x.genres.slice(0,6):[],description:txt(x.description||''),episodes:Number(x.episodes)||0,duration:Number(x.duration)||0,status:String(x.status||''),score:Number(x.averageScore)||0,popularity:Number(x.popularity)||0,siteUrl:String(x.siteUrl||'')}));
+  return picks.map(x=>({id:Number(x.id),title:lootTitle(x),cover:lootCover(x),banner:String(x.bannerImage||''),genres:Array.isArray(x.genres)?x.genres.slice(0,6):[],description:String(x.description||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim(),episodes:Number(x.episodes)||0,duration:Number(x.duration)||0,status:String(x.status||''),score:Number(x.averageScore)||0,popularity:Number(x.popularity)||0,siteUrl:String(x.siteUrl||'')}));
 }
 function lootMeta(x){return (x.genres||[]).slice(0,3).join(' · ')||'Recomendación personalizada'}
 function lootCard(x,i,locked,resolved){
