@@ -487,7 +487,7 @@ function saveLootAsPending(){
   const d=data();
   d.push({anime:x.title,watched:'0',total:x.episodes?String(x.episodes):'',duration:x.duration?String(x.duration):'',durationMin:x.duration||0,state:'pendiente',score:'',favorite:false,cover:x.cover,coverImage:x.cover,bannerImage:x.banner,description:x.description,genres:x.genres,apiStatus:x.status,anilistStatus:x.status,apiScore:x.score?x.score/10:0,aniId:x.id,anilistId:x.id,knownTotal:x.episodes?String(x.episodes):'',plannedEpisodes:x.episodes?String(x.episodes):'',newEpisodes:0,siteUrl:x.siteUrl,source:'onebase-lootbox',addedAt:Date.now(),updatedAt:Date.now()});
   try{window.save?.()}catch(_){}
-  lootHistory.add(x.id);saveLootHistory();lootResolved.add(lootOpenIndex);lootOpenIndex=null;lootRoll=null;window.toast?.('✓ Guardado como pendiente.');render();
+  lootHistory.add(x.id);saveLootHistory();lootResolved.add(lootOpenIndex);lootOpenIndex=null;window.toast?.('✓ Guardado como pendiente.');render();
 }
 function discardLoot(){
   const x=lootRoll?.[lootOpenIndex];if(!x)return;
@@ -497,7 +497,8 @@ let lootOpenIndex=null;
 function lootboxes(){
   if(!lootRoll&&!lootBusy)void prepareLoot();
   const active=lootOpenIndex!==null,boxes=lootRoll||[];
-  const body=lootBusy?'<div class="ob-loot-loading"><span></span><b>Analizando tus gustos…</b><small>ONEBASE está buscando candidatos en AniList.</small></div>':(!boxes.length?'<div class="ob-loot-loading"><b>No se pudo preparar la tirada.</b><button type="button" class="ob-page-add" data-loot-retry>↻ Reintentar</button></div>':'<div class="ob-loot-grid">'+boxes.map((x,i)=>lootCard(x,i,active&&i!==lootOpenIndex,lootResolved.has(i))).join('')+'</div>')+(active&&boxes[lootOpenIndex]?lootDetail(boxes[lootOpenIndex]):'');
+  const allResolved=boxes.length===5&&lootResolved.size>=5;
+  const body=lootBusy?'<div class="ob-loot-loading"><span></span><b>Analizando tus gustos…</b><small>ONEBASE está buscando candidatos en AniList.</small></div>':(!boxes.length?'<div class="ob-loot-loading"><b>No se pudo preparar la tirada.</b><button type="button" class="ob-page-add" data-loot-retry>↻ Reintentar</button></div>':'<div class="ob-loot-grid">'+boxes.map((x,i)=>lootCard(x,i,active&&i!==lootOpenIndex,lootResolved.has(i))).join('')+'</div>')+(active&&boxes[lootOpenIndex]?lootDetail(boxes[lootOpenIndex]):'')+(allResolved?'<div class="ob-loot-new-wrap"><button type="button" class="ob-page-add" data-loot-new>✦ Nueva tirada de 5 cajas</button></div>':'');
   return shell('LOOTBOXES','Tu drop personalizado','Cinco cajas. Cinco animes que encajan con lo que sueles ver. Tú decides qué hacer con cada drop.',body);
 }
 function statistics(){
@@ -518,7 +519,8 @@ function bind(){
  app.querySelectorAll('[data-loot-open]').forEach(b=>b.onclick=()=>{const i=Number(b.dataset.lootOpen);if(!Number.isInteger(i)||!lootRoll?.[i]||lootResolved.has(i))return;lootOpenIndex=i;render()});
  app.querySelectorAll('[data-loot-action="save"]').forEach(b=>b.onclick=saveLootAsPending);
  app.querySelectorAll('[data-loot-action="discard"]').forEach(b=>b.onclick=discardLoot);
- app.querySelectorAll('[data-loot-retry]').forEach(b=>b.onclick=()=>{lootRoll=null;lootOpenIndex=null;void prepareLoot()});
+ app.querySelectorAll('[data-loot-retry]').forEach(b=>b.onclick=()=>{lootRoll=null;lootResolved.clear();lootOpenIndex=null;void prepareLoot()});
+ app.querySelectorAll('[data-loot-new]').forEach(b=>b.onclick=()=>{lootRoll=null;lootResolved.clear();lootOpenIndex=null;void prepareLoot()});
  const qel=$('#obLibSearch');if(qel){qel.oninput=()=>{q=qel.value;refreshLibraryResults()};$('#obLibStatus').onchange=e=>{st=e.target.value;render()};$('#obLibGenre').onchange=e=>{genre=e.target.value;render()};$('#obLibScore').onchange=e=>{score=e.target.value;render()};$('#obLibProgress').onchange=e=>{progress=e.target.value;render()};$('#obLibSort').onchange=e=>{sort=e.target.value;render()};$('#obLibFav').onclick=()=>{fav=!fav;render()}}
  $('#obEditProfile')?.addEventListener('click',()=>document.getElementById('profileTopBtn')?.click());
 }
