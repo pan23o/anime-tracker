@@ -328,3 +328,7 @@ body.onebase-pages-mode header .controls{display:none!important}
 .ob-anime-card.is-pending .ob-card-open{border-color:rgba(180,108,255,.82);box-shadow:0 0 0 1px rgba(180,108,255,.34),0 0 30px rgba(180,108,255,.25),0 14px 38px rgba(0,0,0,.24)}
 .ob-anime-card.is-pending .ob-card-cover::after{background:linear-gradient(90deg,#9c4dff,#df9dff)}
 @media(prefers-reduced-motion:reduce){.ob-anime-card.is-watching .ob-card-open,.ob-anime-card.is-abandoned .ob-card-open,.ob-anime-card.is-favorite .ob-card-open,.ob-anime-card.is-perfect .ob-card-open,.ob-anime-card.is-pending .ob-card-open{transition:none!important}}
+
+.ob-loot-new-wrap{display:flex;justify-content:center;margin-top:20px}
+.ob-loot-box.resolved .ob-loot-box-button{box-shadow:0 0 0 1px rgba(180,108,255,.08),0 0 18px rgba(180,108,255,.06)}
+@media(max-width:760px){.onebase-sidebar nav{grid-template-columns:repeat(6,minmax(0,1fr))}.onebase-sidebar nav button span{font-size:5.5px}.onebase-sidebar nav button i{font-size:12px}}
