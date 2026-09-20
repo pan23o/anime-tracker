@@ -439,7 +439,7 @@ function lootExcludedIds(){
 function lootTitle(x){return x?.title?.userPreferred||x?.title?.english||x?.title?.romaji||'Anime recomendado'}
 function lootCover(x){return x?.coverImage?.extraLarge||x?.coverImage?.large||x?.coverImage?.medium||''}
 function lootPick(candidates,tastes){
-  const pool=candidates.filter(x=>x&&!lootHistory.has(Number(x.id)));
+  const excludedTitles=new Set(lootExcludedTitles().map(lootTitleKey));\n  const pool=candidates.filter(x=>x&&!lootHistory.has(Number(x.id))&&!excludedTitles.has(lootTitleKey(lootTitle(x))));
   const picked=[],used=new Set();
   const weights=new Map(tastes.map((g,i)=>[g.toLowerCase(),Math.max(1,tastes.length-i)]));
   while(picked.length<5&&picked.length<pool.length){
@@ -458,7 +458,7 @@ function lootPick(candidates,tastes){
 }
 async function fetchLootRecommendations(){
   const tastes=lootTastes();
-  const body={genres:tastes.slice(0,8),excludeIds:lootExcludedIds(),page:1+Math.floor(Math.random()*3)};
+  const body={genres:tastes.slice(0,8),excludeIds:lootExcludedIds(),excludeTitles:lootExcludedTitles(),page:1+Math.floor(Math.random()*3)};
   const r=await fetch('/api/lootbox-recommendations',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   const payload=await r.json().catch(()=>null);
   if(!r.ok||!payload?.ok)throw new Error(payload?.error||'No se pudieron cargar las recomendaciones.');
@@ -487,19 +487,18 @@ function saveLootAsPending(){
   const d=data();
   d.push({anime:x.title,watched:'0',total:x.episodes?String(x.episodes):'',duration:x.duration?String(x.duration):'',durationMin:x.duration||0,state:'pendiente',score:'',favorite:false,cover:x.cover,coverImage:x.cover,bannerImage:x.banner,description:x.description,genres:x.genres,apiStatus:x.status,anilistStatus:x.status,apiScore:x.score?x.score/10:0,aniId:x.id,anilistId:x.id,knownTotal:x.episodes?String(x.episodes):'',plannedEpisodes:x.episodes?String(x.episodes):'',newEpisodes:0,siteUrl:x.siteUrl,source:'onebase-lootbox',addedAt:Date.now(),updatedAt:Date.now()});
   try{window.save?.()}catch(_){}
-  lootHistory.add(x.id);saveLootHistory();lootResolved.add(lootOpenIndex);lootOpenIndex=null;window.toast?.('✓ Guardado como pendiente.');render();
+  lootHistory.add(x.id);saveLootHistory();lootResolved.add(lootOpenedIndex);lootOpenIndex=null;lootConsumed=true;window.toast?.('✓ Guardado como pendiente. Las demás cajas quedan bloqueadas hasta una nueva tirada.');render();
 }
 function discardLoot(){
   const x=lootRoll?.[lootOpenIndex];if(!x)return;
-  lootHistory.add(x.id);saveLootHistory();lootResolved.add(lootOpenIndex);lootOpenIndex=null;render();window.toast?.('Recomendación descartada.');
+  lootHistory.add(x.id);saveLootHistory();lootResolved.add(lootOpenedIndex);lootOpenIndex=null;lootConsumed=true;render();window.toast?.('Recomendación descartada. Las demás cajas quedan bloqueadas hasta una nueva tirada.');
 }
-let lootOpenIndex=null;
+let lootOpenIndex=null,lootOpenedIndex=null,lootOpeningIndex=null,lootConsumed=false;\nlet lootAudioContext=null;
 function lootboxes(){
   if(!lootRoll&&!lootBusy)void prepareLoot();
-  const active=lootOpenIndex!==null,boxes=lootRoll||[];
-  const allResolved=boxes.length===5&&lootResolved.size>=5;
-  const body=lootBusy?'<div class="ob-loot-loading"><span></span><b>Analizando tus gustos…</b><small>ONEBASE está buscando candidatos en AniList.</small></div>':(!boxes.length?'<div class="ob-loot-loading"><b>No se pudo preparar la tirada.</b><button type="button" class="ob-page-add" data-loot-retry>↻ Reintentar</button></div>':'<div class="ob-loot-grid">'+boxes.map((x,i)=>lootCard(x,i,active&&i!==lootOpenIndex,lootResolved.has(i))).join('')+'</div>')+(active&&boxes[lootOpenIndex]?lootDetail(boxes[lootOpenIndex]):'')+(allResolved?'<div class="ob-loot-new-wrap"><button type="button" class="ob-page-add" data-loot-new>✦ Nueva tirada de 5 cajas</button></div>':'');
-  return shell('LOOTBOXES','Tu drop personalizado','Cinco cajas. Cinco animes que encajan con lo que sueles ver. Tú decides qué hacer con cada drop.',body);
+  const boxes=lootRoll||[],hasOpened=lootOpenedIndex!==null||lootConsumed;
+  const body=lootBusy?'<div class="ob-loot-loading"><span></span><b>Analizando tus gustos…</b><small>ONEBASE está buscando candidatos en AniList.</small></div>':(!boxes.length?'<div class="ob-loot-loading"><b>No se pudo preparar la tirada.</b><button type="button" class="ob-page-add" data-loot-retry>↻ Reintentar</button></div>':'<div class="ob-loot-grid">'+boxes.map((x,i)=>lootCard(x,i,hasOpened&&i!==lootOpenedIndex,lootResolved.has(i),hasOpened&&i!==lootOpenedIndex,lootOpeningIndex===i)).join('')+'</div>')+(lootOpenIndex!==null&&boxes[lootOpenIndex]?lootDetail(boxes[lootOpenIndex]):'')+(hasOpened?'<div class="ob-loot-new-wrap"><p class="ob-loot-lock-note">🔒 Tirada consumida · las otras cuatro cajas quedan bloqueadas.</p><button type="button" class="ob-page-add" data-loot-new>✦ Nueva tirada de 5 cajas</button></div>':'');
+  return shell('LOOTBOXES','Tu drop personalizado','Cinco cajas reales. Abres una; las otras revelan qué contenían, pero quedan selladas hasta la próxima tirada.',body);
 }
 function statistics(){
  const s=stats(),avg=s.r.length?s.r.reduce((z,x)=>z+Number(x.score),0)/s.r.length:0,g={};s.a.forEach(x=>(x.genres||[]).forEach(k=>g[k]=(g[k]||0)+1));const gs=Object.entries(g).sort((a,b)=>b[1]-a[1]).slice(0,8),ratings=Array.from({length:11},(_,i)=>s.r.filter(x=>Math.round(Number(x.score))===i).length);
@@ -516,11 +515,16 @@ function bind(){
  app.querySelectorAll('[data-ob-add]').forEach(b=>b.onclick=()=>window.OneBaseAniListSearch?.open?.());
  app.querySelectorAll('[data-open]').forEach(b=>b.onclick=e=>{e.preventDefault();openInfo(Number(b.dataset.open))});
  app.querySelectorAll('[data-epopen]').forEach(b=>b.onclick=()=>window.OneBasePremium?.openEpisodes?.(Number(b.dataset.epopen)));
- app.querySelectorAll('[data-loot-open]').forEach(b=>b.onclick=()=>{const i=Number(b.dataset.lootOpen);if(!Number.isInteger(i)||!lootRoll?.[i]||lootResolved.has(i))return;lootOpenIndex=i;render()});
+ app.querySelectorAll('[data-loot-open]').forEach(b=>b.onclick=()=>{
+  const i=Number(b.dataset.lootOpen);
+  if(!Number.isInteger(i)||!lootRoll?.[i]||lootResolved.has(i)||lootOpenedIndex!==null||lootConsumed)return;
+  lootOpeningIndex=i;playLootOpenSound();render();
+  setTimeout(()=>{lootOpeningIndex=null;lootOpenedIndex=i;lootOpenIndex=i;render()},650);
+});
  app.querySelectorAll('[data-loot-action="save"]').forEach(b=>b.onclick=saveLootAsPending);
  app.querySelectorAll('[data-loot-action="discard"]').forEach(b=>b.onclick=discardLoot);
- app.querySelectorAll('[data-loot-retry]').forEach(b=>b.onclick=()=>{lootRoll=null;lootResolved.clear();lootOpenIndex=null;void prepareLoot()});
- app.querySelectorAll('[data-loot-new]').forEach(b=>b.onclick=()=>{lootRoll=null;lootResolved.clear();lootOpenIndex=null;void prepareLoot()});
+ app.querySelectorAll('[data-loot-retry]').forEach(b=>b.onclick=()=>{lootRoll=null;lootResolved.clear();lootOpenIndex=null;lootOpenedIndex=null;lootOpeningIndex=null;lootConsumed=false;void prepareLoot()});
+ app.querySelectorAll('[data-loot-new]').forEach(b=>b.onclick=()=>{lootRoll=null;lootResolved.clear();lootOpenIndex=null;lootOpenedIndex=null;lootOpeningIndex=null;lootConsumed=false;void prepareLoot()});
  const qel=$('#obLibSearch');if(qel){qel.oninput=()=>{q=qel.value;refreshLibraryResults()};$('#obLibStatus').onchange=e=>{st=e.target.value;render()};$('#obLibGenre').onchange=e=>{genre=e.target.value;render()};$('#obLibScore').onchange=e=>{score=e.target.value;render()};$('#obLibProgress').onchange=e=>{progress=e.target.value;render()};$('#obLibSort').onchange=e=>{sort=e.target.value;render()};$('#obLibFav').onclick=()=>{fav=!fav;render()}}
  $('#obEditProfile')?.addEventListener('click',()=>document.getElementById('profileTopBtn')?.click());
 }
