@@ -72,7 +72,4 @@ module.exports=async function handler(req,res){
     console.error('[ONEBASE] Lootbox recommendations failed:',error);
     return json(res,502,{ok:false,error:error.message||'No se pudo conectar con AniList.'});
   }
-    console.error('[ONEBASE] Lootbox recommendations failed:',error);
-    return json(res,502,{ok:false,error:'No se pudo conectar con AniList.'});
-  }
 };
