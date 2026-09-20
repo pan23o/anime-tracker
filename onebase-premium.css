@@ -233,3 +233,45 @@ body.onebase-pages-mode header .controls{display:none!important}
 @media(prefers-reduced-motion:reduce){
   .ob-page-add,.ob-card-open,.onebase-tools-menu>[data-tool],.onebase-episode-button{transition:none!important}
 }
+
+/* ONEBASE card status lights · persistent semantic accents */
+.ob-anime-card.is-watching .ob-card-open{
+  border-color:rgba(225,183,92,.62);
+  box-shadow:0 0 0 1px rgba(225,183,92,.28),0 0 24px rgba(225,183,92,.18),0 14px 38px rgba(0,0,0,.24)
+}
+.ob-anime-card.is-watching .ob-card-cover::after{
+  background:linear-gradient(90deg,#e1b75c,#f5d47d)
+}
+.ob-anime-card.is-abandoned .ob-card-open{
+  border-color:rgba(239,93,93,.62);
+  box-shadow:0 0 0 1px rgba(239,93,93,.28),0 0 24px rgba(239,93,93,.16),0 14px 38px rgba(0,0,0,.24)
+}
+.ob-anime-card.is-abandoned .ob-card-cover::after{
+  background:linear-gradient(90deg,#ef5d5d,#ff8a8a)
+}
+.ob-anime-card.is-favorite .ob-card-open{
+  border-color:rgba(181,111,255,.62);
+  box-shadow:0 0 0 1px rgba(181,111,255,.24),0 0 25px rgba(181,111,255,.17),0 14px 38px rgba(0,0,0,.24)
+}
+.ob-anime-card.is-favorite .ob-card-cover::after{
+  background:linear-gradient(90deg,#b56fff,#e0a7ff)
+}
+.ob-anime-card.is-perfect .ob-card-open{
+  border-color:rgba(77,214,157,.68);
+  box-shadow:0 0 0 1px rgba(77,214,157,.3),0 0 27px rgba(77,214,157,.2),0 14px 38px rgba(0,0,0,.24)
+}
+.ob-anime-card.is-perfect .ob-card-cover::after{
+  background:linear-gradient(90deg,#4dd69d,#a0f0c9)
+}
+/* A 10/10 rating gets the strongest accent when combined with another flag. */
+.ob-anime-card.is-perfect.is-favorite .ob-card-open{
+  border-color:rgba(77,214,157,.76);
+  box-shadow:0 0 0 1px rgba(77,214,157,.34),0 0 34px rgba(77,214,157,.23),0 0 58px rgba(181,111,255,.10),0 14px 38px rgba(0,0,0,.24)
+}
+.ob-anime-card.is-perfect.is-watching .ob-card-open{
+  border-color:rgba(77,214,157,.76);
+  box-shadow:0 0 0 1px rgba(77,214,157,.34),0 0 34px rgba(77,214,157,.23),0 0 58px rgba(225,183,92,.10),0 14px 38px rgba(0,0,0,.24)
+}
+@media(prefers-reduced-motion:reduce){
+  .ob-anime-card.is-watching .ob-card-open,.ob-anime-card.is-abandoned .ob-card-open,.ob-anime-card.is-favorite .ob-card-open,.ob-anime-card.is-perfect .ob-card-open{transition:none!important}
+}
