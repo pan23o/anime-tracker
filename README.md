@@ -13,3 +13,5 @@ OneBase is a personal anime tracker with account sync, instant persistence, auto
 - When OneBase is open, the client-side checker also refreshes the library total so the UI reflects the new episode count immediately.
 
 OneBase only opens external search pages; it does not download or distribute files.
+
+<!-- Vercel redeploy marker: 2026-09-21 -->
