@@ -13,7 +13,7 @@ const files = [
   'onebase-episode-notifications.js','onebase-notification-setup.js','onebase-settings.js',
   'onebase-settings-scrollbar.js','onebase-profile-cleanup.js','onebase-level-sync.js',
   'onebase-custom-webs-v3.js','onebase-source-search-v2.js','onebase-anilist-search.js',
-  'onebase-anime-add-cleanup.js','onebase-premium.css','onebase-premium.js','onebase-safe-boot.js','favicon.ico','favicon.png','favicon.svg','onebase-sw.js'
+  'onebase-anime-add-cleanup.js','onebase-premium.css','onebase-premium.js','onebase-safe-boot.js','onebase-loot-v2.css','onebase-loot-v2.js','favicon.ico','favicon.png','favicon.svg','onebase-sw.js'
 ];
 
 for (const file of files) {
@@ -29,7 +29,7 @@ html = html.replace(/\s*<link[^>]+rel=["'](?:shortcut )?icon["'][^>]*>/gi, '');
 html = html.replace(/<title>\s*AnimeTracker\s*<\/title>/i, '<title>ONEBASE</title>');
 
 const headAssets = `
-<script src="/onebase-safe-boot.js?v=1"></script>
+<script src="/onebase-safe-boot.js?v=1"></script>\n<link rel="stylesheet" href="/onebase-loot-v2.css?v=1">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=11">
 <link rel="stylesheet" href="/onebase-brand.css?v=7">
 <link rel="stylesheet" href="/onebase-experience-v1.css?v=3">
@@ -57,7 +57,8 @@ const runtimeScripts = [
   ['onebase-source-search-v2.js', 'v=14'],
   ['onebase-anilist-search.js', 'v=6'],
   ['onebase-anime-add-cleanup.js', 'v=2'],
-  ['onebase-premium.js', 'v=7']
+  ['onebase-premium.js', 'v=7'],
+  ['onebase-loot-v2.js', 'v=1']
 ];
 
 // The source index can already contain older copies of these scripts. Remove them
