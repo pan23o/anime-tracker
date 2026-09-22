@@ -156,11 +156,63 @@ function detail(x,i){
 }
 function opening(i){
   const x=roll?.[i];if(!x)return;
-  const el=document.createElement('div');el.className='lv2-opening';el.id='lv2Opening';
-  el.innerHTML='<div class="lv2-opening-card"><div class="lv2-opening-kicker">ONEBASE CASE · '+String(i+1).padStart(2,'0')+'</div><div class="lv2-opening-case"><span class="lv2-opening-beam"></span><span class="lv2-case-shell"><span class="lv2-case-band"></span><span class="lv2-case-lock"></span><span class="lv2-case-rarity"></span></span><span class="lv2-opening-lid"></span></div><div class="lv2-opening-status">DESBLOQUEANDO DROP…</div></div>';
+  const el=document.createElement('div');
+  el.className='lv2-opening';
+  el.id='lv2Opening';
+  el.innerHTML='<div class="lv2-opening-card" role="dialog" aria-modal="true" aria-label="Abriendo lootbox"><div class="lv2-opening-kicker">ONEBASE CASE · '+String(i+1).padStart(2,'0')+'</div><div class="lv2-opening-stage"><div class="lv2-opening-case"><span class="lv2-opening-beam"></span><span class="lv2-opening-sparks"></span><span class="lv2-opening-shell"><span class="lv2-opening-case-edge"></span><span class="lv2-opening-case-band"></span><span class="lv2-opening-case-lock"></span><span class="lv2-opening-case-rarity"></span></span><span class="lv2-opening-lid"><span>ONEBASE</span></span></div></div><div class="lv2-opening-status">DESBLOQUEANDO DROP…</div><div class="lv2-opening-progress"><i></i></div></div>';
   document.body.appendChild(el);
-  setTimeout(()=>{el.querySelector('.lv2-opening-status').textContent='DROP ENCONTRADO';},700);
-  clearTimeout(openingTimer);openingTimer=setTimeout(()=>{el.remove();renderLoot();},1150);
+
+  const card=el.querySelector('.lv2-opening-card');
+  const stage=el.querySelector('.lv2-opening-stage');
+  const box=el.querySelector('.lv2-opening-case');
+  const lid=el.querySelector('.lv2-opening-lid');
+  const lock=el.querySelector('.lv2-opening-case-lock');
+  const beam=el.querySelector('.lv2-opening-beam');
+  const status=el.querySelector('.lv2-opening-status');
+  const progress=el.querySelector('.lv2-opening-progress i');
+  const reduce=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+  if(reduce){
+    status.textContent='DROP ENCONTRADO';
+    progress.style.width='100%';
+    setTimeout(()=>{el.remove();renderLoot()},450);
+    return;
+  }
+
+  // Web Animations API: sequence the interaction instead of relying on several
+  // unrelated CSS delays. This is the same browser animation engine used by CSS.
+  requestAnimationFrame(()=>{
+    card?.animate(
+      [{opacity:0,transform:'translateY(22px) scale(.94)'},{opacity:1,transform:'translateY(0) scale(1)'}],
+      {duration:420,easing:'cubic-bezier(.16,1,.3,1)',fill:'both'}
+    );
+    stage?.animate(
+      [{transform:'scale(.82) rotateX(9deg)',opacity:.2},{transform:'scale(1.03) rotateX(0)',opacity:1},{transform:'scale(1)'}],
+      {duration:700,easing:'cubic-bezier(.16,1,.3,1)',fill:'both'}
+    );
+    box?.animate(
+      [{transform:'translateY(0) rotateZ(0)'},{transform:'translateY(-4px) rotateZ(-.7deg)',offset:.28},{transform:'translateY(0) rotateZ(.7deg)',offset:.52},{transform:'translateY(-2px) rotateZ(0)',offset:.72},{transform:'translateY(0)'}],
+      {duration:1250,easing:'ease-in-out',fill:'both'}
+    );
+    lock?.animate(
+      [{transform:'translate(-50%,-50%) scale(1)',filter:'brightness(1)'},{transform:'translate(-50%,-50%) scale(1.35)',filter:'brightness(2)',offset:.42},{transform:'translate(-50%,-50%) scale(.7)',opacity:0,filter:'brightness(3)'}],
+      {duration:720,delay:520,easing:'cubic-bezier(.16,1,.3,1)',fill:'both'}
+    );
+    lid?.animate(
+      [{transform:'rotateX(0) translateY(0) translateZ(0)',filter:'brightness(.8)'},{transform:'rotateX(-18deg) translateY(-3px) translateZ(8px)',filter:'brightness(1.1)',offset:.38},{transform:'rotateX(-78deg) translateY(-20px) translateZ(26px)',filter:'brightness(1.55)',offset:.72},{transform:'rotateX(-70deg) translateY(-17px) translateZ(22px)',filter:'brightness(1.3)'}],
+      {duration:1150,delay:620,easing:'cubic-bezier(.16,1,.3,1)',fill:'both'}
+    );
+    beam?.animate(
+      [{opacity:0,transform:'translate(-50%,-50%) scale(.25)'},{opacity:1,transform:'translate(-50%,-50%) scale(1)',offset:.55},{opacity:.8,transform:'translate(-50%,-50%) scale(1.25)'}],
+      {duration:1050,delay:620,easing:'cubic-bezier(.16,1,.3,1)',fill:'both'}
+    );
+    progress?.animate([{width:'0%'},{width:'100%'}],{duration:1850,easing:'linear',fill:'forwards'});
+  });
+
+  setTimeout(()=>{status.textContent='ABRIENDO CASE…'},520);
+  setTimeout(()=>{status.textContent='DROP ENCONTRADO';el.classList.add('drop-found')},1320);
+  clearTimeout(openingTimer);
+  openingTimer=setTimeout(()=>{el.classList.add('closing');setTimeout(()=>{el.remove();renderLoot()},260)},1900);
 }
 function choose(i){
   if(busy||selected!==null||!roll?.[i]||resolved.has(i))return;
