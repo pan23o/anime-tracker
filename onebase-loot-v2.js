@@ -14,6 +14,9 @@ const MODES={
 };
 const GENRES=['Action','Adventure','Comedy','Drama','Ecchi','Fantasy','Horror','Mahou Shoujo','Mecha','Music','Mystery','Psychological','Romance','Sci-Fi','Slice of Life','Sports','Supernatural','Thriller','Cars','Demons','Game','Historical','Martial Arts','Military','Parody','School','Space','Vampire','Samurai'];
 const ADULT=['Ecchi'];
+const THEMES={
+  boxing:['boxing','boxeo'],magic:['magic','magia','wizard','witch','hechic'],vampire:['vampire','vampiro'],pirates:['pirate','pirata'],ninja:['ninja'],samurai:['samurai'],martial:['martial arts','artes marciales'],football:['football','soccer','futbol'],basketball:['basketball','baloncesto'],baseball:['baseball','beisbol'],racing:['racing','race','carreras'],idols:['idol','idols'],detective:['detective','mystery','misterio'],survival:['survival','supervivencia'],school:['school','escuela'],space:['space','espacio'],robots:['mecha','robot','robots'],military:['military','militar'],cooking:['cooking','cocina'],time:['time travel','viaje en el tiempo'],demons:['demon','demonio','demonios']
+};
 
 let mode=localStorage.getItem(KEY)||'personalized';
 if(!MODES[mode])mode='personalized';
@@ -27,15 +30,18 @@ const ids=()=>new Set(list().map(x=>Number(x.aniId||x.anilistId)).filter(Number.
 function loadHistory(){try{const v=JSON.parse(localStorage.getItem(HISTORY)||'[]');return new Set(Array.isArray(v)?v.map(Number).filter(Number.isFinite):[])}catch(_){return new Set()}}
 function saveHistory(s){try{localStorage.setItem(HISTORY,JSON.stringify([...s].slice(-1000)))}catch(_){}}
 function profile(){
-  const gs=new Map(),ts=new Map(),seen=new Map();
+  const gs=new Map(),ts=new Map(),seen=new Map(),themes=new Map();
   list().forEach(x=>{
     const score=Number(x.score), quality=Number.isFinite(score)?Math.max(.25,score/10):.65;
     const interest=quality+(x.favorite?1.35:0)+(Number(x.watched)>0?0.45:0)+(x.state==='viendo'?0.35:0)+(x.state==='terminado'?0.6:0);
+    const blob=String(x.anime||'')+' '+String(x.description||'')+' '+(Array.isArray(x.tags)?x.tags.map(t=>typeof t==='string'?t:t?.name||'').join(' '):'');
+    const lower=blob.toLowerCase();
+    Object.entries(THEMES).forEach(([theme,words])=>{if(words.some(w=>lower.includes(w)))themes.set(theme,(themes.get(theme)||0)+interest)});
     (Array.isArray(x.genres)?x.genres:[]).forEach(g=>{const k=String(g).trim();if(k&&!ADULT.includes(k))gs.set(k,(gs.get(k)||0)+interest)});
     (Array.isArray(x.tags)?x.tags:[]).forEach(t=>{const k=typeof t==='string'?t:String(t?.name||'').trim();if(k)ts.set(k,(ts.get(k)||0)+interest)});
     (Array.isArray(x.genres)?x.genres:[]).forEach(g=>{const k=String(g).trim();if(k)seen.set(k,(seen.get(k)||0)+1)});
   });
-  return{genres:gs,tags:ts,seen};
+  return{genres:gs,tags:ts,seen,themes};
 }
 function top(map,n=8){return [...map.entries()].sort((a,b)=>b[1]-a[1]).slice(0,n).map(x=>x[0])}
 function oppositeGenres(p){
@@ -52,6 +58,8 @@ function reasonFor(x,p,opposite){
 function scoreCandidate(x,p,mode,targets){
   const genres=Array.isArray(x.genres)?x.genres:[];
   const tags=(Array.isArray(x.tags)?x.tags:[]).map(t=>typeof t==='string'?t:t?.name).filter(Boolean);
+  const blob=(String(x.title?.userPreferred||x.title?.english||x.title?.romaji||'')+' '+String(x.description||'')+' '+tags.join(' ')).toLowerCase();
+  const themeMatch=Object.entries(THEMES).reduce((s,[theme,words])=>s+(words.some(w=>blob.includes(w))?(p.themes.get(theme)||0):0),0);
   const gMatch=genres.reduce((s,g)=>s+(p.genres.get(g)||0),0);
   const tMatch=tags.reduce((s,t)=>s+(p.tags.get(t)||0),0);
   const pop=Math.min(10,Math.log10(Math.max(1,Number(x.popularity)||1))*2.1);
@@ -62,9 +70,9 @@ function scoreCandidate(x,p,mode,targets){
     const target=genres.reduce((s,g)=>s+(targets.includes(g)?6:0),0);
     const familiar=genres.reduce((s,g)=>s+(p.genres.has(g)?p.genres.get(g)*.16:0),0);
     const unknownTags=tags.reduce((s,t)=>s+(p.tags.has(t)?0:1),0);
-    return target*5+unknownTags*1.5-familiar+quality/45+novelty;
+    return target*5+unknownTags*1.5-themeMatch*.18-familiar+quality/45+novelty;
   }
-  return gMatch*2.2+tMatch*3.2+pop*.55+quality/30+novelty;
+  return gMatch*2.2+tMatch*3.2+themeMatch*3.8+pop*.55+quality/30+novelty;
 }
 function pick(candidates,p,mode,targets){
   const hist=loadHistory(),owned=ids();
