@@ -174,13 +174,8 @@ function opening(i){
   const progress=el.querySelector('.lv2-opening-progress i');
   const reduce=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
-  if(reduce){
-    status.textContent='DROP ENCONTRADO';
-    progress.style.width='100%';
-    setTimeout(()=>{el.remove();renderLoot()},450);
-    return;
-  }
-
+  // Lootboxes keep the full cinematic sequence even when the OS requests reduced motion.
+  // The user explicitly expects a visible opening/tension sequence here.
   requestAnimationFrame(()=>{
     card?.animate(
       [{opacity:0,transform:'translateY(35px) scale(.84)'},{opacity:1,transform:'translateY(0) scale(1.02)',offset:.72},{opacity:1,transform:'scale(1)'}],
