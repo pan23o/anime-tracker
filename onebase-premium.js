@@ -366,7 +366,7 @@ function setup(){
 }
 function navigate(p,push=true){
  if(p==='health'){window.OneBasePremium?.openHealth?.();return}
- if(p==='settings'){document.getElementById('settingsBtn')?.click();return}
+ if(p==='settings'){if(window.OneBaseSettings?.open){window.OneBaseSettings.open();}else{document.getElementById('settingsBtn')?.click();}return}
  if(!['home','library','episodes','stats','profile','loot'].includes(p))p='home';
  page=p;
  if(push){try{history.pushState({onebasePage:p},'',location.pathname+'#'+p)}catch(_){}}
