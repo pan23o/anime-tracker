@@ -70,24 +70,41 @@
     return document.getElementById('themeSelect') || document.querySelector('header select[data-theme], header select[name="theme"], header .select');
   }
 
-  function themeOptions(original) {
-    if(original?.options?.length) return [...original.options].map(o=>({value:o.value,text:o.textContent.trim()}));
-    return [
-      {value:'high-black',text:'Alto contraste · Negro'},
-      {value:'high-white',text:'Alto contraste · Blanco'},
-      {value:'manga',text:'Manga'},
-      {value:'ink',text:'Tinta'},
-      {value:'custom',text:'Personalizado'}
-    ];
+  const THEME_PRESETS = {
+    'high-black': {bg:'#000000',bg2:'#000000',panel:'#000000',panel2:'#000000',line:'#ffffff',line2:'#ffffff',text:'#ffffff',muted:'#e5e5e5',dim:'#bdbdbd',soft:'#111111',accent:'#ffffff',danger:'#ffffff'},
+    'high-white': {bg:'#ffffff',bg2:'#ffffff',panel:'#ffffff',panel2:'#ffffff',line:'#000000',line2:'#000000',text:'#000000',muted:'#1a1a1a',dim:'#444444',soft:'#eeeeee',accent:'#000000',danger:'#000000'},
+    'manga': {bg:'#ffffff',bg2:'#f6f6f6',panel:'#ffffff',panel2:'#f1f1f1',line:'#151515',line2:'#000000',text:'#090909',muted:'#444444',dim:'#666666',soft:'#e6e6e6',accent:'#000000',danger:'#111111'},
+    'ink': {bg:'#050505',bg2:'#0b0b0b',panel:'#090909',panel2:'#121212',line:'#3a3a3a',line2:'#737373',text:'#ffffff',muted:'#aaaaaa',dim:'#777777',soft:'#1c1c1c',accent:'#ffffff',danger:'#ffffff'}
+  };
+  function applySettingsTheme(value) {
+    const theme = value || 'ink';
+    let vars = THEME_PRESETS[theme] || THEME_PRESETS.ink;
+    if (theme === 'custom') {
+      try {
+        const custom = JSON.parse(localStorage.getItem('anime_tracker_custom_theme') || '{}');
+        const bg = custom.bg || '#080808', detail = custom.detail || '#ffffff';
+        vars = {bg,bg2:bg,panel:bg,panel2:bg,line:detail,line2:detail,text:detail,muted:detail,dim:detail,soft:bg,accent:detail,danger:detail};
+      } catch (_) {}
+    }
+    Object.entries(vars).forEach(([key,val]) => document.documentElement.style.setProperty('--'+key,val));
+    if (document.body) {
+      document.body.dataset.theme = theme;
+      document.body.classList.toggle('onebase-light-theme', theme === 'high-white' || theme === 'manga' || (theme === 'custom' && /^#(?:[fF]{2}|[eE][eE]|[dD][dD])/.test(vars.bg || '')));
+    }
+    try { localStorage.setItem('anime_tracker_theme', theme); localStorage.setItem('onebase_theme_v1', theme); } catch (_) {}
+    const original=findOriginalThemeSelect();
+    if(original) original.value=theme;
   }
 
-  function applyTheme(value) {
-    const original=findOriginalThemeSelect();
-    if(original){ original.value=value; original.dispatchEvent(new Event('change',{bubbles:true})); }
-    try{ localStorage.setItem('onebase_theme_v1',value); }catch(_){ }
-    const theme=document.getElementById('onebaseSettingsTheme');
-    const status=document.getElementById('onebaseSettingsThemeStatus');
-    if(theme&&status) status.textContent=`Tema activo: ${theme.selectedOptions[0]?.textContent||value}`;
+  function themeOptions(original) {
+    const values = ['high-black','high-white','manga','ink','custom'];
+    const labels = {'high-black':'Alto contraste · Negro','high-white':'Alto contraste · Blanco','manga':'Manga','ink':'Tinta','custom':'Personalizado'};
+    if(original?.options?.length) {
+      const available = [...original.options].map(o=>({value:o.value,text:o.textContent.trim()}));
+      for (const value of values) if (!available.some(o=>o.value===value)) available.push({value,text:labels[value]});
+      return available.filter(o=>values.includes(o.value));
+    }
+    return values.map(value=>({value,text:labels[value]}));
   }
 
   function buildOverlay() {
