@@ -41,7 +41,7 @@ header::before{display:none!important}
   content:"";
   width:44px;height:44px;flex:0 0 44px;
   border-radius:12px;
-  background:#020307 url('/favicon.svg?v=7') center/82% no-repeat;
+  background:#020307 url('/favicon.svg?v=13') center/82% no-repeat;
   border:1px solid rgba(214,168,79,.42);
   box-shadow:0 0 0 1px rgba(255,255,255,.035) inset,0 8px 26px rgba(0,0,0,.42),0 0 22px rgba(214,168,79,.08);
   transition:transform .3s ease,border-color .3s ease,box-shadow .3s ease;
