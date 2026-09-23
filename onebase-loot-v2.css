@@ -164,3 +164,16 @@
 @keyframes lv2CountReveal{0%{opacity:0;transform:translate(-50%,-50%) scale(1.8)}35%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(.72)}}
 @keyframes lv2StageHit{0%{transform:scale(1)}35%{transform:scale(1.075)}100%{transform:scale(1)}}
 @keyframes lv2CaseExit{to{opacity:0;transform:translateY(-12px) scale(1.12);filter:brightness(1.7)}}
+
+/* Resolved case stays physically open until REROLL */
+.lv2-case.opened{filter:none;transform:translateY(-2px)}
+.lv2-case.opened .lv2-case-shell{border-color:#d6a84f;box-shadow:inset 0 1px 0 #fff3,0 0 0 1px #d6a84f55,0 0 42px #d6a84f24,0 18px 35px #0008}
+.lv2-case.opened .lv2-case-lock{opacity:.12;transform:translate(-50%,-50%) scale(.72)}
+.lv2-case.opened .lv2-case-rarity{box-shadow:0 0 18px #d6a84f88}
+.lv2-case-open-lid{position:absolute;z-index:7;left:7%;right:7%;top:-7%;height:39%;border:1px solid #8f9399;border-radius:9px 9px 4px 4px;background:linear-gradient(150deg,#4a4d52,#17191d 70%);box-shadow:inset 0 1px #fff3,0 16px 24px #000b;transform-origin:50% 100%;transform:perspective(700px) rotateX(-68deg) translateY(-13px) translateZ(8px);pointer-events:none}
+.lv2-case-open-lid:before{content:"";position:absolute;left:8%;right:8%;bottom:7px;height:2px;background:linear-gradient(90deg,transparent,#d6a84f,transparent);box-shadow:0 0 12px #d6a84f}
+.lv2-case-open-lid span{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font:900 7px/1 "Roboto Mono",monospace;letter-spacing:2px;color:#d6a84f;white-space:nowrap}
+.lv2-case-open-glow{position:absolute;z-index:1;left:25%;right:25%;top:18%;height:55%;background:radial-gradient(ellipse at center,#fff8 0,#d6a84f44 18%,#d6a84f18 38%,transparent 72%);filter:blur(7px);animation:lv2ResolvedGlow 1.8s ease-in-out infinite;pointer-events:none}
+.lv2-case.opened .lv2-case-label{color:#d6a84f;text-shadow:0 0 10px #d6a84f55}
+.lv2-case.opened .lv2-case-sub{color:#9fa4ac}
+@keyframes lv2ResolvedGlow{0%,100%{opacity:.45;transform:scale(.92)}50%{opacity:1;transform:scale(1.08)}}

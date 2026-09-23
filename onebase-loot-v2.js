@@ -122,10 +122,12 @@ function modeLabel(){return MODES[mode].label}
 function boxMarkup(x,i){
   const locked=selected!==null&&selected!==i;
   const done=resolved.has(i);
-  return '<article class="lv2-case '+(locked?'locked ':'')+(done?'resolved ':'')+(selected===i?'selected ':'')+'" style="--lv2-i:'+i+'">'+
-    '<button class="lv2-case-button" data-lv2-open="'+i+'" '+(locked||done||busy?'disabled':'')+' aria-label="'+(locked?'Caja bloqueada':'Abrir caja '+(i+1))+'">'+
+  const opened=done&&selected===i;
+  return '<article class="lv2-case '+(locked?'locked ':'')+(done?'resolved ':'')+(opened?'opened ':'')+(selected===i?'selected ':'')+'" style="--lv2-i:'+i+'">'+
+    '<button class="lv2-case-button" data-lv2-open="'+i+'" '+(locked||done||busy?'disabled':'')+' aria-label="'+(locked?'Caja bloqueada':opened?'Caja abierta':'Abrir caja '+(i+1))+'">'+
       '<span class="lv2-case-shell"><span class="lv2-case-edge"></span><span class="lv2-case-band"></span><span class="lv2-case-lock"></span><span class="lv2-case-rarity"></span></span>'+
-      '<span class="lv2-case-number">CASE '+String(i+1).padStart(2,'0')+'</span><span class="lv2-case-label">'+(done?'ABIERTA':locked?'🔒 BLOQUEADA':'ABRIR CAJA')+'</span><span class="lv2-case-sub">'+(done?'DROP RECLAMADO':locked?'HAZ REROLL PARA OTRA TIRADA':'DROP DISPONIBLE')+'</span><span class="lv2-case-glint"></span>'+
+      (opened?'<span class="lv2-case-open-lid"><span>ONEBASE</span></span><span class="lv2-case-open-glow"></span>':'')+
+      '<span class="lv2-case-number">CASE '+String(i+1).padStart(2,'0')+'</span><span class="lv2-case-label">'+(opened?'✓ ABIERTA':locked?'🔒 BLOQUEADA':'ABRIR CAJA')+'</span><span class="lv2-case-sub">'+(opened?'DROP RESUELTO':locked?'HAZ REROLL PARA OTRA TIRADA':'DROP DISPONIBLE')+'</span><span class="lv2-case-glint"></span>'+
     '</button></article>';
 }
 function shell(){
