@@ -159,7 +159,7 @@ function opening(i){
   const el=document.createElement('div');
   el.className='lv2-opening';
   el.id='lv2Opening';
-  el.innerHTML='<div class="lv2-opening-card" role="dialog" aria-modal="true" aria-label="Abriendo lootbox"><div class="lv2-opening-kicker">ONEBASE CASE · '+String(i+1).padStart(2,'0')+'</div><div class="lv2-opening-stage"><div class="lv2-opening-case"><span class="lv2-opening-beam"></span><span class="lv2-opening-sparks"></span><span class="lv2-opening-shell"><span class="lv2-opening-case-edge"></span><span class="lv2-opening-case-band"></span><span class="lv2-opening-case-lock"></span><span class="lv2-opening-case-rarity"></span></span><span class="lv2-opening-lid"><span>ONEBASE</span></span></div></div><div class="lv2-opening-status">DESBLOQUEANDO DROP…</div><div class="lv2-opening-progress"><i></i></div></div>';
+  el.innerHTML='<div class="lv2-opening-card" role="dialog" aria-modal="true" aria-label="Abriendo lootbox"><div class="lv2-opening-kicker">ONEBASE CASE · '+String(i+1).padStart(2,'0')+'</div><div class="lv2-opening-warning">SECURE CONTAINER · LOCKED</div><div class="lv2-opening-stage"><div class="lv2-opening-scan"></div><div class="lv2-opening-case"><span class="lv2-opening-beam"></span><span class="lv2-opening-sparks"></span><span class="lv2-opening-shell"><span class="lv2-opening-case-edge"></span><span class="lv2-opening-case-band"></span><span class="lv2-opening-case-lock"></span><span class="lv2-opening-case-rarity"></span></span><span class="lv2-opening-lid"><span>ONEBASE</span></span></div></div><div class="lv2-opening-status">CASE LOCKED</div><div class="lv2-opening-count">03</div><div class="lv2-opening-progress"><i></i></div></div>';
   document.body.appendChild(el);
 
   const card=el.querySelector('.lv2-opening-card');
@@ -168,7 +168,9 @@ function opening(i){
   const lid=el.querySelector('.lv2-opening-lid');
   const lock=el.querySelector('.lv2-opening-case-lock');
   const beam=el.querySelector('.lv2-opening-beam');
+  const sparks=el.querySelector('.lv2-opening-sparks');
   const status=el.querySelector('.lv2-opening-status');
+  const count=el.querySelector('.lv2-opening-count');
   const progress=el.querySelector('.lv2-opening-progress i');
   const reduce=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
@@ -179,40 +181,81 @@ function opening(i){
     return;
   }
 
-  // Web Animations API: sequence the interaction instead of relying on several
-  // unrelated CSS delays. This is the same browser animation engine used by CSS.
   requestAnimationFrame(()=>{
     card?.animate(
-      [{opacity:0,transform:'translateY(22px) scale(.94)'},{opacity:1,transform:'translateY(0) scale(1)'}],
-      {duration:420,easing:'cubic-bezier(.16,1,.3,1)',fill:'both'}
-    );
-    stage?.animate(
-      [{transform:'scale(.82) rotateX(9deg)',opacity:.2},{transform:'scale(1.03) rotateX(0)',opacity:1},{transform:'scale(1)'}],
+      [{opacity:0,transform:'translateY(35px) scale(.84)'},{opacity:1,transform:'translateY(0) scale(1.02)',offset:.72},{opacity:1,transform:'scale(1)'}],
       {duration:700,easing:'cubic-bezier(.16,1,.3,1)',fill:'both'}
     );
+    stage?.animate(
+      [{transform:'scale(.62) rotateX(14deg)',opacity:0},{transform:'scale(1.04) rotateX(0)',opacity:1,offset:.7},{transform:'scale(1)'}],
+      {duration:900,easing:'cubic-bezier(.16,1,.3,1)',fill:'both'}
+    );
     box?.animate(
-      [{transform:'translateY(0) rotateZ(0)'},{transform:'translateY(-4px) rotateZ(-.7deg)',offset:.28},{transform:'translateY(0) rotateZ(.7deg)',offset:.52},{transform:'translateY(-2px) rotateZ(0)',offset:.72},{transform:'translateY(0)'}],
-      {duration:1250,easing:'ease-in-out',fill:'both'}
+      [
+        {transform:'translateY(0) scale(1) rotateZ(0)'},
+        {transform:'translateY(-5px) scale(1.02) rotateZ(-.6deg)',offset:.22},
+        {transform:'translateY(3px) scale(1.015) rotateZ(.7deg)',offset:.36},
+        {transform:'translateY(-2px) scale(1.01) rotateZ(-.5deg)',offset:.52},
+        {transform:'translateY(0) scale(1) rotateZ(0)',offset:.68},
+        {transform:'translateY(0) scale(1.045)',offset:.82},
+        {transform:'translateY(0) scale(1)'}
+      ],
+      {duration:3600,easing:'cubic-bezier(.2,.8,.2,1)',fill:'both'}
     );
     lock?.animate(
-      [{transform:'translate(-50%,-50%) scale(1)',filter:'brightness(1)'},{transform:'translate(-50%,-50%) scale(1.35)',filter:'brightness(2)',offset:.42},{transform:'translate(-50%,-50%) scale(.7)',opacity:0,filter:'brightness(3)'}],
-      {duration:720,delay:520,easing:'cubic-bezier(.16,1,.3,1)',fill:'both'}
+      [
+        {transform:'translate(-50%,-50%) scale(1)',filter:'brightness(1)',opacity:1},
+        {transform:'translate(-50%,-50%) scale(1.12)',filter:'brightness(1.5)',opacity:1,offset:.32},
+        {transform:'translate(-50%,-50%) scale(1.38)',filter:'brightness(3)',opacity:1,offset:.43},
+        {transform:'translate(-50%,-50%) scale(.5)',filter:'brightness(4)',opacity:0}
+      ],
+      {duration:850,delay:1450,easing:'cubic-bezier(.16,1,.3,1)',fill:'both'}
     );
     lid?.animate(
-      [{transform:'rotateX(0) translateY(0) translateZ(0)',filter:'brightness(.8)'},{transform:'rotateX(-18deg) translateY(-3px) translateZ(8px)',filter:'brightness(1.1)',offset:.38},{transform:'rotateX(-78deg) translateY(-20px) translateZ(26px)',filter:'brightness(1.55)',offset:.72},{transform:'rotateX(-70deg) translateY(-17px) translateZ(22px)',filter:'brightness(1.3)'}],
-      {duration:1150,delay:620,easing:'cubic-bezier(.16,1,.3,1)',fill:'both'}
+      [
+        {transform:'rotateX(0) translateY(0) translateZ(0)',filter:'brightness(.75)'},
+        {transform:'rotateX(-5deg) translateY(-1px) translateZ(2px)',filter:'brightness(1)',offset:.18},
+        {transform:'rotateX(-9deg) translateY(-2px) translateZ(4px)',filter:'brightness(1.1)',offset:.28},
+        {transform:'rotateX(-82deg) translateY(-30px) translateZ(42px)',filter:'brightness(1.8)',offset:.62},
+        {transform:'rotateX(-74deg) translateY(-26px) translateZ(36px)',filter:'brightness(1.35)'}
+      ],
+      {duration:1750,delay:2050,easing:'cubic-bezier(.16,1,.3,1)',fill:'both'}
     );
     beam?.animate(
-      [{opacity:0,transform:'translate(-50%,-50%) scale(.25)'},{opacity:1,transform:'translate(-50%,-50%) scale(1)',offset:.55},{opacity:.8,transform:'translate(-50%,-50%) scale(1.25)'}],
-      {duration:1050,delay:620,easing:'cubic-bezier(.16,1,.3,1)',fill:'both'}
+      [
+        {opacity:0,transform:'translate(-50%,-50%) scale(.12)'},
+        {opacity:.18,transform:'translate(-50%,-50%) scale(.35)',offset:.38},
+        {opacity:1,transform:'translate(-50%,-50%) scale(.8)',offset:.63},
+        {opacity:.72,transform:'translate(-50%,-50%) scale(1.35)'}
+      ],
+      {duration:1500,delay:2200,easing:'cubic-bezier(.16,1,.3,1)',fill:'both'}
     );
-    progress?.animate([{width:'0%'},{width:'100%'}],{duration:1850,easing:'linear',fill:'forwards'});
+    sparks?.animate(
+      [
+        {opacity:0,transform:'scale(.3) rotate(0deg)'},
+        {opacity:1,transform:'scale(1.2) rotate(80deg)',offset:.45},
+        {opacity:0,transform:'scale(2.2) rotate(180deg)'}
+      ],
+      {duration:1100,delay:2500,easing:'cubic-bezier(.16,1,.3,1)',fill:'both'}
+    );
+    progress?.animate([{width:'0%'},{width:'100%'}],{duration:4300,easing:'cubic-bezier(.2,.7,.2,1)',fill:'forwards'});
   });
 
-  setTimeout(()=>{status.textContent='ABRIENDO CASE…'},520);
-  setTimeout(()=>{status.textContent='DROP ENCONTRADO';el.classList.add('drop-found')},1320);
+  const say=(ms,textValue)=>setTimeout(()=>{if(status)status.textContent=textValue},ms);
+  say(700,'ANALYZING DROP…');
+  say(1350,'LOCK SEQUENCE ARMED');
+  say(1780,'UNLOCKING…');
+  say(2100,'03');
+  setTimeout(()=>{if(count)count.textContent='02'},2550);
+  setTimeout(()=>{if(count)count.textContent='01'},3000);
+  say(3450,'OPENING CASE…');
+  setTimeout(()=>{el.classList.add('drop-flash');if(count)count.textContent='DROP'},3650);
+  say(3820,'DROP FOUND');
   clearTimeout(openingTimer);
-  openingTimer=setTimeout(()=>{el.classList.add('closing');setTimeout(()=>{el.remove();renderLoot()},260)},1900);
+  openingTimer=setTimeout(()=>{
+    el.classList.add('closing');
+    setTimeout(()=>{el.remove();renderLoot()},520);
+  },4350);
 }
 function choose(i){
   if(busy||selected!==null||!roll?.[i]||resolved.has(i))return;
