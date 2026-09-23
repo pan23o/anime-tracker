@@ -148,3 +148,19 @@
 .lv2-case-button{overflow:hidden;border-radius:10px}
 .lv2-case-button .lv2-case-shell{overflow:hidden}
 .lv2-case-button .lv2-case-glint{clip-path:inset(0)}
+
+/* Lootbox tension sequence: staged case opening, countdown and reveal flash. */
+.lv2-opening-warning{position:relative;z-index:5;margin:0 0 8px;color:#707782;font:900 7px/1 "Roboto Mono",monospace;letter-spacing:2px;opacity:.85}
+.lv2-opening-count{position:absolute;z-index:6;left:50%;top:50%;transform:translate(-50%,-50%);font:900 clamp(42px,8vw,76px)/1 "Roboto Mono",monospace;letter-spacing:2px;color:#f2f4f7;text-shadow:0 0 30px rgba(214,168,79,.45),0 3px 24px #000;pointer-events:none;opacity:0;mix-blend-mode:screen}
+.lv2-opening-stage{overflow:visible}
+.lv2-opening-scan{position:absolute;inset:8% 10%;z-index:2;pointer-events:none;border:1px solid rgba(214,168,79,.08);border-radius:18px;background:repeating-linear-gradient(0deg,transparent 0 9px,rgba(255,255,255,.018) 10px 11px);mask-image:linear-gradient(to bottom,transparent,#000 25%,#000 75%,transparent)}
+.lv2-opening.drop-flash::after{content:"";position:absolute;inset:0;z-index:20;pointer-events:none;background:#fff;animation:lv2DropFlash .24s ease-out both}
+.lv2-opening.drop-flash .lv2-opening-count{animation:lv2CountReveal .55s cubic-bezier(.16,1,.3,1) both}
+.lv2-opening.drop-flash .lv2-opening-stage{animation:lv2StageHit .38s ease-out both}
+.lv2-opening.drop-flash .lv2-opening-card{filter:brightness(1.45)}
+.lv2-opening.drop-flash .lv2-opening-beam{filter:blur(8px) brightness(1.8)}
+.lv2-opening.closing .lv2-opening-card{animation:lv2CaseExit .52s cubic-bezier(.7,0,.84,0) both}
+@keyframes lv2DropFlash{0%{opacity:0}18%{opacity:.92}100%{opacity:0}}
+@keyframes lv2CountReveal{0%{opacity:0;transform:translate(-50%,-50%) scale(1.8)}35%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(.72)}}
+@keyframes lv2StageHit{0%{transform:scale(1)}35%{transform:scale(1.075)}100%{transform:scale(1)}}
+@keyframes lv2CaseExit{to{opacity:0;transform:translateY(-12px) scale(1.12);filter:brightness(1.7)}}
