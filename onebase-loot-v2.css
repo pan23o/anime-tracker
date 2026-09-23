@@ -130,3 +130,16 @@
 @keyframes lv2AmbientSpin{to{transform:rotate(360deg)}}
 @keyframes lv2OverlayOut{from{opacity:1}to{opacity:0}}
 @media(prefers-reduced-motion:reduce){.lv2-opening::before{animation:none}.lv2-opening{animation:none!important}}
+
+
+/* Lootbox v2 visual fix: keep the opening light inside its own 3D stack. */
+.lv2-opening-stage{position:relative;isolation:isolate;overflow:visible}
+.lv2-opening-case{isolation:isolate;overflow:visible}
+.lv2-opening-shell{z-index:2}
+.lv2-opening-beam{z-index:0}
+.lv2-opening-sparks{z-index:6}
+.lv2-opening-lid{z-index:4}
+.lv2-opening-case-lock{z-index:5}
+.lv2-opening-case-rarity{z-index:3}
+.lv2-opening::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 48%,rgba(214,168,79,.07),transparent 34%);z-index:0}
+.lv2-opening-card{z-index:1}
