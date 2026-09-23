@@ -143,3 +143,8 @@
 .lv2-opening-case-rarity{z-index:3}
 .lv2-opening::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 48%,rgba(214,168,79,.07),transparent 34%);z-index:0}
 .lv2-opening-card{z-index:1}
+
+/* Fix case hover glint leaking outside each lootbox. */
+.lv2-case-button{overflow:hidden;border-radius:10px}
+.lv2-case-button .lv2-case-shell{overflow:hidden}
+.lv2-case-button .lv2-case-glint{clip-path:inset(0)}
