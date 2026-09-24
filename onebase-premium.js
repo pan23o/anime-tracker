@@ -241,7 +241,7 @@ function closeHealth(){safeTransition(()=>$('#onebaseHealthModal')?.classList.re
 async function runHealth(){
   const tests=[
     ['core','Núcleo OneBase',Boolean(window.__ONEBASE_CORE_READY__),'La aplicación principal ha marcado su arranque como correcto.'],
-    ['library','Biblioteca',Array.isArray(window.data),'El estado de la biblioteca está disponible en memoria.'],
+    ['library','Biblioteca',Array.isArray(window.__ONEBASE_DATA__),'El estado de la biblioteca está disponible en memoria.'],
     ['storage','Persistencia local',storageProbe(),'localStorage responde a lectura/escritura.'],
     ['render','Render',typeof window.render==='function','La función de renderizado está disponible.'],
     ['sources','Fuentes',Boolean(window.OneBaseSourceSearchV2?.search),'El módulo de búsqueda de fuentes está cargado.'],
