@@ -60,7 +60,7 @@ const runtimeScripts = [
   ['onebase-source-search-v2.js', 'v=14'],
   ['onebase-anilist-search.js', 'v=6'],
   ['onebase-anime-add-cleanup.js', 'v=2'],
-  ['onebase-premium.js', 'v=15'],
+  ['onebase-premium.js', 'v=16'],
   ['onebase-loot-v2.js', 'v=5']
 ];
 
