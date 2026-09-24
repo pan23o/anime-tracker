@@ -25,6 +25,7 @@
 
   let user = null, bootPromise = null, saveTimer = null, profileTimer = null;
   let saving = false, queuedSave = false, bound = false, lastFingerprint = '';
+  window.OneBaseLibrarySync = { status: 'pending', lastSavedAt: null };
 
   function getMeta() { return parse(localStorage.getItem(META) || '{}', {}) || {}; }
   function setMeta(value) { try { localStorage.setItem(META, JSON.stringify(value)); } catch {} }
@@ -148,6 +149,7 @@
       const fileSaved = await uploadAccountFile(current);
       await saveEmergencyMirror(current);
       await saveCloudTable(current);
+      window.OneBaseLibrarySync = { status: fileSaved ? 'saved' : 'failed', lastSavedAt: fileSaved ? now() : null };
       if (!fileSaved) toast('⚠️ No se pudo escribir el archivo de biblioteca.');
       return fileSaved;
     } finally { saving = false; if (queuedSave) { queuedSave = false; void saveLibraryNow(); } }
