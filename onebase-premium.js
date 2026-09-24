@@ -243,6 +243,7 @@ async function runHealth(){
     ['core','Núcleo OneBase',Boolean(window.__ONEBASE_CORE_READY__),'La aplicación principal ha marcado su arranque como correcto.'],
     ['library','Biblioteca',libraryPersistenceProbe(),'La biblioteca en memoria coincide con los datos guardados localmente.'],
     ['storage','Persistencia local',storageProbe(),'localStorage responde a lectura/escritura.'],
+    ['cloud','Guardado en cuenta',document.documentElement.dataset.atSession !== '1' || window.OneBaseLibrarySync?.status !== 'failed',document.documentElement.dataset.atSession !== '1' ? 'Modo local: no hay cuenta conectada.' : window.OneBaseLibrarySync?.status === 'saved' ? 'La última escritura en la nube se confirmó.' : window.OneBaseLibrarySync?.status === 'failed' ? 'La última escritura en la nube falló: revisa la conexión o los permisos.' : 'Todavía no hay una escritura en la nube confirmada.'],
     ['render','Render',typeof window.render==='function','La función de renderizado está disponible.'],
     ['sources','Fuentes',Boolean(window.OneBaseSourceSearchV2?.search),'El módulo de búsqueda de fuentes está cargado.'],
     ['notifications','Notificaciones','serviceWorker' in navigator,'Service Worker disponible en este navegador.'],
