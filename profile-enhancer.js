@@ -42,10 +42,19 @@
   }
   function clean(list) { return Array.isArray(list) ? list.filter(x => x && typeof x === 'object' && String(x.anime || '').trim()).map(normalizeItem) : []; }
   function localList() {
-    const stored = clean(parse(localStorage.getItem(LIB) || '[]', []));
-    if (stored.length) return stored;
-    try { if (typeof data !== 'undefined' && Array.isArray(data)) return clean(data); } catch {}
-    return [];
+    // The live library is authoritative after edits; localStorage is its durable mirror.
+    try { if (Array.isArray(window.__ONEBASE_DATA__)) return clean(window.__ONEBASE_DATA__); } catch {}
+    return clean(parse(localStorage.getItem(LIB) || '[]', []));
+  }
+  function keyOf(item) { const id = item?.aniId || item?.anilistId || item?.malId; return id ? `id:${id}` : `title:${String(item?.anime || '').trim().toLowerCase()}`; }
+  function mergeLatest(remote, local) {
+    const items = new Map();
+    for (const item of clean(remote)) items.set(keyOf(item), item);
+    for (const item of clean(local)) {
+      const key = keyOf(item), previous = items.get(key);
+      if (!previous || (Number(item.updatedAt) || Number(item.addedAt) || 0) >= (Number(previous.updatedAt) || Number(previous.addedAt) || 0)) items.set(key, item);
+    }
+    return [...items.values()];
   }
   function fingerprint(list) { try { return JSON.stringify(clean(list)); } catch { return ''; } }
 
@@ -148,16 +157,23 @@
   async function restoreAccountLibrary() {
     if (!user) return false;
     const fileList = await downloadAccountFile(user.id);
-    if (fileList && fileList.length) { setLocalList(fileList); await saveEmergencyMirror(fileList); return true; }
+    if (fileList && fileList.length) {
+      const local = localList();
+      const merged = mergeLatest(fileList, local);
+      setLocalList(merged);
+      await saveEmergencyMirror(merged);
+      if (fingerprint(merged) !== fingerprint(fileList)) void saveLibraryNow();
+      return true;
+    }
     try {
       const { data, error } = await client.from('tracker_state').select('state,revision,saved_at,updated_at').eq('user_id', user.id).maybeSingle();
       if (!error) {
         const tableList = clean(parse(data?.state?.[LIB] || '[]', []));
-        if (tableList.length) { setLocalList(tableList); await uploadAccountFile(tableList); await saveEmergencyMirror(tableList); return true; }
+        if (tableList.length) { const merged = mergeLatest(tableList, localList()); setLocalList(merged); await uploadAccountFile(merged); await saveEmergencyMirror(merged); return true; }
       }
     } catch (e) { console.warn('[AnimeTracker] tracker_state restore failed:', e); }
     const emergency = await loadEmergencyMirror();
-    if (emergency.length) { setLocalList(emergency); await uploadAccountFile(emergency); return true; }
+    if (emergency.length) { const merged = mergeLatest(emergency, localList()); setLocalList(merged); await uploadAccountFile(merged); return true; }
     return false;
   }
 
