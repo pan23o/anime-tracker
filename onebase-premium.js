@@ -241,8 +241,9 @@ function closeHealth(){safeTransition(()=>$('#onebaseHealthModal')?.classList.re
 async function runHealth(){
   const tests=[
     ['core','Núcleo OneBase',Boolean(window.__ONEBASE_CORE_READY__),'La aplicación principal ha marcado su arranque como correcto.'],
-    ['library','Biblioteca',Array.isArray(window.__ONEBASE_DATA__),'El estado de la biblioteca está disponible en memoria.'],
+    ['library','Biblioteca',libraryPersistenceProbe(),'La biblioteca en memoria coincide con los datos guardados localmente.'],
     ['storage','Persistencia local',storageProbe(),'localStorage responde a lectura/escritura.'],
+    ['cloud','Guardado en cuenta',document.documentElement.dataset.atSession !== '1' || window.OneBaseLibrarySync?.status !== 'failed',document.documentElement.dataset.atSession !== '1' ? 'Modo local: no hay cuenta conectada.' : window.OneBaseLibrarySync?.status === 'saved' ? 'La última escritura en la nube se confirmó.' : window.OneBaseLibrarySync?.status === 'failed' ? 'La última escritura en la nube falló: revisa la conexión o los permisos.' : 'Todavía no hay una escritura en la nube confirmada.'],
     ['render','Render',typeof window.render==='function','La función de renderizado está disponible.'],
     ['sources','Fuentes',Boolean(window.OneBaseSourceSearchV2?.search),'El módulo de búsqueda de fuentes está cargado.'],
     ['notifications','Notificaciones','serviceWorker' in navigator,'Service Worker disponible en este navegador.'],
@@ -251,6 +252,15 @@ async function runHealth(){
   ];
   const grid=$('#onebaseHealthGrid');grid.innerHTML=tests.map(t=>'<div class="onebase-health-item '+(t[2]?'ok':'fail')+'"><span class="onebase-health-icon">'+(t[2]?'✓':'×')+'</span><span><b class="onebase-health-name">'+esc(t[1])+'</b><span class="onebase-health-detail">'+esc(t[3])+'</span></span><span class="onebase-health-state">'+(t[2]?'OK':'FALLO')+'</span></div>').join('');
   const ok=tests.filter(t=>t[2]).length;$('#onebaseHealthSummary').textContent=ok+'/'+tests.length+' pruebas superadas · '+new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+}
+function libraryPersistenceProbe(){
+  try{
+    const live=window.__ONEBASE_DATA__;
+    const stored=JSON.parse(localStorage.getItem('anime_tracker_v6')||'null');
+    if(!Array.isArray(live)||!Array.isArray(stored))return false;
+    const relevant=list=>list.filter(x=>x&&String(x.anime||'').trim()).map(x=>[String(x.aniId||x.anilistId||x.anime),String(x.watched??''),String(x.total??''),String(x.state??'')]).sort((a,b)=>a[0].localeCompare(b[0]));
+    return JSON.stringify(relevant(live))===JSON.stringify(relevant(stored));
+  }catch(_){return false}
 }
 function storageProbe(){try{const k='onebase_health_probe';localStorage.setItem(k,'1');const ok=localStorage.getItem(k)==='1';localStorage.removeItem(k);return ok}catch(_){return false}}
 async function httpCheck(url){try{const r=await fetch(url,{cache:'no-store',headers:{accept:'application/json,text/html'}});return r.ok}catch(_){return false}}
