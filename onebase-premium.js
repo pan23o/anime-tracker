@@ -239,9 +239,10 @@ function ensureHealth(){
 function openHealth(){ensureHealth();safeTransition(()=>$('#onebaseHealthModal').classList.add('open'));runHealth()}
 function closeHealth(){safeTransition(()=>$('#onebaseHealthModal')?.classList.remove('open'))}
 async function runHealth(){
+  const library=libraryPersistenceProbe();
   const tests=[
     ['core','Núcleo OneBase',Boolean(window.__ONEBASE_CORE_READY__),'La aplicación principal ha marcado su arranque como correcto.'],
-    ['library','Biblioteca',libraryPersistenceProbe(),'La biblioteca en memoria coincide con los datos guardados localmente.'],
+    ['library','Biblioteca',library.ok,library.detail],
     ['storage','Persistencia local',storageProbe(),'localStorage responde a lectura/escritura.'],
     ['cloud','Guardado en cuenta',document.documentElement.dataset.atSession !== '1' || window.OneBaseLibrarySync?.status !== 'failed',document.documentElement.dataset.atSession !== '1' ? 'Modo local: no hay cuenta conectada.' : window.OneBaseLibrarySync?.status === 'saved' ? 'La última escritura en la nube se confirmó.' : window.OneBaseLibrarySync?.status === 'failed' ? 'La última escritura en la nube falló: revisa la conexión o los permisos.' : 'Todavía no hay una escritura en la nube confirmada.'],
     ['render','Render',typeof window.render==='function','La función de renderizado está disponible.'],
@@ -256,11 +257,24 @@ async function runHealth(){
 function libraryPersistenceProbe(){
   try{
     const live=window.__ONEBASE_DATA__;
-    const stored=JSON.parse(localStorage.getItem('anime_tracker_v6')||'null');
-    if(!Array.isArray(live)||!Array.isArray(stored))return false;
-    const relevant=list=>list.filter(x=>x&&String(x.anime||'').trim()).map(x=>[String(x.aniId||x.anilistId||x.anime),String(x.watched??''),String(x.total??''),String(x.state??'')]).sort((a,b)=>a[0].localeCompare(b[0]));
-    return JSON.stringify(relevant(live))===JSON.stringify(relevant(stored));
-  }catch(_){return false}
+    if(!Array.isArray(live))return {ok:false,detail:'El núcleo todavía no ha expuesto la biblioteca en memoria.'};
+    const raw=localStorage.getItem('anime_tracker_v6');
+    if(raw===null)return {ok:false,detail:'No existe una copia local de la biblioteca. Guarda un cambio para crearla.'};
+    const stored=JSON.parse(raw);
+    if(!Array.isArray(stored))return {ok:false,detail:'La copia local no contiene una biblioteca válida.'};
+    const relevant=list=>list.filter(x=>x&&String(x.anime||'').trim()).map(x=>({
+      id:String(x.aniId||x.anilistId||x.anime).trim().toLowerCase(),
+      name:String(x.anime||'').trim().toLowerCase(),
+      watched:Number(x.watched)||0,
+      total:Number(x.total)||0,
+      state:String(x.state||'')
+    })).sort((a,b)=>a.id.localeCompare(b.id));
+    const memory=relevant(live),disk=relevant(stored);
+    if(JSON.stringify(memory)===JSON.stringify(disk))return {ok:true,detail:memory.length+' animes: capítulos y estados coinciden con la copia local.'};
+    const changed=memory.filter((x,i)=>JSON.stringify(x)!==JSON.stringify(disk[i]));
+    const example=changed[0];
+    return {ok:false,detail:'Hay cambios aún no reflejados en el almacenamiento ('+memory.length+' en memoria / '+disk.length+' guardados).'+(example?' Revisa: '+example.name+'.':'')+' Espera unos segundos y repite la prueba.'};
+  }catch(e){return {ok:false,detail:'Error leyendo la copia local: '+String(e?.message||e)}}
 }
 function storageProbe(){try{const k='onebase_health_probe';localStorage.setItem(k,'1');const ok=localStorage.getItem(k)==='1';localStorage.removeItem(k);return ok}catch(_){return false}}
 async function httpCheck(url){try{const r=await fetch(url,{cache:'no-store',headers:{accept:'application/json,text/html'}});return r.ok}catch(_){return false}}
