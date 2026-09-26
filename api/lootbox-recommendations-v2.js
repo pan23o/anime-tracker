@@ -56,21 +56,14 @@ module.exports=async function handler(req,res){
   try{
     let results=[];
     if(mode==='random'){
-      const pages=[page,((page)%8)+1,((page+1)%8)+1];
-      const chunks=await Promise.all(pages.map(p=>request({page:p,perPage:25,genre:null,genres:null,excludeIds,sort:['POPULARITY_DESC']})));
-      results=chunks.flat();
+      results=await request({page,perPage:50,genre:null,genres:null,excludeIds,sort:['POPULARITY_DESC']});
     }else if(mode==='opposite'&&targetGenres.length){
-      const chunks=await Promise.all(targetGenres.slice(0,3).map((g,i)=>request({page:1+(page+i)%3,perPage:25,genre:g,genres:null,excludeIds,sort:['POPULARITY_DESC']})));
-      results=chunks.flat();
+      results=await request({page,perPage:50,genre:targetGenres[0],genres:null,excludeIds,sort:['POPULARITY_DESC']});
     }else{
       const selected=genres.length?genres:['Action','Adventure','Comedy'];
-      const primary=selected[0];
-      results=await request({page,perPage:25,genre:primary,genres:null,excludeIds,sort:['POPULARITY_DESC']});
-      if(results.length<15){
-        results=await request({page:1,perPage:25,genre:null,genres:selected,excludeIds,sort:['POPULARITY_DESC']});
-      }
-      if(results.length<10){
-        results=await request({page:1,perPage:25,genre:null,genres:null,excludeIds,sort:['POPULARITY_DESC']});
+      results=await request({page,perPage:50,genre:null,genres:selected,excludeIds,sort:['POPULARITY_DESC']});
+      if(results.length<5){
+        results=await request({page:page===8?1:page+1,perPage:50,genre:selected[0],genres:null,excludeIds,sort:['POPULARITY_DESC']});
       }
     }
     const unique=[...new Map(results.filter(Boolean).map(x=>[Number(x.id),x])).values()];
