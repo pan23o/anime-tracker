@@ -104,19 +104,25 @@ async function fetchRoll(){
   const p=profile(),taste=top(p.genres,8),targets=mode==='opposite'?oppositeGenres(p):[];
   const hist=loadHistory(),owned=[...ids()];
   const exclude=[...new Set([...hist,...owned])].filter(Number.isFinite).slice(-10000);
-  const body={mode,genres:taste,targetGenres:targets,excludeIds:exclude,page:1+Math.floor(Math.random()*7)};
-  const r=await fetch('/api/lootbox-recommendations-v2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  const payload=await r.json().catch(()=>null);
-  if(!r.ok||!payload?.ok)throw new Error(payload?.error||'No se pudieron preparar las cajas.');
-  let candidates=Array.isArray(payload.results)?payload.results:[];
-  let picked=pick(candidates,p,mode,targets);
-  if(picked.length<5){
-    const fallback=await fetch('/api/lootbox-recommendations-v2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...body,mode:'random',page:Math.floor(Math.random()*7)+1})});
-    const fp=await fallback.json().catch(()=>null);
-    if(fallback.ok&&fp?.ok)picked=pick([...(candidates||[]),...(fp.results||[])],p,mode,targets);
-  }
-  if(picked.length<5)throw new Error('No hay 5 recomendaciones nuevas disponibles para esta tirada.');
-  return picked;
+  const body={mode,genres:taste,targetGenres:targets,excludeIds:exclude,page:1+Math.floor(Math.random()*8)};
+  const controller=typeof AbortController==='undefined'?null:new AbortController();
+  const timer=controller?setTimeout(()=>controller.abort(),9000):null;
+  try{
+    const r=await fetch('/api/lootbox-recommendations-v2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:controller?.signal});
+    const payload=await r.json().catch(()=>null);
+    if(!r.ok||!payload?.ok)throw new Error(payload?.error||'No se pudieron preparar las cajas.');
+    let picked=pick(Array.isArray(payload.results)?payload.results:[],p,mode,targets);
+    if(picked.length<5){
+      const fallback=await fetch('/api/lootbox-recommendations-v2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...body,mode:'random',page:Math.floor(Math.random()*8)+1}),signal:controller?.signal});
+      const fp=await fallback.json().catch(()=>null);
+      if(fallback.ok&&fp?.ok)picked=pick([...(payload.results||[]),...(fp.results||[])],p,mode,targets);
+    }
+    if(picked.length<5)throw new Error('No hay 5 recomendaciones nuevas disponibles para esta tirada.');
+    return picked;
+  }catch(error){
+    if(error?.name==='AbortError')throw new Error('AniList tardó demasiado en responder. Pulsa Reintentar.');
+    throw error;
+  }finally{if(timer)clearTimeout(timer)}
 }
 function modeLabel(){return MODES[mode].label}
 function boxMarkup(x,i){
@@ -214,9 +220,17 @@ function skip(i){
 }
 async function reroll(){
   if(busy)return;
-  if(roll)roll.forEach(x=>markHistory(x.id));
-  selected=null;resolved.clear();roll=null;loadError='';busy=true;renderLoot();
-  try{roll=await fetchRoll()}catch(e){roll=[];loadError=String(e?.message||e);window.toast?.(loadError)}finally{busy=false;renderLoot()}
+  const previous=Array.isArray(roll)&&roll.length===5?roll:null;
+  selected=null;resolved.clear();loadError='';busy=true;renderLoot();
+  try{
+    const next=await fetchRoll();
+    if(previous)previous.forEach(x=>markHistory(x.id));
+    roll=next;
+  }catch(e){
+    roll=previous;
+    loadError=String(e?.message||e);
+    window.toast?.(loadError);
+  }finally{busy=false;renderLoot()}
 }
 function bind(){
   const app=$('#onebasePageApp');if(!app)return;
@@ -247,4 +261,5 @@ addEventListener('hashchange',()=>setTimeout(enter,60));
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',enter,{once:true});else setTimeout(enter,150);
 
 window.OneBaseLootV2={reroll,render:renderLoot};
+window.dispatchEvent(new CustomEvent('onebase:loot-v2-ready'));
 })();
