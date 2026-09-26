@@ -172,37 +172,124 @@ function opening(i){
     '<div class="lv3-stage-label">ONEBASE · DESCUBRE TU PRÓXIMO ANIME</div>'+
     '<div class="lv3-stage" aria-hidden="true"><div class="lv3-floor"></div><div class="lv3-light"></div>'+
       '<div class="lv3-chest"><div class="lv3-chest-lid"><span>ONEBASE</span></div><div class="lv3-chest-inside"></div><div class="lv3-chest-body"><span class="lv3-chest-logo">◈</span><span class="lv3-chest-brand">ONEBASE</span></div></div>'+
-      '<div class="lv3-prize"><img src="'+esc(x.cover)+'" alt="Portada de '+esc(x.title)+'"><span>ANIME DESCUBIERTO</span></div><div class="lv3-shake-count" aria-hidden="true"></div>'+
-    '</div><p class="lv3-stage-status" aria-live="polite">Preparando tu descubrimiento…</p><div class="lv3-result" hidden>'+detail(x,i)+'</div></div>';
+      '<div class="lv3-prize"><img src="'+esc(x.cover)+'" alt="Portada de '+esc(x.title)+'"><span>ANIME DESCUBIERTO</span></div></div>'+
+    '<p class="lv3-stage-status" aria-live="polite">Preparando tu descubrimiento…</p><div class="lv3-result" hidden>'+detail(x,i)+'</div></div>';
   document.body.appendChild(el);
-  const status=el.querySelector('.lv3-stage-status'),result=el.querySelector('.lv3-result');
+
+  const chest=el.querySelector('.lv3-chest');
+  const lid=el.querySelector('.lv3-chest-lid');
+  const light=el.querySelector('.lv3-light');
+  const prize=el.querySelector('.lv3-prize');
+  const status=el.querySelector('.lv3-stage-status');
+  const result=el.querySelector('.lv3-result');
+
+  // Use the browser's Web Animations API for the sequence instead of CSS
+  // class/timer races. Each stage waits for the previous animation to finish.
+  const play=async(node,keyframes,options)=>{
+    if(!node)return;
+    node.getAnimations?.().forEach(a=>a.cancel());
+    const animation=node.animate(keyframes,{fill:'both',...options});
+    try{await animation.finished}catch(_){}
+  };
+  const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+
   const finish=()=>{
     if(!el.isConnected)return;
-    el.classList.add('lv3-revealed');
     if(status)status.textContent='¡Has descubierto un anime!';
     if(result){
       result.hidden=false;
-      result.querySelector('[data-lv2-save]')?.addEventListener('click',()=>{el.remove();save(i)});
-      result.querySelector('[data-lv2-skip]')?.addEventListener('click',()=>{el.remove();skip(i)});
+      requestAnimationFrame(()=>{
+        if(!el.isConnected)return;
+        el.classList.add('lv3-info-open');
+        result.querySelector('[data-lv2-save]')?.addEventListener('click',()=>{el.remove();save(i)});
+        result.querySelector('[data-lv2-skip]')?.addEventListener('click',()=>{el.remove();skip(i)});
+      });
     }
   };
-  if(reduce){el.classList.add('lv3-shake-3','lv3-opened','lv3-card-left','lv3-info-open');finish();return;}
-  requestAnimationFrame(()=>el.classList.add('lv3-start'));
-  [260,520,780].forEach((delay,n)=>setTimeout(()=>{
+
+  if(reduce){finish();return;}
+
+  (async()=>{
     if(!el.isConnected)return;
-    el.classList.remove('lv3-shake-1','lv3-shake-2','lv3-shake-3');
-    el.classList.add('lv3-shake-'+(n+1));
-    if(status)status.textContent=n===2?'¡ABRIENDO LA CAJA!':'Preparando apertura…';
-  },delay));
-  setTimeout(()=>{if(el.isConnected){el.classList.add('lv3-opened');if(status)status.textContent='Recompensa encontrada'}},900);
-  setTimeout(()=>{if(el.isConnected)el.classList.add('lv3-card-rise')},1050);
-  setTimeout(()=>{if(el.isConnected)el.classList.add('lv3-card-left')},1750);
-  setTimeout(()=>{if(el.isConnected){el.classList.add('lv3-info-open');finish()}},2050);
+    await play(chest,[
+      {transform:'translateX(-50%) translateY(75px) scale(.72)',opacity:0},
+      {transform:'translateX(-50%) translateY(0) scale(1)',opacity:1}
+    ],{duration:420,easing:'cubic-bezier(.2,.9,.3,1)'});
+
+    const shakes=[
+      [
+        {transform:'translateX(-50%) rotate(0deg)'},
+        {transform:'translateX(calc(-50% - 12px)) rotate(-2deg)'},
+        {transform:'translateX(calc(-50% + 13px)) rotate(2deg)'},
+        {transform:'translateX(calc(-50% - 8px)) rotate(-1.2deg)'},
+        {transform:'translateX(-50%) rotate(0deg)'}
+      ],
+      [
+        {transform:'translateX(-50%) rotate(0deg)'},
+        {transform:'translateX(calc(-50% - 17px)) rotate(-2.8deg)'},
+        {transform:'translateX(calc(-50% + 18px)) rotate(2.8deg)'},
+        {transform:'translateX(calc(-50% - 11px)) rotate(-1.6deg)'},
+        {transform:'translateX(-50%) rotate(0deg)'}
+      ],
+      [
+        {transform:'translateX(-50%) rotate(0deg)'},
+        {transform:'translateX(calc(-50% - 22px)) rotate(-3.5deg)'},
+        {transform:'translateX(calc(-50% + 24px)) rotate(3.7deg)'},
+        {transform:'translateX(calc(-50% - 15px)) rotate(-2.2deg)'},
+        {transform:'translateX(calc(-50% + 8px)) rotate(1deg)'},
+        {transform:'translateX(-50%) rotate(0deg)'}
+      ]
+    ];
+
+    for(let n=0;n<shakes.length;n++){
+      if(!el.isConnected)return;
+      if(status)status.textContent=n===2?'¡ABRIENDO LA CAJA!':'La caja está temblando…';
+      await play(chest,shakes[n],{duration:n===2?360:260,easing:'cubic-bezier(.36,.07,.19,.97)'});
+      if(n<2)await pause(55);
+    }
+
+    if(!el.isConnected)return;
+    if(status)status.textContent='¡ABRIENDO LA CAJA!';
+
+    const lidOpen=play(lid,[
+      {transform:'translateY(0) rotateX(0deg)'},
+      {transform:'translateY(-22px) rotateX(-32deg)',offset:.42},
+      {transform:'translateY(-105px) rotateX(-72deg)'}
+    ],{duration:720,easing:'cubic-bezier(.16,1,.3,1)'});
+    const chestDrop=play(chest,[
+      {transform:'translateX(-50%) translateY(0) scale(1)'},
+      {transform:'translateX(-50%) translateY(105px) scale(.72)'}
+    ],{duration:620,easing:'cubic-bezier(.16,1,.3,1)'});
+    const lightBurst=play(light,[
+      {opacity:0,transform:'translateX(-50%) scale(.25)'},
+      {opacity:1,transform:'translateX(-50%) scale(1.05)',offset:.35},
+      {opacity:.85,transform:'translateX(-50%) scale(1.3)'}
+    ],{duration:800,easing:'ease-out'});
+
+    await Promise.all([lidOpen,chestDrop,lightBurst]);
+    if(!el.isConnected)return;
+
+    if(status)status.textContent='Recompensa encontrada';
+    await play(prize,[
+      {opacity:0,transform:'translate(-50%,90px) scale(.5)'},
+      {opacity:1,transform:'translate(-50%,-125px) scale(1)'}
+    ],{duration:720,easing:'cubic-bezier(.16,1,.3,1)'});
+
+    await play(prize,[
+      {transform:'translate(-50%,-125px) scale(1)'},
+      {transform:'translate(calc(-50% - 235px),-125px) scale(.9)'}
+    ],{duration:650,easing:'cubic-bezier(.16,1,.3,1)'});
+
+    if(!el.isConnected)return;
+    el.classList.add('lv3-info-open');
+    finish();
+  })();
 }
 function choose(i){
   if(busy||selected!==null||!roll?.[i]||resolved.has(i))return;
   selected=i;
-  renderLoot();
+  // Do not render the underlying detail panel here. The result must remain
+  // inside the cinematic overlay until the reveal sequence has completed.
   opening(i);
 }
 function markHistory(id){const h=loadHistory();h.add(Number(id));saveHistory(h)}
