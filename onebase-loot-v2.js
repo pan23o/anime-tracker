@@ -7,6 +7,7 @@
 
 const KEY='onebase_loot_v2_mode';
 const HISTORY='onebase_lootbox_history_v2';
+const ROLL='onebase_loot_v2_roll_v1';
 const MODES={
   personalized:{label:'PERSONALIZADO',sub:'Se adapta a ti'},
   random:{label:'ALEATORIO',sub:'Sin preferencias'},
@@ -21,6 +22,12 @@ const THEMES={
 let mode=localStorage.getItem(KEY)||'personalized';
 if(!MODES[mode])mode='personalized';
 let roll=null,busy=false,selected=null,resolved=new Set(),openingTimer=0,closeTimer=0,loadError='';
+function loadSavedRoll(){try{const v=JSON.parse(localStorage.getItem(ROLL)||'null');if(!v||v.mode!==mode||!Array.isArray(v.roll)||v.roll.length!==5)return null;if(!v.roll.every(x=>x&&Number(x.id)>0&&String(x.title||'').trim()))return null;return{roll:v.roll,resolved:new Set(Array.isArray(v.resolved)?v.resolved.map(Number).filter(Number.isInteger):[])}}catch(_){return null}}
+function persistRoll(){if(!Array.isArray(roll)||roll.length!==5)return;try{localStorage.setItem(ROLL,JSON.stringify({mode,roll,resolved:[...resolved],createdAt:Date.now()}))}catch(_){}
+}
+function clearPersistedRoll(){try{localStorage.removeItem(ROLL)}catch(_){}
+}
+const cachedRoll=loadSavedRoll();if(cachedRoll){roll=cachedRoll.roll;resolved=cachedRoll.resolved;}
 
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
@@ -104,19 +111,21 @@ async function fetchRoll(){
   const p=profile(),taste=top(p.genres,8),targets=mode==='opposite'?oppositeGenres(p):[];
   const hist=loadHistory(),owned=[...ids()];
   const exclude=[...new Set([...hist,...owned])].filter(Number.isFinite).slice(-10000);
-  const body={mode,genres:taste,targetGenres:targets,excludeIds:exclude,page:1+Math.floor(Math.random()*7)};
-  const r=await fetch('/api/lootbox-recommendations-v2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-  const payload=await r.json().catch(()=>null);
-  if(!r.ok||!payload?.ok)throw new Error(payload?.error||'No se pudieron preparar las cajas.');
-  let candidates=Array.isArray(payload.results)?payload.results:[];
-  let picked=pick(candidates,p,mode,targets);
-  if(picked.length<5){
-    const fallback=await fetch('/api/lootbox-recommendations-v2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...body,mode:'random',page:Math.floor(Math.random()*7)+1})});
-    const fp=await fallback.json().catch(()=>null);
-    if(fallback.ok&&fp?.ok)picked=pick([...(candidates||[]),...(fp.results||[])],p,mode,targets);
-  }
-  if(picked.length<5)throw new Error('No hay 5 recomendaciones nuevas disponibles para esta tirada.');
-  return picked;
+  const body={mode,genres:taste,targetGenres:targets,excludeIds:exclude,page:1+Math.floor(Math.random()*8)};
+  const controller=typeof AbortController!=='undefined'?new AbortController():null;
+  const timer=controller?setTimeout(()=>controller.abort(),9000):null;
+  try{
+    const r=await fetch('/api/lootbox-recommendations-v2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:controller?.signal});
+    const payload=await r.json().catch(()=>null);
+    if(!r.ok||!payload?.ok)throw new Error(payload?.error||'No se pudieron preparar las cajas.');
+    const candidates=Array.isArray(payload.results)?payload.results:[];
+    const picked=pick(candidates,p,mode,targets);
+    if(picked.length<5)throw new Error('No hay 5 recomendaciones nuevas disponibles para esta tirada.');
+    return picked;
+  }catch(error){
+    if(error?.name==='AbortError')throw new Error('AniList tardó demasiado en responder. Pulsa Reintentar en unos segundos.');
+    throw error;
+  }finally{if(timer)clearTimeout(timer)}
 }
 function modeLabel(){return MODES[mode].label}
 function boxMarkup(x,i){
@@ -157,8 +166,18 @@ function detail(x,i){
     '<div class="lv2-reveal-cover">'+(x.cover?'<img src="'+esc(x.cover)+'" alt="Portada de '+esc(x.title)+'">':'')+'</div>'+
     '<div class="lv2-reveal-copy"><span class="lv2-reveal-rarity">◆ '+r[0]+'</span><h4>'+esc(x.title)+'</h4><div class="lv2-reveal-meta">'+esc((x.genres||[]).join(' · ')||'Anime')+(x.episodes?' · '+x.episodes+' episodios':'')+'</div><div class="lv2-reveal-score">★ '+(x.score?(x.score/10).toFixed(1):'—')+' / 10</div><p class="lv2-reveal-desc">'+esc(x.description||'Sin descripción disponible.')+'</p><div class="lv2-actions"><button class="lv2-save" data-lv2-save="'+i+'">＋ GUARDAR COMO PENDIENTE</button><button class="lv2-skip" data-lv2-skip="'+i+'">♻ DESCARTAR</button></div><div class="lv2-reason">'+esc(x.reason)+'</div></div></div></section>';
 }
+function playLootSound(kind='open'){
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+    lootAudioContext=lootAudioContext||new AC();
+    const ctx=lootAudioContext;if(ctx.state==='suspended')void ctx.resume();
+    const now=ctx.currentTime,notes=kind==='reveal'?[220,330,495,660]:[110,165,220];
+    notes.forEach((freq,n)=>{const osc=ctx.createOscillator(),gain=ctx.createGain(),t=now+n*.09;osc.type=n===notes.length-1?'triangle':'sine';osc.frequency.setValueAtTime(freq,t);gain.gain.setValueAtTime(.0001,t);gain.gain.exponentialRampToValueAtTime(kind==='reveal'?.07:.045,t+.015);gain.gain.exponentialRampToValueAtTime(.0001,t+.16);osc.connect(gain);gain.connect(ctx.destination);osc.start(t);osc.stop(t+.18)});
+  }catch(_){}
+}
 function opening(i){
   const x=roll?.[i];if(!x)return;
+  playLootSound('open');
   document.getElementById('lv2Opening')?.remove();
   const reduce=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   const el=document.createElement('div');el.id='lv2Opening';el.className='lv2-opening lv3-opening';
@@ -175,6 +194,7 @@ function opening(i){
   const status=el.querySelector('.lv3-stage-status'),result=el.querySelector('.lv3-result');
   const reveal=()=>{
     if(!el.isConnected)return;
+    playLootSound('reveal');
     el.classList.add('lv3-revealed');
     if(status)status.textContent='¡Has descubierto un anime!';
     if(result){result.hidden=false;result.querySelector('[data-lv2-save]')?.addEventListener('click',()=>{el.remove();save(i)});result.querySelector('[data-lv2-skip]')?.addEventListener('click',()=>{el.remove();skip(i)})}
@@ -204,19 +224,22 @@ function save(i){
   if(!Array.isArray(d))return;
   d.push({anime:x.title,watched:'0',total:x.episodes?String(x.episodes):'',duration:x.duration?String(x.duration):'',durationMin:x.duration||0,state:'pendiente',score:'',favorite:false,cover:x.cover,coverImage:x.cover,bannerImage:x.banner,description:x.description,genres:x.genres,tags:x.tags,apiStatus:x.status,anilistStatus:x.status,apiScore:x.score?x.score/10:0,aniId:x.id,anilistId:x.id,knownTotal:x.episodes?String(x.episodes):'',plannedEpisodes:x.episodes?String(x.episodes):'',newEpisodes:0,siteUrl:x.siteUrl,source:'onebase-lootbox-v2',addedAt:Date.now(),updatedAt:Date.now()});
   try{window.save?.({skipBackup:true})}catch(_){try{window.save?.()}catch(__){}}
-  markHistory(x.id);resolved.add(i);
+  markHistory(x.id);resolved.add(i);persistRoll();
   closeDropThen(()=>{renderLoot();window.toast?.('✓ Anime guardado como pendiente.')});
 }
 function skip(i){
   const x=roll?.[i];if(!x)return;
-  markHistory(x.id);resolved.add(i);
+  markHistory(x.id);resolved.add(i);persistRoll();
   closeDropThen(()=>{renderLoot();window.toast?.('Drop descartado.');});
 }
 async function reroll(){
   if(busy)return;
+  const previous=Array.isArray(roll)&&roll.length===5?roll:null;
   if(roll)roll.forEach(x=>markHistory(x.id));
-  selected=null;resolved.clear();roll=null;loadError='';busy=true;renderLoot();
-  try{roll=await fetchRoll()}catch(e){roll=[];loadError=String(e?.message||e);window.toast?.(loadError)}finally{busy=false;renderLoot()}
+  selected=null;resolved.clear();roll=null;loadError='';clearPersistedRoll();busy=true;renderLoot();
+  try{roll=await fetchRoll();persistRoll()}
+  catch(e){if(previous){roll=previous;loadError=String(e?.message||e);persistRoll()}else{roll=[];loadError=String(e?.message||e)}window.toast?.(loadError)}
+  finally{busy=false;renderLoot()}
 }
 function bind(){
   const app=$('#onebasePageApp');if(!app)return;
@@ -228,7 +251,6 @@ function bind(){
 }
 function renderLoot(){
   const app=$('#onebasePageApp');if(!app)return;
-  if(!inLoot())return;
   app.innerHTML=shell();bind();
   if(!roll&&!busy&&!loadError)void reroll();
 }
@@ -246,5 +268,6 @@ addEventListener('popstate',()=>setTimeout(enter,60));
 addEventListener('hashchange',()=>setTimeout(enter,60));
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',enter,{once:true});else setTimeout(enter,150);
 
-window.OneBaseLootV2={reroll,render:renderLoot};
+window.OneBaseLootV2={reroll,render:renderLoot,clear:()=>{roll=null;resolved.clear();selected=null;clearPersistedRoll();renderLoot()}};
+addEventListener('onebase:page-changed',e=>{if(e.detail?.page==='loot')setTimeout(renderLoot,0)});
 })();
