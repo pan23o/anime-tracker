@@ -454,3 +454,6 @@
 @media(max-width:760px){
   .lv3-opening.lv3-card-left .lv3-prize{transform:translate(calc(-50% - 105px),-115px) scale(.78)!important}
 }
+
+/* Minimal-fix: keep reward panel inside narrow screens and make buttons usable. */
+@media(max-width:760px){.lv3-opening .lv3-result{left:4vw!important;top:65%!important;width:92vw!important;max-width:92vw!important;transform-origin:center top!important}.lv3-opening .lv3-arena{min-height:800px!important;padding-bottom:32px}.lv3-opening .lv3-result .lv2-actions{display:flex!important;flex-direction:column!important;gap:10px!important}.lv3-opening .lv3-result .lv2-actions button{width:100%!important;min-height:48px!important}}
