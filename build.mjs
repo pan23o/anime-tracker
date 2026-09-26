@@ -34,6 +34,7 @@ const headAssets = `
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=13">
 <link rel="stylesheet" href="/onebase-brand.css?v=7">
 <link rel="stylesheet" href="/onebase-experience-v1.css?v=3">
+<link rel="stylesheet" href="/onebase-beast.css?v=1">
 <script src="/onebase-brand.js?v=9" defer></script>
 <script src="/onebase-status-effects.js?v=3" defer></script>`;
 
