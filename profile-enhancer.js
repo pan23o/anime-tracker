@@ -309,9 +309,9 @@
   function authMessage(text) { if ($('cloudStatus')) $('cloudStatus').textContent = text; }
   async function login() { const email = String($('cloudEmail')?.value || '').trim(), password = String($('cloudPassword')?.value || ''); if (!email || !password) return authMessage('Escribe correo y contraseña.'); authMessage('Iniciando sesión…'); try { const { data, error } = await client.auth.signInWithPassword({ email, password }); if (error) throw error; user = data?.user || null; $('cloudAuthOverlay')?.classList.remove('show'); await bootstrap(); updateAccountUi(); toast('✓ Sesión iniciada'); } catch (e) { console.error('[AnimeTracker] login', e); authMessage(e?.message || 'No se pudo iniciar sesión.'); } }
   function authRedirectUrl() {
-    // Supabase uses this URL after confirming the email. On production this is
-    // the real site origin; locally it remains localhost for local development.
-    return window.location.origin + window.location.pathname;
+    // OneBase production callback. Never generate localhost links for emails
+    // requested from the deployed application.
+    return 'https://onebase-six.vercel.app/';
   }
   async function handleAuthCallback() {
     const hash = String(window.location.hash || '');
@@ -326,14 +326,76 @@
       history.replaceState(null, document.title, window.location.pathname + window.location.search);
       return;
     }
-    if (type === 'signup' && accessToken) {
+    if ((type === 'signup' || type === 'recovery') && accessToken) {
       // Let Supabase consume the fragment first; detectSessionInUrl=true creates
       // the authenticated session from the access token before we remove it.
       try { await client.auth.getSession(); } catch {}
       history.replaceState(null, document.title, window.location.pathname + window.location.search);
-      authMessage('✓ Correo verificado. Tu cuenta está activa y tu sesión se está preparando…');
-      toast('✓ Correo verificado correctamente');
-      setTimeout(() => { $('cloudAuthOverlay')?.classList.remove('show'); }, 900);
+
+      if (type === 'signup') {
+        authMessage('✓ Correo verificado. Tu cuenta está activa y tu sesión se está preparando…');
+        toast('✓ Correo verificado correctamente');
+        setTimeout(() => { $('cloudAuthOverlay')?.classList.remove('show'); }, 900);
+        return;
+      }
+
+      // Password recovery: Supabase has established the recovery session.
+      // Turn the normal auth card into a dedicated new-password screen.
+      const title = $('cloudAuthTitle');
+      const subtitle = $('cloudAuthText');
+      const name = $('cloudName');
+      const email = $('cloudEmail');
+      const loginBtn = $('cloudLogin');
+      const registerBtn = $('cloudRegister');
+      const resetBtn = $('cloudReset');
+      const guestBtn = $('cloudCloseAlt');
+      const toggle = $('authPasswordToggle');
+      const actions = document.querySelector('.cloud-auth-actions');
+
+      if (title) title.textContent = 'Crea una nueva contraseña';
+      if (subtitle) subtitle.textContent = 'El enlace es válido. Elige una contraseña nueva para proteger tu cuenta.';
+      [name, email, loginBtn, registerBtn, resetBtn, guestBtn, toggle].forEach(el => { if (el) el.style.display = 'none'; });
+
+      const password = $('cloudPassword');
+      if (password) {
+        password.value = '';
+        password.placeholder = 'Nueva contraseña (mín. 6 caracteres)';
+        password.autocomplete = 'new-password';
+      }
+
+      let updateBtn = $('cloudUpdatePassword');
+      if (!updateBtn && actions) {
+        updateBtn = document.createElement('button');
+        updateBtn.id = 'cloudUpdatePassword';
+        updateBtn.type = 'button';
+        updateBtn.textContent = 'Guardar nueva contraseña';
+        actions.appendChild(updateBtn);
+      }
+      updateBtn?.addEventListener('click', updatePassword, { once: true });
+
+      $('cloudAuthOverlay')?.classList.add('show');
+      authMessage('✓ Enlace de recuperación validado. Introduce tu nueva contraseña.');
+      password?.focus();
+    }
+  }
+
+  async function updatePassword() {
+    const password = String($('cloudPassword')?.value || '');
+    if (password.length < 6) return authMessage('La contraseña debe tener al menos 6 caracteres.');
+    authMessage('Guardando contraseña…');
+    try {
+      const { error } = await client.auth.updateUser({ password });
+      if (error) throw error;
+      authMessage('✓ Contraseña actualizada correctamente.');
+      toast('✓ Contraseña cambiada correctamente');
+      setTimeout(async () => {
+        $('cloudAuthOverlay')?.classList.remove('show');
+        await bootstrap();
+        updateAccountUi();
+      }, 900);
+    } catch (e) {
+      console.error('[AnimeTracker] update password', e);
+      authMessage(e?.message || 'No se pudo cambiar la contraseña.');
     }
   }
   async function register() { const name = String($('cloudName')?.value || '').trim().slice(0, 32) || 'Usuario', email = String($('cloudEmail')?.value || '').trim(), password = String($('cloudPassword')?.value || ''); if (!email || !password) return authMessage('Escribe correo y contraseña.'); if (password.length < 6) return authMessage('La contraseña debe tener al menos 6 caracteres.'); authMessage('Creando cuenta…'); try { const { data, error } = await client.auth.signUp({ email, password, options: { data: { username: name }, redirectTo: authRedirectUrl() } }); if (error) throw error; if (data?.user) { user = data.user; localStorage.setItem(PROFILE, JSON.stringify({ name, email, avatar: '', createdAt: now() })); if (data.session) { await bootstrap(); $('cloudAuthOverlay')?.classList.remove('show'); updateAccountUi(); toast('✓ Cuenta creada y sesión iniciada'); } else { authMessage('✓ Cuenta creada. Te hemos enviado un correo de verificación. Ábrelo y pulsa «Verificar correo» para activar tu cuenta.'); updateAccountUi(); } } } catch (e) { console.error('[AnimeTracker] register', e); authMessage(e?.message || 'No se pudo crear la cuenta.'); } }
