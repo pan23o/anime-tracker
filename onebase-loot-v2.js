@@ -20,7 +20,7 @@ const THEMES={
 
 let mode=localStorage.getItem(KEY)||'personalized';
 if(!MODES[mode])mode='personalized';
-let roll=null,busy=false,selected=null,resolved=new Set(),openingTimer=0,closeTimer=0;
+let roll=null,busy=false,selected=null,resolved=new Set(),openingTimer=0,closeTimer=0,loadError='';
 
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
@@ -137,8 +137,9 @@ function shell(){
     '<div class="lv2-top"><div><div class="lv2-kicker">ONEBASE · DESCUBRIMIENTOS</div><h3>Tu próximo anime está dentro.</h3><p>Elige una de las 5 cajas. Se abrirá por arriba y descubrirás un anime sorpresa. Después podrás guardarlo o descartarlo.</p></div>'+
     '<div class="lv2-modes">'+Object.entries(MODES).map(([k,v])=>'<button class="lv2-mode '+(mode===k?'active':'')+'" data-lv2-mode="'+k+'">'+v.label+'<small>'+v.sub+'</small></button>').join('')+'</div></div>'+
     '<div class="lv2-rollbar"><span>'+modeLabel()+' · '+(busy?'ANALIZANDO PERFIL…':selected!==null?'1 CAJA ELEGIDA · 4 BLOQUEADAS':'5 CAJAS DISPONIBLES')+'</span><button class="lv2-reroll" data-lv2-reroll '+(busy?'disabled':'')+'>↻ REROLL · NUEVA TIRADA</button></div>'+
+    (loadError?'<div class="lv2-empty lv2-error" role="alert"><div><b>No se pudieron cargar las cajas</b><small>'+esc(loadError)+'</small><button type="button" data-lv2-reroll>Reintentar</button></div></div>':'')+
     (busy?'<div class="lv2-empty"><div><div class="lv2-spinner"></div><b>Construyendo tu tirada</b><small>Comparando géneros, temas, novedad y lo que ya tienes…</small></div></div>':cases)+
-    (!roll&&!busy?'<div class="lv2-empty"><div><b>Preparando tus cajas…</b><small>La primera tirada se genera automáticamente.</small></div></div>':'')+
+    (!roll&&!busy&&!loadError?'<div class="lv2-empty"><div><b>Preparando tus cajas…</b><small>La primera tirada se genera automáticamente.</small></div></div>':'')+
     (selected!==null&&roll?.[selected]&&!resolved.has(selected)?detail(roll[selected],selected):'')+
     (selected!==null?'<div class="lv2-reroll-note">Las otras cajas no se vuelven a abrir en esta tirada. Usa REROLL para generar 5 nuevas.</div>':'')+
   '</div>';
@@ -214,8 +215,8 @@ function skip(i){
 async function reroll(){
   if(busy)return;
   if(roll)roll.forEach(x=>markHistory(x.id));
-  selected=null;resolved.clear();roll=null;busy=true;renderLoot();
-  try{roll=await fetchRoll()}catch(e){roll=[];window.toast?.(String(e?.message||e))}finally{busy=false;renderLoot()}
+  selected=null;resolved.clear();roll=null;loadError='';busy=true;renderLoot();
+  try{roll=await fetchRoll()}catch(e){roll=[];loadError=String(e?.message||e);window.toast?.(loadError)}finally{busy=false;renderLoot()}
 }
 function bind(){
   const app=$('#onebasePageApp');if(!app)return;
@@ -227,7 +228,9 @@ function bind(){
 }
 function renderLoot(){
   const app=$('#onebasePageApp');if(!app)return;
+  if(!inLoot())return;
   app.innerHTML=shell();bind();
+  if(!roll&&!busy&&!loadError)void reroll();
 }
 function inLoot(){return location.hash.slice(1)==='loot'}
 function enter(){
@@ -235,7 +238,7 @@ function enter(){
   setTimeout(()=>{
     const app=$('#onebasePageApp');if(!app)return;
     renderLoot();
-    if(!roll&&!busy)void reroll();
+    if(!roll&&!busy&&!loadError)void reroll();
   },80);
 }
 document.addEventListener('click',e=>{if(e.target.closest?.('[data-page="loot"]'))setTimeout(enter,60)});
