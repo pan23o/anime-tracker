@@ -134,7 +134,7 @@ function shell(){
   const disabled=busy||selected!==null;
   const cases=roll?'<div class="lv2-cases">'+roll.map((x,i)=>boxMarkup(x,i)).join('')+'</div>':'';
   return '<div class="onebase-loot-v2">'+
-    '<div class="lv2-top"><div><div class="lv2-kicker">ONEBASE · LOOTBOXES 2.0</div><h3>Abre tu próxima obsesión.</h3><p>5 cajas por tirada. Una elección bloquea las demás. El sistema elimina lo que ya tienes y ajusta cada drop a tu historial.</p></div>'+
+    '<div class="lv2-top"><div><div class="lv2-kicker">ONEBASE · DESCUBRIMIENTOS</div><h3>Tu próximo anime está dentro.</h3><p>Elige una de las 5 cajas. Se abrirá por arriba y descubrirás un anime sorpresa. Después podrás guardarlo o descartarlo.</p></div>'+
     '<div class="lv2-modes">'+Object.entries(MODES).map(([k,v])=>'<button class="lv2-mode '+(mode===k?'active':'')+'" data-lv2-mode="'+k+'">'+v.label+'<small>'+v.sub+'</small></button>').join('')+'</div></div>'+
     '<div class="lv2-rollbar"><span>'+modeLabel()+' · '+(busy?'ANALIZANDO PERFIL…':selected!==null?'1 CAJA ELEGIDA · 4 BLOQUEADAS':'5 CAJAS DISPONIBLES')+'</span><button class="lv2-reroll" data-lv2-reroll '+(busy?'disabled':'')+'>↻ REROLL · NUEVA TIRADA</button></div>'+
     (busy?'<div class="lv2-empty"><div><div class="lv2-spinner"></div><b>Construyendo tu tirada</b><small>Comparando géneros, temas, novedad y lo que ya tienes…</small></div></div>':cases)+
@@ -158,101 +158,31 @@ function detail(x,i){
 }
 function opening(i){
   const x=roll?.[i];if(!x)return;
-  const el=document.createElement('div');
-  el.className='lv2-opening';
-  el.id='lv2Opening';
-  el.innerHTML='<div class="lv2-opening-card" role="dialog" aria-modal="true" aria-label="Abriendo lootbox"><div class="lv2-opening-kicker">ONEBASE CASE · '+String(i+1).padStart(2,'0')+'</div><div class="lv2-opening-warning">SECURE CONTAINER · LOCKED</div><div class="lv2-opening-stage"><div class="lv2-opening-scan"></div><div class="lv2-opening-case"><span class="lv2-opening-beam"></span><span class="lv2-opening-sparks"></span><span class="lv2-opening-shell"><span class="lv2-opening-case-edge"></span><span class="lv2-opening-case-band"></span><span class="lv2-opening-case-lock"></span><span class="lv2-opening-case-rarity"></span></span><span class="lv2-opening-lid"><span>ONEBASE</span></span></div></div><div class="lv2-opening-status">CASE LOCKED</div><div class="lv2-opening-count">03</div><div class="lv2-opening-progress"><i></i></div></div>';
-  document.body.appendChild(el);
-
-  const card=el.querySelector('.lv2-opening-card');
-  const stage=el.querySelector('.lv2-opening-stage');
-  const box=el.querySelector('.lv2-opening-case');
-  const lid=el.querySelector('.lv2-opening-lid');
-  const lock=el.querySelector('.lv2-opening-case-lock');
-  const beam=el.querySelector('.lv2-opening-beam');
-  const sparks=el.querySelector('.lv2-opening-sparks');
-  const status=el.querySelector('.lv2-opening-status');
-  const count=el.querySelector('.lv2-opening-count');
-  const progress=el.querySelector('.lv2-opening-progress i');
+  document.getElementById('lv2Opening')?.remove();
   const reduce=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-
-  // Lootboxes keep the full cinematic sequence even when the OS requests reduced motion.
-  // The user explicitly expects a visible opening/tension sequence here.
-  requestAnimationFrame(()=>{
-    card?.animate(
-      [{opacity:0,transform:'translateY(35px) scale(.84)'},{opacity:1,transform:'translateY(0) scale(1.02)',offset:.72},{opacity:1,transform:'scale(1)'}],
-      {duration:700,easing:'cubic-bezier(.16,1,.3,1)',fill:'both'}
-    );
-    stage?.animate(
-      [{transform:'scale(.62) rotateX(14deg)',opacity:0},{transform:'scale(1.04) rotateX(0)',opacity:1,offset:.7},{transform:'scale(1)'}],
-      {duration:900,easing:'cubic-bezier(.16,1,.3,1)',fill:'both'}
-    );
-    box?.animate(
-      [
-        {transform:'translateY(0) scale(1) rotateZ(0)'},
-        {transform:'translateY(-5px) scale(1.02) rotateZ(-.6deg)',offset:.22},
-        {transform:'translateY(3px) scale(1.015) rotateZ(.7deg)',offset:.36},
-        {transform:'translateY(-2px) scale(1.01) rotateZ(-.5deg)',offset:.52},
-        {transform:'translateY(0) scale(1) rotateZ(0)',offset:.68},
-        {transform:'translateY(0) scale(1.045)',offset:.82},
-        {transform:'translateY(0) scale(1)'}
-      ],
-      {duration:3600,easing:'cubic-bezier(.2,.8,.2,1)',fill:'both'}
-    );
-    lock?.animate(
-      [
-        {transform:'translate(-50%,-50%) scale(1)',filter:'brightness(1)',opacity:1},
-        {transform:'translate(-50%,-50%) scale(1.12)',filter:'brightness(1.5)',opacity:1,offset:.32},
-        {transform:'translate(-50%,-50%) scale(1.38)',filter:'brightness(3)',opacity:1,offset:.43},
-        {transform:'translate(-50%,-50%) scale(.5)',filter:'brightness(4)',opacity:0}
-      ],
-      {duration:850,delay:1450,easing:'cubic-bezier(.16,1,.3,1)',fill:'both'}
-    );
-    lid?.animate(
-      [
-        {transform:'rotateX(0) translateY(0) translateZ(0)',filter:'brightness(.75)'},
-        {transform:'rotateX(-5deg) translateY(-1px) translateZ(2px)',filter:'brightness(1)',offset:.18},
-        {transform:'rotateX(-9deg) translateY(-2px) translateZ(4px)',filter:'brightness(1.1)',offset:.28},
-        {transform:'rotateX(-82deg) translateY(-30px) translateZ(42px)',filter:'brightness(1.8)',offset:.62},
-        {transform:'rotateX(-74deg) translateY(-26px) translateZ(36px)',filter:'brightness(1.35)'}
-      ],
-      {duration:1750,delay:2050,easing:'cubic-bezier(.16,1,.3,1)',fill:'both'}
-    );
-    beam?.animate(
-      [
-        {opacity:0,transform:'translate(-50%,-50%) scale(.12)'},
-        {opacity:.18,transform:'translate(-50%,-50%) scale(.35)',offset:.38},
-        {opacity:1,transform:'translate(-50%,-50%) scale(.8)',offset:.63},
-        {opacity:.72,transform:'translate(-50%,-50%) scale(1.35)'}
-      ],
-      {duration:1500,delay:2200,easing:'cubic-bezier(.16,1,.3,1)',fill:'both'}
-    );
-    sparks?.animate(
-      [
-        {opacity:0,transform:'scale(.3) rotate(0deg)'},
-        {opacity:1,transform:'scale(1.2) rotate(80deg)',offset:.45},
-        {opacity:0,transform:'scale(2.2) rotate(180deg)'}
-      ],
-      {duration:1100,delay:2500,easing:'cubic-bezier(.16,1,.3,1)',fill:'both'}
-    );
-    progress?.animate([{width:'0%'},{width:'100%'}],{duration:4300,easing:'cubic-bezier(.2,.7,.2,1)',fill:'forwards'});
-  });
-
-  const say=(ms,textValue)=>setTimeout(()=>{if(status)status.textContent=textValue},ms);
-  say(700,'ANALYZING DROP…');
-  say(1350,'LOCK SEQUENCE ARMED');
-  say(1780,'UNLOCKING…');
-  say(2100,'03');
-  setTimeout(()=>{if(count)count.textContent='02'},2550);
-  setTimeout(()=>{if(count)count.textContent='01'},3000);
-  say(3450,'OPENING CASE…');
-  setTimeout(()=>{el.classList.add('drop-flash');if(count)count.textContent='DROP'},3650);
-  say(3820,'DROP FOUND');
-  clearTimeout(openingTimer);
-  openingTimer=setTimeout(()=>{
-    el.classList.add('closing');
-    setTimeout(()=>{el.remove();renderLoot()},520);
-  },4350);
+  const el=document.createElement('div');el.id='lv2Opening';el.className='lv2-opening lv3-opening';
+  el.innerHTML='<div class="lv3-arena" role="dialog" aria-modal="true" aria-label="Abriendo caja de anime">'+
+    '<div class="lv3-stage-label">ONEBASE · DESCUBRE TU PRÓXIMO ANIME</div>'+
+    '<div class="lv3-stage" aria-hidden="true"><div class="lv3-floor"></div><div class="lv3-light"></div><div class="lv3-chest">'+
+      '<div class="lv3-chest-lid"><span>ONEBASE</span></div>'+
+      '<div class="lv3-chest-inside"></div><div class="lv3-chest-body"><span class="lv3-chest-logo">◈</span><span class="lv3-chest-brand">ONEBASE</span></div>'+
+    '</div><div class="lv3-prize"><img src="'+esc(x.cover)+'" alt=""><span>ANIME DESCUBIERTO</span></div></div>'+
+    '<p class="lv3-stage-status" aria-live="polite">Preparando tu descubrimiento…</p>'+
+    '<div class="lv3-result" hidden>'+detail(x,i)+'</div>'+
+    '</div>';
+  document.body.appendChild(el);
+  const status=el.querySelector('.lv3-stage-status'),result=el.querySelector('.lv3-result');
+  const reveal=()=>{
+    if(!el.isConnected)return;
+    el.classList.add('lv3-revealed');
+    if(status)status.textContent='¡Has descubierto un anime!';
+    if(result){result.hidden=false;result.querySelector('[data-lv2-save]')?.addEventListener('click',()=>{el.remove();save(i)});result.querySelector('[data-lv2-skip]')?.addEventListener('click',()=>{el.remove();skip(i)})}
+    // The reward stays visible until the user explicitly saves or discards it.
+  };
+  requestAnimationFrame(()=>el.classList.add('lv3-start'));
+  setTimeout(()=>{if(el.isConnected&&status)status.textContent='Abriendo la caja…'},reduce?150:700);
+  setTimeout(()=>{if(el.isConnected)el.classList.add('lv3-open')},reduce?200:1100);
+  setTimeout(reveal,reduce?450:2500);
 }
 function choose(i){
   if(busy||selected!==null||!roll?.[i]||resolved.has(i))return;
