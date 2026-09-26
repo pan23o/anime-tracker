@@ -166,42 +166,30 @@ function detail(x,i){
 function opening(i){
   const x=roll?.[i];if(!x)return;
   document.getElementById('lv2Opening')?.remove();
-
   const reduce=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   const el=document.createElement('div');
   el.id='lv2Opening';
   el.className='lv2-opening lv3-opening';
   el.innerHTML='<div class="lv3-arena" role="dialog" aria-modal="true" aria-label="Abriendo caja de anime">'+
     '<div class="lv3-stage-label">ONEBASE · DESCUBRE TU PRÓXIMO ANIME</div>'+
-    '<div class="lv3-stage" aria-hidden="true"><div class="lv3-floor"></div><div class="lv3-light"></div>'+
+    '<div class="lv3-stage"><div class="lv3-floor"></div><div class="lv3-light"></div>'+
       '<div class="lv3-chest"><div class="lv3-chest-lid"><span>ONEBASE</span></div><div class="lv3-chest-inside"></div><div class="lv3-chest-body"><span class="lv3-chest-logo">◈</span><span class="lv3-chest-brand">ONEBASE</span></div></div>'+
       '<div class="lv3-prize"><img src="'+esc(x.cover)+'" alt="Portada de '+esc(x.title)+'"><span>ANIME DESCUBIERTO</span></div></div>'+
     '<p class="lv3-stage-status" aria-live="polite">Preparando tu descubrimiento…</p><div class="lv3-result" hidden>'+detail(x,i)+'</div></div>';
   document.body.appendChild(el);
 
   const chest=el.querySelector('.lv3-chest');
-  const lid=el.querySelector('.lv3-chest-lid');
-  const light=el.querySelector('.lv3-light');
-  const prize=el.querySelector('.lv3-prize');
   const status=el.querySelector('.lv3-stage-status');
   const result=el.querySelector('.lv3-result');
-
-  const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-  const transition=(node,styles,duration=300,easing='cubic-bezier(.16,1,.3,1)')=>{
-    if(!node)return Promise.resolve();
-    node.style.transition='none';
-    Object.assign(node.style,styles);
-    void node.offsetWidth;
-    node.style.transition=`transform ${duration}ms ${easing}, opacity ${duration}ms ease, filter ${duration}ms ease, clip-path ${duration}ms ${easing}`;
-    return new Promise(resolve=>{
-      const done=()=>{node.removeEventListener('transitionend',done);resolve()};
-      node.addEventListener('transitionend',done,{once:true});
-      setTimeout(done,duration+80);
-    });
+  const wait=ms=>new Promise(r=>setTimeout(r,ms));
+  const stage=async(cls,text,duration)=>{
+    el.classList.remove('lv3-shake-1','lv3-shake-2','lv3-shake-3','lv3-opened','lv3-card-rise','lv3-card-left');
+    void el.offsetWidth;
+    if(text)status.textContent=text;
+    el.classList.add(cls);
+    await wait(duration);
   };
-
   const finish=async()=>{
-    if(!el.isConnected||!result)return;
     status.textContent='¡Has descubierto un anime!';
     result.hidden=true;
     result.style.display='none';
@@ -210,90 +198,39 @@ function opening(i){
     result.style.clipPath='inset(0 100% 0 0 round 20px)';
     result.querySelector('[data-lv2-save]')?.addEventListener('click',()=>{el.remove();save(i)});
     result.querySelector('[data-lv2-skip]')?.addEventListener('click',()=>{el.remove();skip(i)});
-    await wait(30);
+    await wait(50);
     if(!el.isConnected)return;
     result.hidden=false;
     result.style.display='block';
     void result.offsetWidth;
-    result.style.transition='transform 900ms cubic-bezier(.16,1,.3,1), opacity 900ms ease, clip-path 900ms cubic-bezier(.16,1,.3,1)';
+    result.style.transition='transform 850ms cubic-bezier(.16,1,.3,1),opacity 850ms ease,clip-path 850ms cubic-bezier(.16,1,.3,1)';
     result.style.opacity='1';
     result.style.transform='translateY(-50%) scaleX(1)';
     result.style.clipPath='inset(0 0 0 0 round 20px)';
     const buttons=result.querySelector('.lv2-actions');
     if(buttons){
-      buttons.style.opacity='0';
-      buttons.style.transform='translateX(-24px)';
-      setTimeout(()=>{
-        if(!buttons.isConnected)return;
-        buttons.style.transition='transform 500ms cubic-bezier(.16,1,.3,1), opacity 500ms ease';
-        buttons.style.opacity='1';
-        buttons.style.transform='translateX(0)';
-      },280);
+      buttons.style.opacity='0';buttons.style.transform='translateX(-24px)';
+      setTimeout(()=>{if(!buttons.isConnected)return;buttons.style.transition='transform .5s cubic-bezier(.16,1,.3,1),opacity .5s ease';buttons.style.opacity='1';buttons.style.transform='translateX(0)'},300);
     }
   };
 
   if(reduce){finish();return;}
 
   (async()=>{
-    if(!el.isConnected)return;
-
     status.textContent='Preparando la caja…';
-    await transition(chest,{
-      transform:'translateX(-50%) translateY(0) scale(1)',
-      opacity:'1'
-    },420);
-
-    const shakes=[
-      ['-12px','-2deg',260],
-      ['-17px','-2.8deg',280],
-      ['-22px','-3.5deg',360]
-    ];
-
-    for(let n=0;n<3;n++){
-      if(!el.isConnected)return;
-      status.textContent=n===2?'¡LA CAJA SE VA A ABRIR!':'La caja está temblando…';
-      const [dx,rot,dur]=shakes[n];
-      chest.style.transition='none';
-      chest.style.transform='translateX(-50%) rotate(0deg)';
-      void chest.offsetWidth;
-      chest.style.transition=`transform ${Math.round(dur/5)}ms cubic-bezier(.36,.07,.19,.97)`;
-      const points=[
-        `translateX(calc(-50% - ${dx.replace('-','')})) rotate(${rot})`,
-        `translateX(calc(-50% + ${dx.replace('-','')})) rotate(${rot.replace('-','')})`,
-        `translateX(calc(-50% - ${Math.abs(Math.round(parseFloat(dx)*.65))}px)) rotate(-${Math.abs(parseFloat(rot)*.55)}deg)`,
-        'translateX(-50%) rotate(0deg)'
-      ];
-      for(const p of points){chest.style.transform=p;await wait(Math.round(dur/5));}
-      await wait(55);
-    }
-
-    status.textContent='¡ABRIENDO LA CAJA!';
-    const lidP=transition(lid,{
-      transform:'translateY(-105px) rotateX(-72deg)'
-    },720);
-    const chestP=transition(chest,{
-      transform:'translateX(-50%) translateY(105px) scale(.72)'
-    },620);
-    const lightP=transition(light,{
-      opacity:'0.9',
-      transform:'translateX(-50%) scale(1.3)'
-    },800,'ease-out');
-    await Promise.all([lidP,chestP,lightP]);
-
-    status.textContent='Recompensa encontrada';
-    await transition(prize,{
-      opacity:'1',
-      transform:'translate(-50%,-125px) scale(1)'
-    },720);
-    await transition(prize,{
-      transform:'translate(calc(-50% - 235px),-125px) scale(.9)'
-    },650);
-
+    chest.style.opacity='1';
+    await wait(500);
+    await stage('lv3-shake-1','La caja tiembla…',360);
+    await stage('lv3-shake-2','Algo hay dentro…',380);
+    await stage('lv3-shake-3','¡A LA TERCERA SE ABRE!',460);
+    await stage('lv3-opened','¡ABRIENDO LA CAJA!',850);
+    await stage('lv3-card-rise','Recompensa encontrada',800);
+    await stage('lv3-card-left','Mostrando información…',700);
     await finish();
   })().catch(err=>{
-    console.error('[OneBase Lootbox opening]',err);
-    if(status)status.textContent='Error en la animación. Reintentando…';
-    setTimeout(()=>{if(el.isConnected)finish()},250);
+    console.error('[OneBase Lootbox]',err);
+    status.textContent='No se pudo completar la animación.';
+    setTimeout(()=>finish(),300);
   });
 }
 
