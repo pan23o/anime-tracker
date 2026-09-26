@@ -146,34 +146,74 @@
     saving = true;
     try {
       const current = localList();
+
+      // The database row is the authoritative cloud copy for progress. The TXT file
+      // remains a portable mirror, but a failure in Storage must never make a
+      // successful progress update look like it was lost.
+      const tableSaved = await saveCloudTable(current);
       const fileSaved = await uploadAccountFile(current);
       await saveEmergencyMirror(current);
-      await saveCloudTable(current);
-      window.OneBaseLibrarySync = { status: fileSaved ? 'saved' : 'failed', lastSavedAt: fileSaved ? now() : null };
-      if (!fileSaved) toast('⚠️ No se pudo escribir el archivo de biblioteca.');
-      return fileSaved;
-    } finally { saving = false; if (queuedSave) { queuedSave = false; void saveLibraryNow(); } }
+
+      const ok = tableSaved || fileSaved;
+      window.OneBaseLibrarySync = {
+        status: ok ? 'saved' : 'failed',
+        lastSavedAt: ok ? now() : null,
+        cloudTable: tableSaved,
+        storageFile: fileSaved
+      };
+      if (!ok) toast('⚠️ No se pudo guardar la biblioteca en la nube.');
+      return ok;
+    } finally {
+      saving = false;
+      if (queuedSave) { queuedSave = false; void saveLibraryNow(); }
+    }
+  }
+
+  // Explicit progress persistence endpoint used by the chapter counter.
+  // It bypasses the polling interval and makes chapter changes durable as soon
+  // as the input event fires.
+  async function saveProgressNow() {
+    if (!user) {
+      await saveEmergencyMirror(localList());
+      return true;
+    }
+    return saveLibraryNow();
   }
   function scheduleLibrarySave() { clearTimeout(saveTimer); saveEmergencyMirror(localList()); if (user) saveTimer = setTimeout(() => void saveLibraryNow(), 500); }
 
   async function restoreAccountLibrary() {
     if (!user) return false;
-    const fileList = await downloadAccountFile(user.id);
-    if (fileList && fileList.length) {
+
+    // Restore from both cloud copies. The old implementation preferred the TXT
+    // file whenever it existed, which could resurrect an older chapter counter
+    // even when tracker_state already contained a newer progress update.
+    let fileList = [];
+    let tableList = [];
+    try { fileList = (await downloadAccountFile(user.id)) || []; } catch (_) {}
+    try {
+      const { data, error } = await client.from('tracker_state')
+        .select('state,revision,saved_at,updated_at')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (!error) tableList = clean(parse(data?.state?.[LIB] || '[]', []));
+    } catch (e) {
+      console.warn('[AnimeTracker] tracker_state restore failed:', e);
+    }
+
+    if (fileList.length || tableList.length) {
+      const merged = mergeLatest(fileList, tableList);
       const local = localList();
-      const merged = mergeLatest(fileList, local);
-      setLocalList(merged);
-      await saveEmergencyMirror(merged);
-      if (fingerprint(merged) !== fingerprint(fileList)) void saveLibraryNow();
+      const finalList = mergeLatest(merged, local);
+      setLocalList(finalList);
+      await saveEmergencyMirror(finalList);
+
+      // Heal whichever cloud copy is behind. This is deliberately fire-and-forget
+      // after the browser has the newest local state.
+      if (fingerprint(finalList) !== fingerprint(fileList) || fingerprint(finalList) !== fingerprint(tableList)) {
+        void saveLibraryNow();
+      }
       return true;
     }
-    try {
-      const { data, error } = await client.from('tracker_state').select('state,revision,saved_at,updated_at').eq('user_id', user.id).maybeSingle();
-      if (!error) {
-        const tableList = clean(parse(data?.state?.[LIB] || '[]', []));
-        if (tableList.length) { const merged = mergeLatest(tableList, localList()); setLocalList(merged); await uploadAccountFile(merged); await saveEmergencyMirror(merged); return true; }
-      }
-    } catch (e) { console.warn('[AnimeTracker] tracker_state restore failed:', e); }
     const emergency = await loadEmergencyMirror();
     if (emergency.length) { const merged = mergeLatest(emergency, localList()); setLocalList(merged); await uploadAccountFile(merged); return true; }
     return false;
@@ -233,6 +273,7 @@
       const profileRaw = localStorage.getItem(PROFILE) || ''; if (profileRaw) scheduleProfileSync();
     }, 250);
     window.addEventListener('animetracker:saved', scheduleLibrarySave);
+    window.addEventListener('animetracker:progress-changed', () => { void saveProgressNow(); });
     try { if (typeof window.render === 'function' && !window.render.__animeTrackerWrapped) { const originalRender = window.render; const wrappedRender = function (...args) { const result = originalRender.apply(this, args); scheduleLibrarySave(); return result; }; wrappedRender.__animeTrackerWrapped = true; wrappedRender.__animeTrackerOriginal = originalRender; window.render = wrappedRender; } } catch {}
     window.addEventListener('beforeunload', () => { try { saveEmergencyMirror(localList()); } catch {} });
   }
@@ -240,5 +281,5 @@
   client.auth.onAuthStateChange((event, session) => { user = session?.user || null; updateAccountUi(); if (event === 'SIGNED_IN' && user) void bootstrap(); if (event === 'SIGNED_OUT') { user = null; updateAccountUi(); } });
   async function boot() { ensureMeta(); injectUiStyle(); bindUi(); updateAccountUi(); await bootstrap(); observe(); updateAccountUi(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => void boot(), { once: true }); else void boot();
-  window.AnimeTrackerCloud = { sync: () => user ? saveLibraryNow() : openAccountUi(), refresh: updateAccountUi, open: openAccountUi, logout };
+  window.AnimeTrackerCloud = { sync: () => user ? saveLibraryNow() : openAccountUi(), saveProgress: saveProgressNow, refresh: updateAccountUi, open: openAccountUi, logout };
 })();
