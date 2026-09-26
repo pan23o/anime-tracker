@@ -483,7 +483,7 @@
 @media(prefers-reduced-motion:reduce){.lv4-open .lv4-lid{transform:translateY(-100px) rotateX(-78deg)}.lv4-open .lv4-chest{transform:translateY(115px) scale(.75)}.lv4-centered .lv4-cover{opacity:1;transform:translate(-50%,-50%)}.lv4-expanded .lv4-detail{opacity:1;transform:translateY(-50%) scaleX(1)}}
 
 /* v15: six independent stages; no WAAPI/commitStyles or inherited lv3 timing. */
-.lv5-opening{position:fixed!important;inset:0!important;z-index:2147483000!important;display:grid!important;place-items:center!important;overflow:auto!important;background:radial-gradient(ellipse at center,#322713,#09090c 72%)!important;animation:none!important;color:#fff}
+.lv5-opening{position:fixed!important;inset:0!important;z-index:2147483000!important;display:grid!important;place-items:center!important;overflow:auto!important;background:radial-gradient(ellipse at center,rgba(50,39,19,.82),rgba(9,9,12,.9) 72%)!important;backdrop-filter:blur(12px) saturate(.72);-webkit-backdrop-filter:blur(12px) saturate(.72);animation:none!important;color:#fff}
 .lv5-opening::before{display:none!important}
 .lv5-arena{position:relative;width:min(1050px,96vw);height:min(780px,96dvh);min-height:570px;isolation:isolate}
 .lv5-heading,.lv5-status{position:absolute;left:0;right:0;text-align:center;font:800 12px system-ui;letter-spacing:2px;color:#e9c377}
