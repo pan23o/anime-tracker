@@ -30,7 +30,7 @@ html = html.replace(/<title>\s*AnimeTracker\s*<\/title>/i, '<title>ONEBASE</titl
 
 const headAssets = `
 <script src="/onebase-safe-boot.js?v=1"></script>
-<link rel="stylesheet" href="/onebase-loot-v2.css?v=7">
+<link rel="stylesheet" href="/onebase-loot-v2.css?v=9">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=13">
 <link rel="stylesheet" href="/onebase-brand.css?v=7">
 <link rel="stylesheet" href="/onebase-experience-v1.css?v=3">
@@ -61,7 +61,7 @@ const runtimeScripts = [
   ['onebase-anilist-search.js', 'v=6'],
   ['onebase-anime-add-cleanup.js', 'v=2'],
   ['onebase-premium.js', 'v=18'],
-  ['onebase-loot-v2.js', 'v=8']
+  ['onebase-loot-v2.js', 'v=9']
 ];
 
 // The source index can already contain older copies of these scripts. Remove them
