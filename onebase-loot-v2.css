@@ -425,24 +425,32 @@
 }
 
 
-/* Final cinematic guardrails — JS owns the timeline, CSS must not leak the result early. */
+/* Final cinematic sequence: CSS owns the visible motion, JS only advances stages. */
+.lv3-opening{
+  pointer-events:auto!important;
+  user-select:none;
+  touch-action:none;
+}
+.lv3-opening .lv3-chest,
+.lv3-opening .lv3-chest-lid,
+.lv3-opening .lv3-light,
+.lv3-opening .lv3-prize{
+  will-change:transform,opacity,filter;
+}
+.lv3-opening.lv3-shake-1 .lv3-chest{animation:lv3ShakeOne .26s cubic-bezier(.36,.07,.19,.97) both!important}
+.lv3-opening.lv3-shake-2 .lv3-chest{animation:lv3ShakeTwo .28s cubic-bezier(.36,.07,.19,.97) both!important}
+.lv3-opening.lv3-shake-3 .lv3-chest{animation:lv3ShakeThree .36s cubic-bezier(.36,.07,.19,.97) both!important}
+.lv3-opening.lv3-opened .lv3-chest{animation:lv3ChestDrop .62s cubic-bezier(.16,1,.3,1) both!important}
+.lv3-opening.lv3-opened .lv3-chest-lid{animation:lv3CinematicLid .72s cubic-bezier(.16,1,.3,1) both!important}
+.lv3-opening.lv3-opened .lv3-light{animation:lv3CinematicLight .8s ease-out both!important}
+.lv3-opening.lv3-card-rise .lv3-prize{animation:lv3CardRise .7s cubic-bezier(.16,1,.3,1) both!important}
+.lv3-opening.lv3-card-left .lv3-prize{transform:translate(calc(-50% - 235px),-125px) scale(.9)!important}
 .lv3-opening .lv3-result[hidden]{display:none!important;visibility:hidden!important;pointer-events:none!important}
 .lv3-opening .lv3-result{
-  animation:none!important;
   visibility:visible;
   pointer-events:auto;
   will-change:transform,opacity,clip-path;
 }
-.lv3-opening .lv3-prize{
-  animation:none!important;
-  will-change:transform,opacity;
-}
-.lv3-opening .lv3-chest,
-.lv3-opening .lv3-chest-lid,
-.lv3-opening .lv3-light{
-  animation:none!important;
-  will-change:transform,opacity;
-}
-.lv3-opening .lv2-actions{
-  will-change:transform,opacity;
+@media(max-width:760px){
+  .lv3-opening.lv3-card-left .lv3-prize{transform:translate(calc(-50% - 105px),-115px) scale(.78)!important}
 }
