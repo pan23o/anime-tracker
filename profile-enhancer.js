@@ -364,7 +364,7 @@
   }
 
   client.auth.onAuthStateChange((event, session) => { user = session?.user || null; updateAccountUi(); if (event === 'SIGNED_IN' && user) void bootstrap(); if (event === 'SIGNED_OUT') { user = null; updateAccountUi(); } });
-  async async function boot() { ensureMeta(); injectUiStyle(); bindUi(); await handleAuthCallback(); updateAccountUi(); await bootstrap(); observe(); updateAccountUi(); }
+  async function boot() { ensureMeta(); injectUiStyle(); bindUi(); await handleAuthCallback(); updateAccountUi(); await bootstrap(); observe(); updateAccountUi(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => void boot(), { once: true }); else void boot();
   window.AnimeTrackerCloud = { sync: () => user ? saveLibraryNow() : openAccountUi(), saveProgress: saveProgressNow, refresh: updateAccountUi, open: openAccountUi, logout };
 })();
