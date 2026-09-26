@@ -423,3 +423,26 @@
   .lv3-info-open .lv3-result,.lv3-info-open .lv3-result .lv2-actions{animation:none!important}
   .lv3-info-open .lv3-result{opacity:1!important;transform:translateY(-50%) scaleX(1)!important;clip-path:none!important}
 }
+
+
+/* Final cinematic guardrails — JS owns the timeline, CSS must not leak the result early. */
+.lv3-opening .lv3-result[hidden]{display:none!important;visibility:hidden!important;pointer-events:none!important}
+.lv3-opening .lv3-result{
+  animation:none!important;
+  visibility:visible;
+  pointer-events:auto;
+  will-change:transform,opacity,clip-path;
+}
+.lv3-opening .lv3-prize{
+  animation:none!important;
+  will-change:transform,opacity;
+}
+.lv3-opening .lv3-chest,
+.lv3-opening .lv3-chest-lid,
+.lv3-opening .lv3-light{
+  animation:none!important;
+  will-change:transform,opacity;
+}
+.lv3-opening .lv2-actions{
+  will-change:transform,opacity;
+}
