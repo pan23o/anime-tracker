@@ -481,3 +481,40 @@
 .lv4-finished .lv4-reward,.lv4-finished .lv4-detail{pointer-events:auto}
 @media(max-width:760px){.lv4-arena{min-height:780px;height:100dvh}.lv4-chest-scene{top:30%;transform:translate(-50%,-50%) scale(.8)}.lv4-cover{top:32%;width:125px;height:180px}.lv4-detail{top:65%;left:4%;width:92%;transform-origin:center top}.lv4-detail .lv2-reveal-inner{padding:100px 18px 20px!important}.lv4-finished .lv4-cover{top:49%!important;left:50%!important;transform:translate(-50%,-50%)!important}.lv4-detail .lv2-actions{flex-direction:column}.lv4-detail .lv2-actions button{width:100%}}
 @media(prefers-reduced-motion:reduce){.lv4-open .lv4-lid{transform:translateY(-100px) rotateX(-78deg)}.lv4-open .lv4-chest{transform:translateY(115px) scale(.75)}.lv4-centered .lv4-cover{opacity:1;transform:translate(-50%,-50%)}.lv4-expanded .lv4-detail{opacity:1;transform:translateY(-50%) scaleX(1)}}
+
+/* v15: six independent stages; no WAAPI/commitStyles or inherited lv3 timing. */
+.lv5-opening{position:fixed!important;inset:0!important;z-index:2147483000!important;display:grid!important;place-items:center!important;overflow:auto!important;background:radial-gradient(ellipse at center,#322713,#09090c 72%)!important;animation:none!important;color:#fff}
+.lv5-opening::before{display:none!important}
+.lv5-arena{position:relative;width:min(1050px,96vw);height:min(780px,96dvh);min-height:570px;isolation:isolate}
+.lv5-heading,.lv5-status{position:absolute;left:0;right:0;text-align:center;font:800 12px system-ui;letter-spacing:2px;color:#e9c377}
+.lv5-heading{top:5%}.lv5-status{bottom:5%}
+.lv5-box{position:absolute;left:50%;top:43%;width:320px;height:320px;transform:translate(-50%,-50%);perspective:900px;pointer-events:none}
+.lv5-chest{position:absolute;left:50%;top:34%;width:220px;height:160px;transform:translateX(-50%);transform-origin:center bottom;z-index:3}
+.lv5-lid{position:absolute;left:-7px;top:0;width:234px;height:58px;box-sizing:border-box;border:3px solid #e6bc69;border-radius:18px 18px 6px 6px;background:linear-gradient(140deg,#6d4e1e,#17191f 55%,#755525);display:grid;place-items:center;color:#f3d18a;font:900 13px system-ui;letter-spacing:3px;transform-origin:center bottom;z-index:5}
+.lv5-inside{position:absolute;inset:40px 8px 14px;background:#090809;box-shadow:inset 0 0 28px #e8b75d}
+.lv5-body{position:absolute;inset:42px 0 0;border:3px solid #bb914a;border-radius:6px 6px 16px 16px;background:linear-gradient(140deg,#4e371b,#11131a 55%,#543c1c);box-shadow:0 18px 36px #000b;display:grid;place-items:center;color:#f2c979;font-size:52px}
+.lv5-light{position:absolute;left:50%;top:3%;width:270px;height:270px;opacity:0;transform:translateX(-50%) scale(.3);background:radial-gradient(ellipse,#ffda81b0,transparent 70%);filter:blur(16px)}
+.lv5-reward{position:absolute;inset:0;pointer-events:none;z-index:8}
+.lv5-cover{position:absolute;left:50%;top:43%;width:180px;height:260px;box-sizing:border-box;opacity:0;transform:translate(-50%,100px) scale(.6);border:3px solid #f2ca78;border-radius:13px;overflow:hidden;background:#372717;box-shadow:0 0 42px #e6b45288,0 20px 50px #000c;z-index:10}
+.lv5-cover img{display:block;width:100%;height:100%;object-fit:cover}
+.lv5-panel{position:absolute;left:calc(50% - 145px);top:43%;width:min(620px,62vw);opacity:0;clip-path:inset(0 100% 0 0 round 18px);transform:translateY(-50%);z-index:9;pointer-events:none}
+.lv5-panel .lv2-reveal{margin:0!important;background:linear-gradient(140deg,#27221b,#131316)!important;border:1px solid #9b763b!important;border-radius:18px!important;box-shadow:0 22px 80px #000c!important;animation:none!important}
+.lv5-panel .lv2-reveal-inner{display:block!important;padding:25px 25px 25px 112px!important}
+.lv5-panel .lv2-reveal-cover{display:none!important}
+.lv5-panel .lv2-reveal-desc{max-height:140px;overflow:auto}
+.lv5-panel .lv2-actions{display:flex;flex-wrap:wrap;gap:10px}
+.lv5-shake-1 .lv5-chest{animation:lv5Shake1 .45s ease-in-out both}
+.lv5-shake-2 .lv5-chest{animation:lv5Shake2 .45s ease-in-out both}
+.lv5-shake-3 .lv5-chest{animation:lv5Shake3 .55s ease-in-out both}
+@keyframes lv5Shake1{0%,100%{transform:translateX(-50%)}25%{transform:translateX(calc(-50% - 9px)) rotate(-2deg)}60%{transform:translateX(calc(-50% + 9px)) rotate(2deg)}}
+@keyframes lv5Shake2{0%,100%{transform:translateX(-50%)}25%{transform:translateX(calc(-50% - 14px)) rotate(-3deg)}60%{transform:translateX(calc(-50% + 14px)) rotate(3deg)}}
+@keyframes lv5Shake3{0%,100%{transform:translateX(-50%)}25%{transform:translateX(calc(-50% - 21px)) rotate(-4deg)}60%{transform:translateX(calc(-50% + 21px)) rotate(4deg)}}
+.lv5-open .lv5-lid{transform:translateY(-95px) rotateX(-72deg);transition:transform .7s cubic-bezier(.16,1,.3,1)}
+.lv5-open .lv5-light{opacity:1;transform:translateX(-50%) scale(1.25);transition:opacity .6s,transform .7s}
+.lv5-down .lv5-chest{transform:translateX(-50%) translateY(125px) scale(.7);transition:transform .65s cubic-bezier(.16,1,.3,1)}
+.lv5-rise .lv5-cover{opacity:1;transform:translate(-50%,-50%) scale(1);transition:opacity .35s,transform 1s cubic-bezier(.16,1,.3,1)}
+.lv5-left .lv5-cover{transform:translate(calc(-50% - 230px),-50%);transition:transform 1.1s cubic-bezier(.16,1,.3,1)}
+.lv5-details .lv5-panel{opacity:1;clip-path:inset(0 0 0 0 round 18px);transition:clip-path 1.35s cubic-bezier(.16,1,.3,1),opacity .6s}
+.lv5-done .lv5-reward,.lv5-done .lv5-panel{pointer-events:auto}
+@media(max-width:760px){.lv5-arena{min-height:820px;height:100dvh}.lv5-box{top:30%;transform:translate(-50%,-50%) scale(.8)}.lv5-cover{top:32%;width:135px;height:190px}.lv5-panel{top:65%;left:4%;width:92%}.lv5-panel .lv2-reveal-inner{padding:95px 18px 22px!important}.lv5-left .lv5-cover{top:49%;transform:translate(-50%,-50%)}.lv5-panel .lv2-actions{flex-direction:column}.lv5-panel .lv2-actions button{width:100%}}
+@media(prefers-reduced-motion:reduce){.lv5-shake-1 .lv5-chest,.lv5-shake-2 .lv5-chest,.lv5-shake-3 .lv5-chest{animation:none!important}.lv5-open .lv5-lid,.lv5-down .lv5-chest,.lv5-rise .lv5-cover,.lv5-left .lv5-cover,.lv5-details .lv5-panel{transition:none!important}}
