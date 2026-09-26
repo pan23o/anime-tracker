@@ -1,16 +1,9 @@
 const ANILIST_URL='https://graphql.anilist.co';
 
 const QUERY=`
-  query ($page:Int!, $perPage:Int!, $genre:String, $genres:[String!], $excludeIds:[Int!], $sort:[MediaSort!]) {
+  query ($page:Int!, $perPage:Int!, $genres:[String!], $excludeIds:[Int!], $sort:[MediaSort!]) {
     Page(page:$page, perPage:$perPage) {
-      media(
-        type:ANIME,
-        isAdult:false,
-        genre:$genre,
-        genre_in:$genres,
-        id_not_in:$excludeIds,
-        sort:$sort
-      ) {
+      media(type:ANIME,isAdult:false,genre_in:$genres,id_not_in:$excludeIds,sort:$sort) {
         id
         title { romaji english native userPreferred }
         description(asHtml:false)
@@ -38,46 +31,39 @@ module.exports=async function handler(req,res){
   const body=req.body&&typeof req.body==='object'?req.body:{};
   const mode=['personalized','random','opposite'].includes(body.mode)?body.mode:'personalized';
   const genres=Array.isArray(body.genres)?body.genres.map(String).map(s=>s.trim()).filter(Boolean).slice(0,8):[];
-  const targetGenres=Array.isArray(body.targetGenres)?body.targetGenres.map(String).map(s=>s.trim()).filter(Boolean).slice(0,8):[];
-  const excludeIds=Array.isArray(body.excludeIds)?body.excludeIds.map(Number).filter(Number.isInteger).slice(0,10000):[];
+  const targetGenres=Array.isArray(body.targetGenres)?body.targetGenres.map(String).map(s=>s.trim()).filter(Boolean).slice(0,6):[];
+  const excludeIds=[...new Set(Array.isArray(body.excludeIds)?body.excludeIds.map(Number).filter(Number.isInteger).filter(x=>x>0).slice(0,10000):[])];
   const page=Math.min(8,Math.max(1,Number.parseInt(body.page,10)||1));
 
   async function request(variables){
-    const upstream=await fetch(ANILIST_URL,{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({query:QUERY,variables})});
-    const payload=await upstream.json().catch(()=>null);
-    if(!upstream.ok){
-      if(upstream.status===429)throw Object.assign(new Error('AniList está limitando temporalmente las recomendaciones.'),{status:429});
-      throw new Error('AniList no está disponible en este momento.');
-    }
-    if(payload?.errors?.length)throw new Error(payload.errors.map(x=>x.message).join(' · ')||'AniList devolvió un error.');
-    return Array.isArray(payload?.data?.Page?.media)?payload.data.Page.media:[];
+    const controller=typeof AbortController!=='undefined'?new AbortController():null;
+    const timer=controller?setTimeout(()=>controller.abort(),8500):null;
+    try{
+      const upstream=await fetch(ANILIST_URL,{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({query:QUERY,variables}),signal:controller?.signal});
+      const retryAfter=upstream.headers.get('retry-after');
+      const payload=await upstream.json().catch(()=>null);
+      if(!upstream.ok)throw Object.assign(new Error(upstream.status===429?'AniList está temporalmente saturado. Espera unos segundos y reintenta.':'AniList no está disponible en este momento.'),{status:upstream.status,retryAfter});
+      if(payload?.errors?.length){const first=payload.errors[0];throw Object.assign(new Error(String(first?.message||'AniList devolvió un error.')),{status:Number(first?.status)||400});}
+      return Array.isArray(payload?.data?.Page?.media)?payload.data.Page.media:[];
+    }catch(error){
+      if(error?.name==='AbortError')throw Object.assign(new Error('AniList tardó demasiado en responder.'),{status:504});
+      throw error;
+    }finally{if(timer)clearTimeout(timer)}
   }
 
   try{
-    let results=[];
-    if(mode==='random'){
-      const pages=[page,((page)%8)+1,((page+1)%8)+1];
-      const chunks=await Promise.all(pages.map(p=>request({page:p,perPage:25,genre:null,genres:null,excludeIds,sort:['POPULARITY_DESC']})));
-      results=chunks.flat();
-    }else if(mode==='opposite'&&targetGenres.length){
-      const chunks=await Promise.all(targetGenres.slice(0,3).map((g,i)=>request({page:1+(page+i)%3,perPage:25,genre:g,genres:null,excludeIds,sort:['POPULARITY_DESC']})));
-      results=chunks.flat();
-    }else{
-      const selected=genres.length?genres:['Action','Adventure','Comedy'];
-      const primary=selected[0];
-      results=await request({page,perPage:25,genre:primary,genres:null,excludeIds,sort:['POPULARITY_DESC']});
-      if(results.length<15){
-        results=await request({page:1,perPage:25,genre:null,genres:selected,excludeIds,sort:['POPULARITY_DESC']});
-      }
-      if(results.length<10){
-        results=await request({page:1,perPage:25,genre:null,genres:null,excludeIds,sort:['POPULARITY_DESC']});
-      }
+    const selected=mode==='opposite'?targetGenres:genres;
+    const sort=['POPULARITY_DESC','SCORE_DESC'];
+    let results=await request({page,perPage:50,genres:selected.length?selected:null,excludeIds,sort});
+    let unique=[...new Map(results.filter(Boolean).map(x=>[Number(x.id),x])).values()];
+    if(unique.length<12){
+      const fallback=await request({page:((page)%8)+1,perPage:50,genres:null,excludeIds,sort});
+      unique=[...new Map([...unique,...fallback].filter(Boolean).map(x=>[Number(x.id),x])).values()];
     }
-    const unique=[...new Map(results.filter(Boolean).map(x=>[Number(x.id),x])).values()];
     return json(res,200,{ok:true,mode,results:unique});
   }catch(error){
-    if(error?.status===429)return json(res,429,{ok:false,error:error.message});
-    console.error('[ONEBASE] Lootbox v2 failed:',error);
-    return json(res,502,{ok:false,error:error.message||'No se pudo conectar con AniList.'});
+    const status=Number(error?.status)||502;
+    if(status===429)return res.status(429).setHeader('Retry-After',String(error?.retryAfter||15)).json({ok:false,error:error.message});
+    return json(res,status>=400&&status<600?status:502,{ok:false,error:error?.message||'No se pudo conectar con AniList.'});
   }
 };
