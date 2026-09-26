@@ -408,3 +408,41 @@ body.onebase-pages-mode header .controls{display:none!important}
 @media(prefers-reduced-motion:reduce){
   .ob-loot-box-lid,.ob-loot-box-rgb,.ob-loot-box.opening .ob-loot-box-lid,.ob-loot-box.opening .ob-loot-crate,.ob-loot-box.opening .ob-loot-box-rgb{animation:none!important}
 }
+
+/* OneBase: simplified anime details. All existing modal controls keep their IDs. */
+.infoCard.onebase-simple-info{width:min(860px,96vw);padding:20px;max-height:92vh;overflow:auto}
+.onebase-simple-info .onebase-info-hero{height:170px;margin:-20px -20px 18px;background:#181511}
+.onebase-simple-info .onebase-info-hero::after{background:linear-gradient(0deg,rgba(9,8,7,.96),rgba(9,8,7,.1))}
+.onebase-simple-info .onebase-info-hero-title{font-size:clamp(20px,3vw,30px);line-height:1.1;max-width:90%}
+.onebase-simple-info .onebase-info-hero-kicker{color:#e9bb64;font-size:10px;font-weight:800}
+.onebase-simple-info .infoGrid{grid-template-columns:160px minmax(0,1fr);gap:22px}
+.onebase-simple-info .infoGrid>div:nth-child(2){min-width:0;display:flex;flex-direction:column;gap:12px}
+.onebase-simple-info .infoGrid>div:nth-child(2)>.infoTitle{display:none}
+.onebase-simple-info .infoGrid>div:nth-child(2)>.infoSub,.onebase-simple-info .infoGrid>div:nth-child(2)>.badges,.onebase-simple-info .infoGrid>div:nth-child(2)>.infoLine,.onebase-simple-info .infoGrid>div:nth-child(2)>.nextAiring{display:none}
+.onebase-simple-info .infoGrid>div:nth-child(2)>.modalActions:empty{display:none}
+.ob-detail-eyebrow{font-size:10px;font-weight:900;letter-spacing:1.5px;color:#e5b55b}
+.ob-detail-overview,.ob-detail-watch{border:1px solid #393126;border-radius:16px;padding:17px;background:linear-gradient(135deg,#211d17,#121212)}
+.ob-detail-overview .onebase-info-stats{margin:12px 0;gap:9px}
+.ob-detail-overview .onebase-info-stat{padding:12px;background:#151515;border:1px solid #393126}
+.ob-detail-overview .onebase-info-stat b{font-size:10px;color:#aaa}
+.ob-detail-overview .onebase-info-stat span{font-size:24px;color:#f2c467}
+.ob-detail-overview .onebase-info-progress{margin-top:10px}
+.ob-detail-overview .onebase-info-progress-top{font-size:11px;color:#ddd}
+.ob-detail-overview .onebase-info-progress-bar{height:9px;background:#36302a}
+.ob-detail-overview .onebase-info-progress-bar span{background:linear-gradient(90deg,#bd8a34,#f4d18b)}
+.ob-detail-watch p{font-size:12px;color:#aaa;line-height:1.5;margin:9px 0 14px}
+.ob-detail-main-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ob-detail-main-actions button,.ob-detail-edit-inner #infoSave{min-height:46px;margin:0;border-radius:12px;font-size:12px;font-weight:850;cursor:pointer}
+.ob-detail-main-actions #onebaseOpenEpisodes{background:#e7b65d;color:#17120a;border:1px solid #e7b65d}
+.ob-detail-main-actions #infoSources{background:#26211a;color:#f1d3a0;border:1px solid #80633b}
+.ob-detail-main-actions button:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.ob-detail-edit,.ob-detail-more{border:1px solid #36312b;border-radius:13px;background:#171615;overflow:hidden}
+.ob-detail-edit summary,.ob-detail-more summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:15px;font-size:12px;font-weight:800}
+.ob-detail-edit summary::-webkit-details-marker,.ob-detail-more summary::-webkit-details-marker{display:none}
+.ob-detail-edit summary span,.ob-detail-more summary span{font-size:10px;font-weight:500;color:#a69b8d}
+.ob-detail-edit[open] summary,.ob-detail-more[open] summary{border-bottom:1px solid #36312b;color:#eac178}
+.ob-detail-edit-inner,.ob-detail-more-inner{padding:15px;display:grid;gap:12px}
+.ob-detail-more-inner .infoLine{display:flex;justify-content:space-between;gap:10px}
+.ob-detail-more-inner .onebase-info-description{max-height:200px;overflow:auto;margin:0;font-size:12px;line-height:1.7}
+.onebase-simple-info .infoGrid .cover,.onebase-simple-info .infoGrid .coverPlaceholder{width:160px;height:240px;border-radius:14px;box-shadow:0 15px 35px #0006}
+@media(max-width:650px){.onebase-simple-info .infoGrid{grid-template-columns:1fr;gap:12px}.onebase-simple-info .infoGrid>div:first-child{display:none}.onebase-simple-info .onebase-info-hero{height:160px}.ob-detail-main-actions{grid-template-columns:1fr}.onebase-simple-info .onebase-info-stats{grid-template-columns:repeat(3,minmax(0,1fr))}.ob-detail-overview .onebase-info-stat span{font-size:20px}.ob-detail-edit summary span,.ob-detail-more summary span{display:none}}
