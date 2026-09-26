@@ -170,26 +170,34 @@ function opening(i){
   const el=document.createElement('div');el.id='lv2Opening';el.className='lv2-opening lv3-opening';
   el.innerHTML='<div class="lv3-arena" role="dialog" aria-modal="true" aria-label="Abriendo caja de anime">'+
     '<div class="lv3-stage-label">ONEBASE · DESCUBRE TU PRÓXIMO ANIME</div>'+
-    '<div class="lv3-stage" aria-hidden="true"><div class="lv3-floor"></div><div class="lv3-light"></div><div class="lv3-chest">'+
-      '<div class="lv3-chest-lid"><span>ONEBASE</span></div>'+
-      '<div class="lv3-chest-inside"></div><div class="lv3-chest-body"><span class="lv3-chest-logo">◈</span><span class="lv3-chest-brand">ONEBASE</span></div>'+
-    '</div><div class="lv3-prize"><img src="'+esc(x.cover)+'" alt=""><span>ANIME DESCUBIERTO</span></div></div>'+
-    '<p class="lv3-stage-status" aria-live="polite">Preparando tu descubrimiento…</p>'+
-    '<div class="lv3-result" hidden>'+detail(x,i)+'</div>'+
-    '</div>';
+    '<div class="lv3-stage" aria-hidden="true"><div class="lv3-floor"></div><div class="lv3-light"></div>'+
+      '<div class="lv3-chest"><div class="lv3-chest-lid"><span>ONEBASE</span></div><div class="lv3-chest-inside"></div><div class="lv3-chest-body"><span class="lv3-chest-logo">◈</span><span class="lv3-chest-brand">ONEBASE</span></div></div>'+
+      '<div class="lv3-prize"><img src="'+esc(x.cover)+'" alt="Portada de '+esc(x.title)+'"><span>ANIME DESCUBIERTO</span></div><div class="lv3-shake-count" aria-hidden="true"></div>'+
+    '</div><p class="lv3-stage-status" aria-live="polite">Preparando tu descubrimiento…</p><div class="lv3-result" hidden>'+detail(x,i)+'</div></div>';
   document.body.appendChild(el);
   const status=el.querySelector('.lv3-stage-status'),result=el.querySelector('.lv3-result');
-  const reveal=()=>{
+  const finish=()=>{
     if(!el.isConnected)return;
     el.classList.add('lv3-revealed');
     if(status)status.textContent='¡Has descubierto un anime!';
-    if(result){result.hidden=false;result.querySelector('[data-lv2-save]')?.addEventListener('click',()=>{el.remove();save(i)});result.querySelector('[data-lv2-skip]')?.addEventListener('click',()=>{el.remove();skip(i)})}
-    // The reward stays visible until the user explicitly saves or discards it.
+    if(result){
+      result.hidden=false;
+      result.querySelector('[data-lv2-save]')?.addEventListener('click',()=>{el.remove();save(i)});
+      result.querySelector('[data-lv2-skip]')?.addEventListener('click',()=>{el.remove();skip(i)});
+    }
   };
+  if(reduce){el.classList.add('lv3-shake-3','lv3-opened','lv3-card-left','lv3-info-open');finish();return;}
   requestAnimationFrame(()=>el.classList.add('lv3-start'));
-  setTimeout(()=>{if(el.isConnected&&status)status.textContent='Abriendo la caja…'},reduce?150:700);
-  setTimeout(()=>{if(el.isConnected)el.classList.add('lv3-open')},reduce?200:1100);
-  setTimeout(reveal,reduce?450:2500);
+  [260,520,780].forEach((delay,n)=>setTimeout(()=>{
+    if(!el.isConnected)return;
+    el.classList.remove('lv3-shake-1','lv3-shake-2','lv3-shake-3');
+    el.classList.add('lv3-shake-'+(n+1));
+    if(status)status.textContent=n===2?'¡ABRIENDO LA CAJA!':'Preparando apertura…';
+  },delay));
+  setTimeout(()=>{if(el.isConnected){el.classList.add('lv3-opened');if(status)status.textContent='Recompensa encontrada'}},900);
+  setTimeout(()=>{if(el.isConnected)el.classList.add('lv3-card-rise')},1050);
+  setTimeout(()=>{if(el.isConnected)el.classList.add('lv3-card-left')},1750);
+  setTimeout(()=>{if(el.isConnected){el.classList.add('lv3-info-open');finish()}},2050);
 }
 function choose(i){
   if(busy||selected!==null||!roll?.[i]||resolved.has(i))return;
