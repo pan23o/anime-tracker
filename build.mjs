@@ -30,7 +30,7 @@ html = html.replace(/<title>\s*AnimeTracker\s*<\/title>/i, '<title>ONEBASE</titl
 
 const headAssets = `
 <script src="/onebase-safe-boot.js?v=1"></script>
-<link rel="stylesheet" href="/onebase-loot-v2.css?v=11">
+<link rel="stylesheet" href="/onebase-loot-v2.css?v=12">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=13">
 <link rel="stylesheet" href="/onebase-brand.css?v=7">
 <link rel="stylesheet" href="/onebase-experience-v1.css?v=3">
