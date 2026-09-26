@@ -2055,7 +2055,51 @@ render();
 
 <button class="cloud-account-btn" id="cloudAccountBtn" title="Cuenta">☁️</button>
 <div class="cloud-user-menu" id="cloudUserMenu"><div id="cloudUserLabel" style="padding:8px;font-weight:800"></div><button id="cloudSyncBtn">☁️ Sincronizar ahora</button><button id="cloudLogoutBtn">Cerrar sesión</button></div>
-<div class="cloud-auth-overlay" id="cloudAuthOverlay"><div class="cloud-auth-card"><h2 id="cloudAuthTitle">Tu cuenta</h2><p id="cloudAuthText">Crea una cuenta o inicia sesión para sincronizar tu AnimeTracker.</p><input id="cloudName" placeholder="Nombre de usuario (para registrarte)"><input id="cloudEmail" type="email" placeholder="Correo electrónico"><input id="cloudPassword" type="password" placeholder="Contraseña (mínimo 6 caracteres)"><div class="cloud-auth-actions"><button id="cloudLogin">Iniciar sesión</button><button id="cloudRegister" class="secondary">Crear cuenta</button><button id="cloudReset" class="secondary">Recuperar contraseña</button><button id="cloudClose" class="secondary">Cerrar</button></div><div class="cloud-status" id="cloudStatus"></div></div></div>
+<div class="cloud-auth-overlay" id="cloudAuthOverlay">
+  <div class="cloud-auth-card" role="dialog" aria-modal="true" aria-labelledby="cloudAuthTitle">
+    <section class="cloud-auth-hero">
+      <div>
+        <div class="cloud-auth-logo">ONEBASE · ANIMETRACKER</div>
+        <h2>Tu biblioteca,<br>siempre contigo.</h2>
+        <p>Inicia sesión para mantener tu progreso, favoritos y colección sincronizados entre dispositivos.</p>
+        <div class="cloud-auth-features">
+          <div class="cloud-auth-feature"><b>☁️</b><div><b>Sincronización en la nube</b><span>Tu biblioteca se guarda automáticamente.</span></div></div>
+          <div class="cloud-auth-feature"><b>◉</b><div><b>Progreso protegido</b><span>Los capítulos vistos viajan contigo.</span></div></div>
+          <div class="cloud-auth-feature"><b>✦</b><div><b>Tu cuenta, tus datos</b><span>Perfil y preferencias vinculados a tu cuenta.</span></div></div>
+        </div>
+      </div>
+      <div style="font-size:10px;color:var(--muted)">Acceso seguro mediante Supabase Auth</div>
+    </section>
+    <section class="cloud-auth-main">
+      <button class="cloud-auth-close" id="cloudClose" aria-label="Cerrar">×</button>
+      <h3 id="cloudAuthTitle">Bienvenido de nuevo</h3>
+      <p class="authSubtitle" id="cloudAuthText">Accede a tu biblioteca de AnimeTracker.</p>
+
+      <label for="cloudName">Nombre</label>
+      <input id="cloudName" placeholder="Tu nombre" autocomplete="name">
+
+      <label for="cloudEmail">Correo electrónico</label>
+      <input id="cloudEmail" type="email" placeholder="tu@correo.com" autocomplete="email">
+
+      <label for="cloudPassword">Contraseña</label>
+      <div class="authPasswordWrap">
+        <input id="cloudPassword" type="password" placeholder="Tu contraseña" autocomplete="current-password">
+        <button type="button" class="authPasswordToggle" id="authPasswordToggle" aria-label="Mostrar contraseña">◉</button>
+      </div>
+
+      <div class="cloud-auth-actions">
+        <button id="cloudLogin">Iniciar sesión</button>
+        <button id="cloudRegister" class="secondary">Crear cuenta nueva</button>
+      </div>
+      <div class="auth-links">
+        <button id="cloudReset" type="button">¿Has olvidado tu contraseña?</button>
+        <button id="cloudCloseAlt" type="button">Continuar sin cuenta</button>
+      </div>
+      <div class="cloud-status" id="cloudStatus" role="status" aria-live="polite"></div>
+      <div class="authTrust">🔒 <span><strong>Sesión persistente</strong> · tus datos se mantienen sincronizados.</span></div>
+    </section>
+  </div>
+</div>
 
 
 <script src="./profile-enhancer.js"></script>
