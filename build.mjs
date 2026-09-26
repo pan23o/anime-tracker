@@ -13,7 +13,7 @@ const files = [
   'onebase-episode-notifications.js','onebase-notification-setup.js','onebase-settings.js',
   'onebase-settings-scrollbar.js','onebase-profile-cleanup.js','onebase-level-sync.js',
   'onebase-custom-webs-v3.js','onebase-source-search-v2.js','onebase-anilist-search.js',
-  'onebase-anime-add-cleanup.js','onebase-premium.css','onebase-premium.js','onebase-safe-boot.js','onebase-loot-v2.css','onebase-loot-v2.js','onebase-integrations.js','favicon.ico','favicon.png','favicon.svg','onebase-sw.js'
+  'onebase-anime-add-cleanup.js','onebase-premium.css','onebase-premium.js','onebase-safe-boot.js','onebase-loot-v2.css','onebase-loot-v2.js','onebase-integrations.js','onebase-beast.css','onebase-beast.js','favicon.ico','favicon.png','favicon.svg','onebase-sw.js'
 ];
 
 for (const file of files) {
@@ -62,7 +62,8 @@ const runtimeScripts = [
   ['onebase-anime-add-cleanup.js', 'v=2'],
   ['onebase-premium.js', 'v=18'],
   ['onebase-loot-v2.js', 'v=7'],
-  ['onebase-integrations.js', 'v=1']
+  ['onebase-integrations.js', 'v=1'],
+  ['onebase-beast.js', 'v=1']
 ];
 
 // The source index can already contain older copies of these scripts. Remove them
