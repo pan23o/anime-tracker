@@ -166,8 +166,11 @@ function detail(x,i){
 function opening(i){
   const x=roll?.[i];if(!x)return;
   document.getElementById('lv2Opening')?.remove();
+
   const reduce=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-  const el=document.createElement('div');el.id='lv2Opening';el.className='lv2-opening lv3-opening';
+  const el=document.createElement('div');
+  el.id='lv2Opening';
+  el.className='lv2-opening lv3-opening';
   el.innerHTML='<div class="lv3-arena" role="dialog" aria-modal="true" aria-label="Abriendo caja de anime">'+
     '<div class="lv3-stage-label">ONEBASE · DESCUBRE TU PRÓXIMO ANIME</div>'+
     '<div class="lv3-stage" aria-hidden="true"><div class="lv3-floor"></div><div class="lv3-light"></div>'+
@@ -183,22 +186,23 @@ function opening(i){
   const status=el.querySelector('.lv3-stage-status');
   const result=el.querySelector('.lv3-result');
 
-  // Use the browser's Web Animations API for the sequence instead of CSS
-  // class/timer races. Each stage waits for the previous animation to finish.
-  const play=async(node,keyframes,options)=>{
-    if(!node)return;
-    node.getAnimations?.().forEach(a=>a.cancel());
-    const animation=node.animate(keyframes,{fill:'both',...options});
-    try{await animation.finished}catch(_){}
+  const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+  const transition=(node,styles,duration=300,easing='cubic-bezier(.16,1,.3,1)')=>{
+    if(!node)return Promise.resolve();
+    node.style.transition='none';
+    Object.assign(node.style,styles);
+    void node.offsetWidth;
+    node.style.transition=`transform ${duration}ms ${easing}, opacity ${duration}ms ease, filter ${duration}ms ease, clip-path ${duration}ms ${easing}`;
+    return new Promise(resolve=>{
+      const done=()=>{node.removeEventListener('transitionend',done);resolve()};
+      node.addEventListener('transitionend',done,{once:true});
+      setTimeout(done,duration+80);
+    });
   };
-  const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 
   const finish=async()=>{
-    if(!el.isConnected)return;
-    if(status)status.textContent='¡Has descubierto un anime!';
-    if(!result)return;
-    // Never let the detail card participate in layout before the reveal.
-    // The old CSS had a later .lv3-result rule that could override [hidden].
+    if(!el.isConnected||!result)return;
+    status.textContent='¡Has descubierto un anime!';
     result.hidden=true;
     result.style.display='none';
     result.style.opacity='0';
@@ -206,103 +210,93 @@ function opening(i){
     result.style.clipPath='inset(0 100% 0 0 round 20px)';
     result.querySelector('[data-lv2-save]')?.addEventListener('click',()=>{el.remove();save(i)});
     result.querySelector('[data-lv2-skip]')?.addEventListener('click',()=>{el.remove();skip(i)});
-    await new Promise(requestAnimationFrame);
+    await wait(30);
     if(!el.isConnected)return;
     result.hidden=false;
     result.style.display='block';
-    const infoAnim=play(result,[
-      {opacity:0,transform:'translateY(-50%) scaleX(.04)',clipPath:'inset(0 100% 0 0 round 20px)'},
-      {opacity:1,transform:'translateY(-50%) scaleX(1)',clipPath:'inset(0 0 0 0 round 20px)'}
-    ],{duration:900,easing:'cubic-bezier(.16,1,.3,1)'});
+    void result.offsetWidth;
+    result.style.transition='transform 900ms cubic-bezier(.16,1,.3,1), opacity 900ms ease, clip-path 900ms cubic-bezier(.16,1,.3,1)';
+    result.style.opacity='1';
+    result.style.transform='translateY(-50%) scaleX(1)';
+    result.style.clipPath='inset(0 0 0 0 round 20px)';
     const buttons=result.querySelector('.lv2-actions');
     if(buttons){
       buttons.style.opacity='0';
       buttons.style.transform='translateX(-24px)';
-      play(buttons,[
-        {opacity:0,transform:'translateX(-24px)'},
-        {opacity:1,transform:'translateX(0)'}
-      ],{duration:500,delay:280,easing:'cubic-bezier(.16,1,.3,1)'});
+      setTimeout(()=>{
+        if(!buttons.isConnected)return;
+        buttons.style.transition='transform 500ms cubic-bezier(.16,1,.3,1), opacity 500ms ease';
+        buttons.style.opacity='1';
+        buttons.style.transform='translateX(0)';
+      },280);
     }
-    await infoAnim;
   };
 
   if(reduce){finish();return;}
 
   (async()=>{
     if(!el.isConnected)return;
-    await play(chest,[
-      {transform:'translateX(-50%) translateY(75px) scale(.72)',opacity:0},
-      {transform:'translateX(-50%) translateY(0) scale(1)',opacity:1}
-    ],{duration:420,easing:'cubic-bezier(.2,.9,.3,1)'});
+
+    status.textContent='Preparando la caja…';
+    await transition(chest,{
+      transform:'translateX(-50%) translateY(0) scale(1)',
+      opacity:'1'
+    },420);
 
     const shakes=[
-      [
-        {transform:'translateX(-50%) rotate(0deg)'},
-        {transform:'translateX(calc(-50% - 12px)) rotate(-2deg)'},
-        {transform:'translateX(calc(-50% + 13px)) rotate(2deg)'},
-        {transform:'translateX(calc(-50% - 8px)) rotate(-1.2deg)'},
-        {transform:'translateX(-50%) rotate(0deg)'}
-      ],
-      [
-        {transform:'translateX(-50%) rotate(0deg)'},
-        {transform:'translateX(calc(-50% - 17px)) rotate(-2.8deg)'},
-        {transform:'translateX(calc(-50% + 18px)) rotate(2.8deg)'},
-        {transform:'translateX(calc(-50% - 11px)) rotate(-1.6deg)'},
-        {transform:'translateX(-50%) rotate(0deg)'}
-      ],
-      [
-        {transform:'translateX(-50%) rotate(0deg)'},
-        {transform:'translateX(calc(-50% - 22px)) rotate(-3.5deg)'},
-        {transform:'translateX(calc(-50% + 24px)) rotate(3.7deg)'},
-        {transform:'translateX(calc(-50% - 15px)) rotate(-2.2deg)'},
-        {transform:'translateX(calc(-50% + 8px)) rotate(1deg)'},
-        {transform:'translateX(-50%) rotate(0deg)'}
-      ]
+      ['-12px','-2deg',260],
+      ['-17px','-2.8deg',280],
+      ['-22px','-3.5deg',360]
     ];
 
-    for(let n=0;n<shakes.length;n++){
+    for(let n=0;n<3;n++){
       if(!el.isConnected)return;
-      if(status)status.textContent=n===2?'¡ABRIENDO LA CAJA!':'La caja está temblando…';
-      await play(chest,shakes[n],{duration:n===2?360:260,easing:'cubic-bezier(.36,.07,.19,.97)'});
-      if(n<2)await pause(55);
+      status.textContent=n===2?'¡LA CAJA SE VA A ABRIR!':'La caja está temblando…';
+      const [dx,rot,dur]=shakes[n];
+      chest.style.transition='none';
+      chest.style.transform='translateX(-50%) rotate(0deg)';
+      void chest.offsetWidth;
+      chest.style.transition=`transform ${Math.round(dur/5)}ms cubic-bezier(.36,.07,.19,.97)`;
+      const points=[
+        `translateX(calc(-50% - ${dx.replace('-','')})) rotate(${rot})`,
+        `translateX(calc(-50% + ${dx.replace('-','')})) rotate(${rot.replace('-','')})`,
+        `translateX(calc(-50% - ${Math.round(parseFloat(dx)*.65)}px)) rotate(-${Math.abs(parseFloat(rot)*.55)}deg)`,
+        'translateX(-50%) rotate(0deg)'
+      ];
+      for(const p of points){chest.style.transform=p;await wait(Math.round(dur/5));}
+      await wait(55);
     }
 
-    if(!el.isConnected)return;
-    if(status)status.textContent='¡ABRIENDO LA CAJA!';
+    status.textContent='¡ABRIENDO LA CAJA!';
+    const lidP=transition(lid,{
+      transform:'translateY(-105px) rotateX(-72deg)'
+    },720);
+    const chestP=transition(chest,{
+      transform:'translateX(-50%) translateY(105px) scale(.72)'
+    },620);
+    const lightP=transition(light,{
+      opacity:'0.9',
+      transform:'translateX(-50%) scale(1.3)'
+    },800,'ease-out');
+    await Promise.all([lidP,chestP,lightP]);
 
-    const lidOpen=play(lid,[
-      {transform:'translateY(0) rotateX(0deg)'},
-      {transform:'translateY(-22px) rotateX(-32deg)',offset:.42},
-      {transform:'translateY(-105px) rotateX(-72deg)'}
-    ],{duration:720,easing:'cubic-bezier(.16,1,.3,1)'});
-    const chestDrop=play(chest,[
-      {transform:'translateX(-50%) translateY(0) scale(1)'},
-      {transform:'translateX(-50%) translateY(105px) scale(.72)'}
-    ],{duration:620,easing:'cubic-bezier(.16,1,.3,1)'});
-    const lightBurst=play(light,[
-      {opacity:0,transform:'translateX(-50%) scale(.25)'},
-      {opacity:1,transform:'translateX(-50%) scale(1.05)',offset:.35},
-      {opacity:.85,transform:'translateX(-50%) scale(1.3)'}
-    ],{duration:800,easing:'ease-out'});
+    status.textContent='Recompensa encontrada';
+    await transition(prize,{
+      opacity:'1',
+      transform:'translate(-50%,-125px) scale(1)'
+    },720);
+    await transition(prize,{
+      transform:'translate(calc(-50% - 235px),-125px) scale(.9)'
+    },650);
 
-    await Promise.all([lidOpen,chestDrop,lightBurst]);
-    if(!el.isConnected)return;
-
-    if(status)status.textContent='Recompensa encontrada';
-    await play(prize,[
-      {opacity:0,transform:'translate(-50%,90px) scale(.5)'},
-      {opacity:1,transform:'translate(-50%,-125px) scale(1)'}
-    ],{duration:720,easing:'cubic-bezier(.16,1,.3,1)'});
-
-    await play(prize,[
-      {transform:'translate(-50%,-125px) scale(1)'},
-      {transform:'translate(calc(-50% - 235px),-125px) scale(.9)'}
-    ],{duration:650,easing:'cubic-bezier(.16,1,.3,1)'});
-
-    if(!el.isConnected)return;
-    finish();
-  })();
+    await finish();
+  })().catch(err=>{
+    console.error('[OneBase Lootbox opening]',err);
+    if(status)status.textContent='Error en la animación. Reintentando…';
+    setTimeout(()=>{if(el.isConnected)finish()},250);
+  });
 }
+
 function choose(i){
   if(busy||selected!==null||!roll?.[i]||resolved.has(i))return;
   selected=i;
