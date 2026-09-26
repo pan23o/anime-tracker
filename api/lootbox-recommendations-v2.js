@@ -39,7 +39,7 @@ module.exports=async function handler(req,res){
   const mode=['personalized','random','opposite'].includes(body.mode)?body.mode:'personalized';
   const genres=Array.isArray(body.genres)?body.genres.map(String).map(s=>s.trim()).filter(Boolean).slice(0,8):[];
   const targetGenres=Array.isArray(body.targetGenres)?body.targetGenres.map(String).map(s=>s.trim()).filter(Boolean).slice(0,8):[];
-  const excludeIds=Array.isArray(body.excludeIds)?body.excludeIds.map(Number).filter(Number.isInteger).slice(0,10000):[];
+  const excludeIds=Array.isArray(body.excludeIds)?body.excludeIds.map(Number).filter(x=>Number.isInteger(x)&&x>0).slice(-350):[];
   const page=Math.min(8,Math.max(1,Number.parseInt(body.page,10)||1));
 
   async function request(variables){
@@ -61,10 +61,17 @@ module.exports=async function handler(req,res){
       results=await request({page,perPage:50,genre:targetGenres[0],genres:null,excludeIds,sort:['POPULARITY_DESC']});
     }else{
       const selected=genres.length?genres:['Action','Adventure','Comedy'];
+      // genre_in is an OR filter. A sparse page must not erase the first results.
       results=await request({page,perPage:50,genre:null,genres:selected,excludeIds,sort:['POPULARITY_DESC']});
-      if(results.length<5){
-        results=await request({page:page===8?1:page+1,perPage:50,genre:selected[0],genres:null,excludeIds,sort:['POPULARITY_DESC']});
+      if(results.length<10){
+        const more=await request({page:1,perPage:50,genre:selected[0],genres:null,excludeIds,sort:['POPULARITY_DESC']});
+        results.push(...more);
       }
+    }
+    // Fill sparse personalized/opposite searches from the broad catalog.
+    if(results.length<12){
+      const broad=await request({page:1,perPage:50,genre:null,genres:null,excludeIds,sort:['POPULARITY_DESC']});
+      results.push(...broad);
     }
     const unique=[...new Map(results.filter(Boolean).map(x=>[Number(x.id),x])).values()];
     return json(res,200,{ok:true,mode,results:unique});
