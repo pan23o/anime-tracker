@@ -313,7 +313,7 @@
     // the real site origin; locally it remains localhost for local development.
     return window.location.origin + window.location.pathname;
   }
-  function handleAuthCallback() {
+  async function handleAuthCallback() {
     const hash = String(window.location.hash || '');
     if (!hash) return;
     const params = new URLSearchParams(hash.slice(1));
@@ -327,6 +327,9 @@
       return;
     }
     if (type === 'signup' && accessToken) {
+      // Let Supabase consume the fragment first; detectSessionInUrl=true creates
+      // the authenticated session from the access token before we remove it.
+      try { await client.auth.getSession(); } catch {}
       history.replaceState(null, document.title, window.location.pathname + window.location.search);
       authMessage('✓ Correo verificado. Tu cuenta está activa y tu sesión se está preparando…');
       toast('✓ Correo verificado correctamente');
@@ -361,7 +364,7 @@
   }
 
   client.auth.onAuthStateChange((event, session) => { user = session?.user || null; updateAccountUi(); if (event === 'SIGNED_IN' && user) void bootstrap(); if (event === 'SIGNED_OUT') { user = null; updateAccountUi(); } });
-  async function boot() { ensureMeta(); injectUiStyle(); bindUi(); handleAuthCallback(); updateAccountUi(); await bootstrap(); observe(); updateAccountUi(); }
+  async async function boot() { ensureMeta(); injectUiStyle(); bindUi(); await handleAuthCallback(); updateAccountUi(); await bootstrap(); observe(); updateAccountUi(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => void boot(), { once: true }); else void boot();
   window.AnimeTrackerCloud = { sync: () => user ? saveLibraryNow() : openAccountUi(), saveProgress: saveProgressNow, refresh: updateAccountUi, open: openAccountUi, logout };
 })();
