@@ -8,7 +8,7 @@ fs.mkdirSync(out, { recursive: true });
 
 const files = [
   'index.html','profile-enhancer.css','profile-enhancer.js','onebase-brand.css','onebase-brand.js',
-  'onebase-experience-v1.css','onebase-experience-v1.js','onebase-persistence-repair.js',
+  'onebase-experience-v1.css','onebase-experience-v1.js',
   'onebase-status-effects.js','onebase-eye-v2.js','onebase-auto-complete.js','onebase-instant-save.js',
   'onebase-episode-notifications.js','onebase-notification-setup.js','onebase-settings.js',
   'onebase-settings-scrollbar.js','onebase-profile-cleanup.js','onebase-level-sync.js',
@@ -35,7 +35,6 @@ const headAssets = `
 <link rel="stylesheet" href="/onebase-brand.css?v=7">
 <link rel="stylesheet" href="/onebase-experience-v1.css?v=3">
 <script src="/onebase-brand.js?v=9" defer></script>
-<script src="/onebase-persistence-repair.js?v=4" defer></script>
 <script src="/onebase-status-effects.js?v=3" defer></script>`;
 
 // Mark the core inline application as healthy only after its full script executes.
@@ -43,9 +42,12 @@ const headAssets = `
 html = html.replace(/([\s\S]*)(<\/script>\s*<button class="cloud-account-btn")/i, '$1window.__ONEBASE_CORE_READY__=true;\n$2');
 html = html.replace(/<\/head>/i, `${headAssets}\n</head>`);
 
+// Force the browser to fetch the corrected persistence engine.
+html = html.replace(/profile-enhancer\.js(?:\?[^"']*)?/g, 'profile-enhancer.js?v=9');
+
 const runtimeScripts = [
   ['onebase-auto-complete.js', 'v=4'],
-  ['onebase-instant-save.js', 'v=4'],
+  ['onebase-instant-save.js', 'v=5'],
   ['onebase-notification-setup.js', 'v=4'],
   ['onebase-episode-notifications.js', 'v=4'],
   ['onebase-settings.js', 'v=10'],
@@ -58,7 +60,7 @@ const runtimeScripts = [
   ['onebase-source-search-v2.js', 'v=14'],
   ['onebase-anilist-search.js', 'v=6'],
   ['onebase-anime-add-cleanup.js', 'v=2'],
-  ['onebase-premium.js', 'v=13'],
+  ['onebase-premium.js', 'v=16'],
   ['onebase-loot-v2.js', 'v=5']
 ];
 

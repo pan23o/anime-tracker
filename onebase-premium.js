@@ -239,10 +239,12 @@ function ensureHealth(){
 function openHealth(){ensureHealth();safeTransition(()=>$('#onebaseHealthModal').classList.add('open'));runHealth()}
 function closeHealth(){safeTransition(()=>$('#onebaseHealthModal')?.classList.remove('open'))}
 async function runHealth(){
+  const library=libraryPersistenceProbe();
   const tests=[
     ['core','Núcleo OneBase',Boolean(window.__ONEBASE_CORE_READY__),'La aplicación principal ha marcado su arranque como correcto.'],
-    ['library','Biblioteca',Array.isArray(window.data),'El estado de la biblioteca está disponible en memoria.'],
+    ['library','Biblioteca',library.ok,library.detail],
     ['storage','Persistencia local',storageProbe(),'localStorage responde a lectura/escritura.'],
+    ['cloud','Guardado en cuenta',document.documentElement.dataset.atSession !== '1' || window.OneBaseLibrarySync?.status !== 'failed',document.documentElement.dataset.atSession !== '1' ? 'Modo local: no hay cuenta conectada.' : window.OneBaseLibrarySync?.status === 'saved' ? 'La última escritura en la nube se confirmó.' : window.OneBaseLibrarySync?.status === 'failed' ? 'La última escritura en la nube falló: revisa la conexión o los permisos.' : 'Todavía no hay una escritura en la nube confirmada.'],
     ['render','Render',typeof window.render==='function','La función de renderizado está disponible.'],
     ['sources','Fuentes',Boolean(window.OneBaseSourceSearchV2?.search),'El módulo de búsqueda de fuentes está cargado.'],
     ['notifications','Notificaciones','serviceWorker' in navigator,'Service Worker disponible en este navegador.'],
@@ -251,6 +253,28 @@ async function runHealth(){
   ];
   const grid=$('#onebaseHealthGrid');grid.innerHTML=tests.map(t=>'<div class="onebase-health-item '+(t[2]?'ok':'fail')+'"><span class="onebase-health-icon">'+(t[2]?'✓':'×')+'</span><span><b class="onebase-health-name">'+esc(t[1])+'</b><span class="onebase-health-detail">'+esc(t[3])+'</span></span><span class="onebase-health-state">'+(t[2]?'OK':'FALLO')+'</span></div>').join('');
   const ok=tests.filter(t=>t[2]).length;$('#onebaseHealthSummary').textContent=ok+'/'+tests.length+' pruebas superadas · '+new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+}
+function libraryPersistenceProbe(){
+  try{
+    const live=window.__ONEBASE_DATA__;
+    if(!Array.isArray(live))return {ok:false,detail:'El núcleo todavía no ha expuesto la biblioteca en memoria.'};
+    const raw=localStorage.getItem('anime_tracker_v6');
+    if(raw===null)return {ok:false,detail:'No existe una copia local de la biblioteca. Guarda un cambio para crearla.'};
+    const stored=JSON.parse(raw);
+    if(!Array.isArray(stored))return {ok:false,detail:'La copia local no contiene una biblioteca válida.'};
+    const relevant=list=>list.filter(x=>x&&String(x.anime||'').trim()).map(x=>({
+      id:String(x.aniId||x.anilistId||x.anime).trim().toLowerCase(),
+      name:String(x.anime||'').trim().toLowerCase(),
+      watched:Number(x.watched)||0,
+      total:Number(x.total)||0,
+      state:String(x.state||'')
+    })).sort((a,b)=>a.id.localeCompare(b.id));
+    const memory=relevant(live),disk=relevant(stored);
+    if(JSON.stringify(memory)===JSON.stringify(disk))return {ok:true,detail:memory.length+' animes: capítulos y estados coinciden con la copia local.'};
+    const changed=memory.filter((x,i)=>JSON.stringify(x)!==JSON.stringify(disk[i]));
+    const example=changed[0];
+    return {ok:false,detail:'Hay cambios aún no reflejados en el almacenamiento ('+memory.length+' en memoria / '+disk.length+' guardados).'+(example?' Revisa: '+example.name+'.':'')+' Espera unos segundos y repite la prueba.'};
+  }catch(e){return {ok:false,detail:'Error leyendo la copia local: '+String(e?.message||e)}}
 }
 function storageProbe(){try{const k='onebase_health_probe';localStorage.setItem(k,'1');const ok=localStorage.getItem(k)==='1';localStorage.removeItem(k);return ok}catch(_){return false}}
 async function httpCheck(url){try{const r=await fetch(url,{cache:'no-store',headers:{accept:'application/json,text/html'}});return r.ok}catch(_){return false}}
