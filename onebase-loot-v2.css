@@ -228,3 +228,198 @@
 
 /* Visible retry state when recommendation API fails. */
 .lv2-error{border-color:#b07c39;background:linear-gradient(145deg,#282015,#111)}.lv2-error b{font-size:17px;color:#f2cc83}.lv2-error small{display:block;max-width:390px;margin:12px auto;font-size:12px;line-height:1.6;color:#d6c5aa}.lv2-error button{margin-top:14px;padding:12px 23px;border:1px solid #e3b75c;border-radius:11px;background:#e3b75c;color:#17120b;font-weight:900;cursor:pointer}
+
+
+/* Lootbox opening — cinematic sequence requested */
+.lv3-opening{
+  background:rgba(3,4,7,.72)!important;
+  backdrop-filter:blur(18px)!important;
+  -webkit-backdrop-filter:blur(18px)!important;
+}
+.lv3-arena{
+  position:relative;
+  width:min(1100px,96vw)!important;
+  min-height:620px!important;
+  overflow:visible!important;
+}
+.lv3-stage{
+  width:min(760px,94vw)!important;
+  height:390px!important;
+  overflow:visible!important;
+}
+.lv3-chest{
+  transition:none!important;
+  transform-origin:50% 100%!important;
+}
+.lv3-chest-lid{
+  transform-origin:50% 95%!important;
+  transition:none!important;
+}
+.lv3-prize{
+  width:154px!important;
+  height:220px!important;
+  transition:transform .7s cubic-bezier(.16,1,.3,1),opacity .35s ease,box-shadow .7s ease!important;
+  transform-origin:50% 100%!important;
+  z-index:8!important;
+}
+.lv3-prize span{
+  font-size:8px!important;
+}
+
+/* 3 distinct shakes: the third one triggers the opening */
+.lv3-shake-1 .lv3-chest{
+  animation:lv3ShakeOne .24s cubic-bezier(.36,.07,.19,.97) both!important;
+}
+.lv3-shake-2 .lv3-chest{
+  animation:lv3ShakeTwo .24s cubic-bezier(.36,.07,.19,.97) both!important;
+}
+.lv3-shake-3 .lv3-chest{
+  animation:lv3ShakeThree .32s cubic-bezier(.36,.07,.19,.97) both!important;
+}
+@keyframes lv3ShakeOne{
+  0%,100%{transform:translateX(-50%) rotate(0)}
+  20%{transform:translateX(calc(-50% - 12px)) rotate(-2deg)}
+  45%{transform:translateX(calc(-50% + 13px)) rotate(2deg)}
+  70%{transform:translateX(calc(-50% - 8px)) rotate(-1.2deg)}
+}
+@keyframes lv3ShakeTwo{
+  0%,100%{transform:translateX(-50%) rotate(0)}
+  20%{transform:translateX(calc(-50% - 16px)) rotate(-2.8deg)}
+  45%{transform:translateX(calc(-50% + 17px)) rotate(2.8deg)}
+  70%{transform:translateX(calc(-50% - 10px)) rotate(-1.5deg)}
+}
+@keyframes lv3ShakeThree{
+  0%,100%{transform:translateX(-50%) rotate(0)}
+  18%{transform:translateX(calc(-50% - 20px)) rotate(-3.5deg)}
+  38%{transform:translateX(calc(-50% + 22px)) rotate(3.5deg)}
+  58%{transform:translateX(calc(-50% - 13px)) rotate(-2deg)}
+  78%{transform:translateX(calc(-50% + 7px)) rotate(1deg)}
+}
+
+/* Third shake -> lid opens and chest drops */
+.lv3-opened .lv3-chest-lid{
+  animation:lv3CinematicLid .72s cubic-bezier(.16,1,.3,1) forwards!important;
+}
+.lv3-opened .lv3-light{
+  animation:lv3CinematicLight .8s ease-out forwards!important;
+}
+.lv3-opened .lv3-chest{
+  animation:lv3ChestDrop .62s cubic-bezier(.16,1,.3,1) forwards!important;
+}
+@keyframes lv3CinematicLid{
+  0%{transform:translateY(0) rotateX(0)}
+  45%{transform:translateY(-22px) rotateX(-32deg)}
+  100%{transform:translateY(-105px) rotateX(-72deg)}
+}
+@keyframes lv3ChestDrop{
+  0%{transform:translateX(-50%) translateY(0) scale(1)}
+  100%{transform:translateX(-50%) translateY(105px) scale(.72)}
+}
+@keyframes lv3CinematicLight{
+  0%{opacity:0;transform:translateX(-50%) scale(.25)}
+  30%{opacity:1}
+  100%{opacity:.85;transform:translateX(-50%) scale(1.3)}
+}
+
+/* Anime card rises out of the box */
+.lv3-card-rise .lv3-prize{
+  opacity:1!important;
+  transform:translate(-50%,-125px) scale(1)!important;
+  box-shadow:0 0 35px #f5bf60cc,0 0 100px #f5bf6055!important;
+  animation:lv3CardRise .7s cubic-bezier(.16,1,.3,1) both!important;
+}
+@keyframes lv3CardRise{
+  0%{opacity:0;transform:translate(-50%,90px) scale(.5)}
+  55%{opacity:1}
+  100%{opacity:1;transform:translate(-50%,-125px) scale(1)}
+}
+
+/* Card moves left, then the information unfolds from its right edge */
+.lv3-card-left .lv3-prize{
+  transform:translate(calc(-50% - 235px),-125px) scale(.9)!important;
+}
+.lv3-result{
+  position:absolute!important;
+  left:calc(50% - 100px)!important;
+  top:50%!important;
+  width:min(700px,62vw)!important;
+  margin:0!important;
+  z-index:7!important;
+  opacity:0!important;
+  transform:translateY(-50%) scaleX(0)!important;
+  transform-origin:left center!important;
+  clip-path:inset(0 100% 0 0 round 20px)!important;
+  transition:none!important;
+}
+.lv3-info-open .lv3-result{
+  opacity:1!important;
+  transform:translateY(-50%) scaleX(1)!important;
+  clip-path:inset(0 0 0 0 round 20px)!important;
+  animation:lv3InfoUnfold .85s cubic-bezier(.16,1,.3,1) both!important;
+}
+@keyframes lv3InfoUnfold{
+  0%{opacity:0;transform:translateY(-50%) scaleX(.05);clip-path:inset(0 100% 0 0 round 20px)}
+  45%{opacity:1}
+  100%{opacity:1;transform:translateY(-50%) scaleX(1);clip-path:inset(0 0 0 0 round 20px)}
+}
+.lv3-result .lv2-reveal{
+  margin:0!important;
+  min-height:260px;
+  border-radius:20px!important;
+  box-shadow:0 25px 90px #000c,0 0 45px #e5b0522b!important;
+}
+.lv3-result .lv2-reveal-inner{
+  grid-template-columns:1fr!important;
+  padding:28px 32px!important;
+}
+.lv3-result .lv2-reveal-cover{
+  display:none!important;
+}
+.lv3-result .lv2-reveal-copy{
+  min-width:0;
+}
+.lv3-result .lv2-reveal-copy h4{
+  font-size:clamp(25px,3vw,42px)!important;
+}
+.lv3-result .lv2-reveal-desc{
+  max-height:145px!important;
+  overflow:auto;
+}
+.lv3-result .lv2-actions{
+  opacity:0;
+  transform:translateX(-24px);
+}
+.lv3-info-open .lv3-result .lv2-actions{
+  animation:lv3ButtonsIn .55s .25s cubic-bezier(.16,1,.3,1) forwards;
+}
+@keyframes lv3ButtonsIn{
+  to{opacity:1;transform:translateX(0)}
+}
+
+/* Keep the card visually in front while the info opens from behind it */
+.lv3-card-left .lv3-prize{
+  z-index:10!important;
+}
+.lv3-info-open .lv3-prize{
+  box-shadow:0 0 25px #f5bf60aa,0 0 70px #f5bf6040!important;
+}
+
+@media(max-width:760px){
+  .lv3-arena{min-height:680px!important}
+  .lv3-stage{height:330px!important}
+  .lv3-card-left .lv3-prize{
+    transform:translate(calc(-50% - 105px),-115px) scale(.78)!important;
+  }
+  .lv3-result{
+    left:50%!important;
+    top:62%!important;
+    width:min(92vw,620px)!important;
+  }
+  .lv3-result .lv2-reveal-inner{padding:22px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .lv3-shake-1 .lv3-chest,.lv3-shake-2 .lv3-chest,.lv3-shake-3 .lv3-chest,
+  .lv3-opened .lv3-chest,.lv3-opened .lv3-chest-lid,.lv3-card-rise .lv3-prize,
+  .lv3-info-open .lv3-result,.lv3-info-open .lv3-result .lv2-actions{animation:none!important}
+  .lv3-info-open .lv3-result{opacity:1!important;transform:translateY(-50%) scaleX(1)!important;clip-path:none!important}
+}
