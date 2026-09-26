@@ -308,8 +308,33 @@
   }
   function authMessage(text) { if ($('cloudStatus')) $('cloudStatus').textContent = text; }
   async function login() { const email = String($('cloudEmail')?.value || '').trim(), password = String($('cloudPassword')?.value || ''); if (!email || !password) return authMessage('Escribe correo y contraseña.'); authMessage('Iniciando sesión…'); try { const { data, error } = await client.auth.signInWithPassword({ email, password }); if (error) throw error; user = data?.user || null; $('cloudAuthOverlay')?.classList.remove('show'); await bootstrap(); updateAccountUi(); toast('✓ Sesión iniciada'); } catch (e) { console.error('[AnimeTracker] login', e); authMessage(e?.message || 'No se pudo iniciar sesión.'); } }
-  async function register() { const name = String($('cloudName')?.value || '').trim().slice(0, 32) || 'Usuario', email = String($('cloudEmail')?.value || '').trim(), password = String($('cloudPassword')?.value || ''); if (!email || !password) return authMessage('Escribe correo y contraseña.'); if (password.length < 6) return authMessage('La contraseña debe tener al menos 6 caracteres.'); authMessage('Creando cuenta…'); try { const { data, error } = await client.auth.signUp({ email, password, options: { data: { username: name } } }); if (error) throw error; if (data?.user) { user = data.user; localStorage.setItem(PROFILE, JSON.stringify({ name, email, avatar: '', createdAt: now() })); if (data.session) await bootstrap(); } $('cloudAuthOverlay')?.classList.remove('show'); updateAccountUi(); toast(data?.session ? '✓ Cuenta creada y sesión iniciada' : '✓ Cuenta creada. Revisa tu correo.'); } catch (e) { console.error('[AnimeTracker] register', e); authMessage(e?.message || 'No se pudo crear la cuenta.'); } }
-  async function resetPassword() { const email = String($('cloudEmail')?.value || '').trim(); if (!email) return authMessage('Escribe tu correo para recuperar la contraseña.'); authMessage('Enviando correo…'); try { const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo: location.href }); if (error) throw error; authMessage('✓ Revisa tu correo.'); } catch (e) { authMessage(e?.message || 'No se pudo enviar el correo.'); } }
+  function authRedirectUrl() {
+    // Supabase uses this URL after confirming the email. On production this is
+    // the real site origin; locally it remains localhost for local development.
+    return window.location.origin + window.location.pathname;
+  }
+  function handleAuthCallback() {
+    const hash = String(window.location.hash || '');
+    if (!hash) return;
+    const params = new URLSearchParams(hash.slice(1));
+    const type = params.get('type');
+    const accessToken = params.get('access_token');
+    const errorDescription = params.get('error_description');
+    if (errorDescription) {
+      authMessage(decodeURIComponent(errorDescription.replace(/\+/g, ' ')));
+      $('cloudAuthOverlay')?.classList.add('show');
+      history.replaceState(null, document.title, window.location.pathname + window.location.search);
+      return;
+    }
+    if (type === 'signup' && accessToken) {
+      history.replaceState(null, document.title, window.location.pathname + window.location.search);
+      authMessage('✓ Correo verificado. Tu cuenta está activa y tu sesión se está preparando…');
+      toast('✓ Correo verificado correctamente');
+      setTimeout(() => { $('cloudAuthOverlay')?.classList.remove('show'); }, 900);
+    }
+  }
+  async function register() { const name = String($('cloudName')?.value || '').trim().slice(0, 32) || 'Usuario', email = String($('cloudEmail')?.value || '').trim(), password = String($('cloudPassword')?.value || ''); if (!email || !password) return authMessage('Escribe correo y contraseña.'); if (password.length < 6) return authMessage('La contraseña debe tener al menos 6 caracteres.'); authMessage('Creando cuenta…'); try { const { data, error } = await client.auth.signUp({ email, password, options: { data: { username: name }, redirectTo: authRedirectUrl() } }); if (error) throw error; if (data?.user) { user = data.user; localStorage.setItem(PROFILE, JSON.stringify({ name, email, avatar: '', createdAt: now() })); if (data.session) { await bootstrap(); $('cloudAuthOverlay')?.classList.remove('show'); updateAccountUi(); toast('✓ Cuenta creada y sesión iniciada'); } else { authMessage('✓ Cuenta creada. Te hemos enviado un correo de verificación. Ábrelo y pulsa «Verificar correo» para activar tu cuenta.'); updateAccountUi(); } } } catch (e) { console.error('[AnimeTracker] register', e); authMessage(e?.message || 'No se pudo crear la cuenta.'); } }
+  async function resetPassword() { const email = String($('cloudEmail')?.value || '').trim(); if (!email) return authMessage('Escribe tu correo para recuperar la contraseña.'); authMessage('Enviando correo…'); try { const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo: authRedirectUrl() }); if (error) throw error; authMessage('✓ Revisa tu correo.'); } catch (e) { authMessage(e?.message || 'No se pudo enviar el correo.'); } }
   async function syncProfile() { if (!user) return; try { const local = profileLocal(), { data: cloud, error } = await client.from('profiles').select('username,avatar_data,created_at').eq('id', user.id).maybeSingle(); if (error) throw error; if (cloud) { const p = normalizeProfile({ name: cloud.username || 'Usuario', avatar: cloud.avatar_data || '', createdAt: Date.parse(cloud.created_at || '') || local.createdAt || now() }); localStorage.setItem(PROFILE, JSON.stringify(p)); updateProfileDom(p); } else { const p = normalizeProfile(local); localStorage.setItem(PROFILE, JSON.stringify(p)); updateProfileDom(p); await client.from('profiles').upsert({ id: user.id, username: p.name, avatar_data: p.avatar }, { onConflict: 'id' }); } } catch (e) { console.warn('[AnimeTracker] profile sync failed:', e); } }
   function scheduleProfileSync() { if (!user) return; clearTimeout(profileTimer); profileTimer = setTimeout(async () => { try { const p = normalizeProfile(profileLocal()); await client.from('profiles').upsert({ id: user.id, username: p.name, avatar_data: p.avatar, updated_at: new Date().toISOString() }, { onConflict: 'id' }); } catch (e) { console.warn('[AnimeTracker] profile save failed:', e); } }, 500); }
   async function logout(event) { event?.preventDefault?.(); const button = $('cloudLogoutBtn'); if (button) { button.disabled = true; button.classList.add('cloud-logout-busy'); button.textContent = 'Cerrando sesión…'; } try { const oldUser = user, current = localList(); if (oldUser) { await uploadAccountFile(current); await saveEmergencyMirror(current); await saveCloudTable(current); } user = null; setMeta({ ...ensureMeta(), owner: '' }); await saveEmergencyMirror(current); await client.auth.signOut(); $('cloudUserMenu')?.classList.remove('show'); updateAccountUi(); toast('✓ Sesión cerrada'); } catch (e) { console.error('[AnimeTracker] logout', e); toast('No se pudo cerrar la sesión.'); } finally { if (button) { button.disabled = false; button.classList.remove('cloud-logout-busy'); button.textContent = 'Cerrar sesión'; } } }
@@ -336,7 +361,7 @@
   }
 
   client.auth.onAuthStateChange((event, session) => { user = session?.user || null; updateAccountUi(); if (event === 'SIGNED_IN' && user) void bootstrap(); if (event === 'SIGNED_OUT') { user = null; updateAccountUi(); } });
-  async function boot() { ensureMeta(); injectUiStyle(); bindUi(); updateAccountUi(); await bootstrap(); observe(); updateAccountUi(); }
+  async function boot() { ensureMeta(); injectUiStyle(); bindUi(); handleAuthCallback(); updateAccountUi(); await bootstrap(); observe(); updateAccountUi(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => void boot(), { once: true }); else void boot();
   window.AnimeTrackerCloud = { sync: () => user ? saveLibraryNow() : openAccountUi(), saveProgress: saveProgressNow, refresh: updateAccountUi, open: openAccountUi, logout };
 })();
