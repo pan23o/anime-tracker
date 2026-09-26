@@ -214,10 +214,10 @@ function opening(i){
     for(let n=1;n<=3;n++){
       if(!active())return;
       await animate(chest,[
-        {transform:'translateX(0) rotate(0deg)'},
-        {transform:'translateX(-'+(7+n*4)+'px) rotate(-'+n+'deg)',offset:.25},
-        {transform:'translateX('+(7+n*4)+'px) rotate('+n+'deg)',offset:.6},
-        {transform:'translateX(0) rotate(0deg)'}
+        {transform:'translateX(-50%) rotate(0deg)'},
+        {transform:'translateX(calc(-50% - '+(7+n*4)+'px)) rotate(-'+n+'deg)',offset:.25},
+        {transform:'translateX(calc(-50% + '+(7+n*4)+'px)) rotate('+n+'deg)',offset:.6},
+        {transform:'translateX(-50%) rotate(0deg)'}
       ],n===3?450:330,'ease-in-out');
       if(n<3)await wait(220);
     }
@@ -226,7 +226,7 @@ function opening(i){
     el.classList.add('lv4-open');
     await Promise.all([
       animate(el.querySelector('.lv4-lid'),[{transform:'translateY(0) rotateX(0deg)'},{transform:'translateY(-100px) rotateX(-78deg)'}],650),
-      animate(chest,[{transform:'translateY(0) scale(1)'},{transform:'translateY(115px) scale(.75)'}],780),
+      animate(chest,[{transform:'translateX(-50%) translateY(0) scale(1)'},{transform:'translateX(-50%) translateY(115px) scale(.75)'}],780),
       animate(el.querySelector('.lv4-beam'),[{opacity:0,transform:'translateX(-50%) scale(.4)'},{opacity:1,transform:'translateX(-50%) scale(1.25)'}],650)
     ]);
     if(!active())return;
