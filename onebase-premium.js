@@ -145,18 +145,28 @@ function refreshCountdown(){
   airingTimer=setTimeout(()=>{renderHome();refreshCountdown()},30000);
 }
 function ensureInfoEnhancement(){
-  const modal=$('#infoModal');if(!modal||modal.dataset.onebasePremium==='1')return;
-  modal.dataset.onebasePremium='1';
+  const modal=$('#infoModal');if(!modal||modal.dataset.onebasePremium==='2')return;
+  modal.dataset.onebasePremium='2';
   const card=modal.querySelector('.infoCard');if(!card)return;
-  card.classList.add('onebase-premium-info');
-  const grid=card.querySelector('.infoGrid');if(!grid)return;
-  const hero=document.createElement('div');hero.className='onebase-info-hero';hero.id='onebaseInfoHero';
-  card.insertBefore(hero,grid);
-  const desc=document.createElement('div');desc.className='onebase-info-description';desc.id='onebaseInfoDescription';grid.querySelector('.infoGrid>div:nth-child(2)')?.appendChild(desc);
-  const statsEl=document.createElement('div');statsEl.className='onebase-info-stats';statsEl.id='onebaseInfoStats';grid.querySelector('.infoGrid>div:nth-child(2)')?.appendChild(statsEl);
-  const progress=document.createElement('div');progress.className='onebase-info-progress';progress.id='onebaseInfoProgress';grid.querySelector('.infoGrid>div:nth-child(2)')?.appendChild(progress);
-  const epBtn=document.createElement('button');epBtn.type='button';epBtn.className='onebase-episode-button';epBtn.id='onebaseOpenEpisodes';epBtn.textContent='▦ Abrir sistema de episodios';grid.querySelector('.infoGrid>div:nth-child(2)')?.appendChild(epBtn);
-  epBtn.addEventListener('click',()=>openEpisodes(pendingInfoIndex));
+  card.classList.add('onebase-premium-info','onebase-simple-info');
+  const grid=card.querySelector('.infoGrid'),details=grid?.children[1];if(!grid||!details)return;
+  // Keep all existing IDs and handlers: this is a layout-only redesign.
+  const hero=document.createElement('div');hero.className='onebase-info-hero';hero.id='onebaseInfoHero';card.insertBefore(hero,grid);
+  const overview=document.createElement('section');overview.className='ob-detail-overview';overview.innerHTML='<div class="ob-detail-eyebrow">TU SEGUIMIENTO</div><div class="onebase-info-stats" id="onebaseInfoStats"></div><div class="onebase-info-progress" id="onebaseInfoProgress"></div>';
+  const actions=document.createElement('section');actions.className='ob-detail-watch';actions.innerHTML='<div class="ob-detail-eyebrow">¿QUÉ QUIERES HACER?</div><p>Continúa donde lo dejaste o busca dónde ver el siguiente capítulo.</p><div class="ob-detail-main-actions"><button type="button" class="onebase-episode-button" id="onebaseOpenEpisodes">✓ Marcar capítulos vistos</button></div>';
+  const sourceBtn=$('#infoSources');if(sourceBtn){sourceBtn.textContent='▶ Buscar dónde ver';actions.querySelector('.ob-detail-main-actions').appendChild(sourceBtn)}
+  const edit=document.createElement('details');edit.className='ob-detail-edit';edit.innerHTML='<summary>⚙ Personalizar mi ficha <span>Estado, nota y favorito</span></summary><div class="ob-detail-edit-inner"></div>';
+  const form=details.querySelector('.formRow'),fav=$('#infoFav')?.closest('.checkRow'),save=$('#infoSave');
+  if(form)edit.querySelector('.ob-detail-edit-inner').appendChild(form);
+  if(fav)edit.querySelector('.ob-detail-edit-inner').appendChild(fav);
+  if(save){save.textContent='Guardar cambios';edit.querySelector('.ob-detail-edit-inner').appendChild(save)}
+  const metadata=document.createElement('details');metadata.className='ob-detail-more';metadata.innerHTML='<summary>ℹ Información del anime <span>Sinopsis y datos</span></summary><div class="ob-detail-more-inner"></div>';
+  const desc=document.createElement('div');desc.className='onebase-info-description';desc.id='onebaseInfoDescription';
+  metadata.querySelector('.ob-detail-more-inner').appendChild(desc);
+  [details.querySelector('.infoSub'),details.querySelector('#infoGenres'),...details.querySelectorAll('.infoLine'),details.querySelector('#nextAiring')].filter(Boolean).forEach(el=>metadata.querySelector('.ob-detail-more-inner').appendChild(el));
+  // Move rather than clone original controls so existing event listeners remain intact.
+  details.append(overview,actions,edit,metadata);
+  const epBtn=$('#onebaseOpenEpisodes');epBtn?.addEventListener('click',()=>openEpisodes(pendingInfoIndex));
 }
 function enhanceInfo(){
   ensureInfoEnhancement();
@@ -164,12 +174,12 @@ function enhanceInfo(){
   const hero=$('#onebaseInfoHero'),desc=$('#onebaseInfoDescription'),st=$('#onebaseInfoStats'),pr=$('#onebaseInfoProgress');
   if(hero){
     const cover=String(item.cover||item.coverImage||'').trim();
-    hero.innerHTML=(cover?'<img class="onebase-info-hero-bg" src="'+esc(cover)+'" alt="" aria-hidden="true">':'')+'<div class="onebase-info-hero-content"><div class="onebase-info-hero-kicker">ONEBASE · FICHA PREMIUM</div><div class="onebase-info-hero-title">'+esc(item.anime)+'</div></div>';
+    hero.innerHTML=(cover?'<img class="onebase-info-hero-bg" src="'+esc(cover)+'" alt="" aria-hidden="true">':'')+'<div class="onebase-info-hero-content"><div class="onebase-info-hero-kicker">ONEBASE · TU ANIME</div><div class="onebase-info-hero-title">'+esc(item.anime)+'</div></div>';
   }
   if(desc)desc.textContent=txt(item.descriptionEs||item.description||'')||'Sin descripción disponible.';
   const watched=Number(item.watched)||0,total=Number(item.total)||0,remaining=Math.max(0,total-watched);
-  if(st)st.innerHTML='<div class="onebase-info-stat"><b>Mi progreso</b><span>'+esc(watched)+' / '+esc(total||'—')+'</span></div><div class="onebase-info-stat"><b>Pendientes</b><span>'+esc(remaining)+'</span></div><div class="onebase-info-stat"><b>Mi nota</b><span>'+(item.score!==''?Number(item.score).toFixed(1)+'/10':'—')+'</span></div>';
-  if(pr){const pct=total?Math.max(0,Math.min(100,watched/total*100)):0;pr.innerHTML='<div class="onebase-info-progress-top"><span>Progreso</span><b>'+Math.round(pct)+'%</b></div><div class="onebase-info-progress-bar"><span style="width:'+pct+'%"></span></div>'}
+  if(st)st.innerHTML='<div class="onebase-info-stat"><b>Vistos</b><span>'+esc(watched)+'</span></div><div class="onebase-info-stat"><b>Restantes</b><span>'+(total?esc(remaining):'—')+'</span></div><div class="onebase-info-stat"><b>Total</b><span>'+esc(total||'—')+'</span></div>';
+  if(pr){const pct=total?Math.max(0,Math.min(100,watched/total*100)):0;pr.innerHTML='<div class="onebase-info-progress-top"><span>Tu progreso</span><b>'+Math.round(pct)+'%</b></div><div class="onebase-info-progress-bar"><span style="width:'+pct+'%"></span></div>'}
 }
 function ensureEpisodeModal(){
   if($('#onebaseEpisodesModal'))return;
