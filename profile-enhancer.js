@@ -292,6 +292,8 @@
     $('cloudAccountBtn')?.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); openAccountUi(); });
     $('cloudClose')?.addEventListener('click', () => $('cloudAuthOverlay')?.classList.remove('show'));
     $('cloudAuthOverlay')?.addEventListener('click', e => { if (e.target === $('cloudAuthOverlay')) $('cloudAuthOverlay').classList.remove('show'); });
+    $('cloudPassword')?.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); void login(); } });
+    $('cloudEmail')?.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('cloudPassword')?.focus(); } });
     $('cloudSyncBtn')?.addEventListener('click', () => void saveLibraryNow()); $('cloudLogoutBtn')?.addEventListener('click', logout); $('cloudLogin')?.addEventListener('click', login); $('cloudRegister')?.addEventListener('click', register); $('cloudReset')?.addEventListener('click', resetPassword);
     document.addEventListener('keydown', e => { if (e.key === 'Escape') { $('cloudAuthOverlay')?.classList.remove('show'); $('cloudUserMenu')?.classList.remove('show'); } });
   }
