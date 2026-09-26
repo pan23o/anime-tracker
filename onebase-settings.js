@@ -14,7 +14,7 @@
 
   function saveState(patch) {
     const next = { ...state(), ...patch };
-    try { localStorage.setItem(KEY, JSON.stringify(next)); } catch (_) {}
+    try { localStorage.setItem(KEY, JSON.stringify(next)); } catch (_) { window.toast?.('No se pudieron guardar los ajustes en este navegador.'); }
     window.OneBaseSettings = window.OneBaseSettings || {};
     window.OneBaseSettings.state = next;
     return next;
@@ -45,6 +45,13 @@
       body.onebase-light-theme #onebaseSettingsOverlay{background:rgba(255,255,255,.72)}
       body.onebase-light-theme .ob-settings-window,body.onebase-light-theme .ob-settings-section{background:#fff!important;color:#050505!important;border-color:#050505!important;box-shadow:0 10px 0 rgba(0,0,0,.08)}
       body.onebase-light-theme .ob-settings-head,body.onebase-light-theme .ob-setting-row{border-color:#050505!important}.onebase-light-theme .ob-settings-close,.onebase-light-theme .ob-theme-select{background:#fff!important;color:#050505!important;border:2px solid #050505!important}.onebase-light-theme .ob-settings-section-head{border-color:#050505!important}.onebase-light-theme .ob-setting-copy span,.onebase-light-theme .ob-theme-note{color:#222!important}
+      .ob-settings-window{width:min(680px,95vw);background:linear-gradient(145deg,#201b14,#111 35%)!important;border:1px solid #6e522c;box-shadow:0 32px 100px #000b,0 0 60px #e0a94c12}
+      .ob-settings-head{padding:24px 26px;border-bottom:1px solid #493821}.ob-settings-title strong{font-size:25px}.ob-settings-title small{font-size:11px;color:#c8a66f}
+      .ob-settings-body{padding:20px;gap:12px}.ob-settings-section{background:#191714;border-color:#403529;border-radius:16px}.ob-settings-section-head{padding:18px 20px}.ob-settings-section-head strong{font-size:15px;color:#f1ce8c}.ob-settings-section-head p{font-size:11px;color:#aaa}
+      .ob-setting-row{padding:17px 20px;border-color:#36302a}.ob-setting-copy strong{font-size:13px}.ob-setting-copy span{font-size:11px;line-height:1.5}
+      .ob-theme-select{font-size:13px;min-height:45px;border-color:#725938}.ob-theme-note{font-size:11px}
+      .ob-settings-extra{border:1px solid #403529;border-radius:16px;background:#191714;overflow:hidden}.ob-settings-extra summary{cursor:pointer;display:flex;justify-content:space-between;gap:10px;padding:19px 20px;font-size:14px;font-weight:850;color:#f1ce8c;list-style:none}.ob-settings-extra summary::-webkit-details-marker{display:none}.ob-settings-extra summary span{font-size:11px;color:#aaa;font-weight:500}.ob-settings-extra[open] summary{border-bottom:1px solid #403529}
+      body.onebase-light-theme .ob-settings-window{background:#fff!important;color:#111!important;border-color:#222!important}body.onebase-light-theme .ob-settings-section,body.onebase-light-theme .ob-settings-extra{background:#fff!important;border-color:#222!important}body.onebase-light-theme .ob-settings-section-head strong,body.onebase-light-theme .ob-settings-extra summary{color:#111!important}
       @media(max-width:600px){.ob-settings-body{padding:10px}.ob-settings-head{padding:15px}.ob-setting-row{padding:13px}.ob-settings-window{max-height:94vh}}
     `;
     document.head.appendChild(style);
@@ -94,6 +101,7 @@
     try { localStorage.setItem('anime_tracker_theme', theme); localStorage.setItem('onebase_theme_v1', theme); } catch (_) {}
     const original=findOriginalThemeSelect();
     if(original) original.value=theme;
+    saveState({theme});
   }
 
   function themeOptions(original) {
@@ -114,16 +122,16 @@
     overlay.innerHTML=`
       <div class="ob-settings-window" role="dialog" aria-modal="true" aria-labelledby="onebaseSettingsTitle">
         <div class="ob-settings-head">
-          <div class="ob-settings-title"><span style="font-size:22px">⚙️</span><div><strong id="onebaseSettingsTitle">Ajustes</strong><small>Configuración de OneBase</small></div></div>
+          <div class="ob-settings-title"><span style="font-size:22px">⚙️</span><div><strong id="onebaseSettingsTitle">Ajustes</strong><small>Personaliza tu experiencia</small></div></div>
           <button type="button" class="ob-settings-close" id="onebaseSettingsClose" aria-label="Cerrar ajustes">×</button>
         </div>
         <div class="ob-settings-body">
           <section class="ob-settings-section">
-            <div class="ob-settings-section-head"><strong>🎨 Apariencia</strong><p>La configuración de apariencia está disponible aquí sin eliminar los controles originales.</p></div>
+            <div class="ob-settings-section-head"><strong>01 · Tu estilo</strong><p>Elige cómo quieres ver OneBase. Los cambios se aplican al instante.</p></div>
             <div class="ob-theme-box"><select id="onebaseSettingsTheme" class="ob-theme-select" aria-label="Tema de OneBase"></select><div class="ob-theme-note" id="onebaseSettingsThemeStatus"></div></div>
           </section>
           <section class="ob-settings-section">
-            <div class="ob-settings-section-head"><strong>🛡️ Protección</strong><p>Controles para proteger tu biblioteca y controlar los avisos de OneBase.</p></div>
+            <div class="ob-settings-section-head"><strong>02 · Tu biblioteca</strong><p>Protege tus animes y controla las copias automáticas.</p></div>
             <div id="onebaseProtectionRows"></div>
           </section>
         </div>
@@ -133,17 +141,21 @@
     const protection=overlay.querySelector('#onebaseProtectionRows');
     protection.append(
       row('onebaseSettingConfirmDelete','Confirmar eliminaciones','Evita borrar un anime por accidente.',s.confirmDelete),
-      row('onebaseSettingAutoBackup','Copias automáticas','Guarda instantáneas locales periódicas de tu biblioteca.',s.autoBackup),
-      row('onebaseSettingAchievementPopups','Avisos de logros','Muestra la ventana emergente al desbloquearlos.',s.achievementPopups),
-      row('onebaseSettingEpisodeNotifications','Enviar notificaciones de nuevos episodios','Recibe avisos cuando OneBase detecte un episodio nuevo, incluso con la web cerrada.',s.episodeNotifications)
+      row('onebaseSettingAutoBackup','Copias automáticas','Guarda instantáneas locales periódicas de tu biblioteca.',s.autoBackup)
     );
+    const extras=document.createElement('details');extras.className='ob-settings-extra';extras.innerHTML='<summary>03 · Notificaciones y extras <span>Opcional</span></summary><div id="obSettingsExtras"></div>';
+    extras.querySelector('#obSettingsExtras').append(
+      row('onebaseSettingAchievementPopups','Avisos de logros','Muestra una ventana al desbloquear logros.',s.achievementPopups),
+      row('onebaseSettingEpisodeNotifications','Notificaciones de episodios','Requiere que el servicio de notificaciones esté disponible.',s.episodeNotifications)
+    );
+    overlay.querySelector('.ob-settings-body').appendChild(extras);
 
     const original=findOriginalThemeSelect();
     const theme=overlay.querySelector('#onebaseSettingsTheme');
     for(const option of themeOptions(original)){ const o=document.createElement('option'); o.value=option.value; o.textContent=option.text; theme.appendChild(o); }
-    theme.value=original?.value||s.theme||theme.options[0]?.value||'';
+    theme.value=s.theme||original?.value||theme.options[0]?.value||'';
     overlay.querySelector('#onebaseSettingsThemeStatus').textContent=`Tema activo: ${theme.selectedOptions[0]?.textContent||theme.value}`;
-    theme.addEventListener('change',()=>applyTheme(theme.value));
+    theme.addEventListener('change',()=>{applySettingsTheme(theme.value);overlay.querySelector('#onebaseSettingsThemeStatus').textContent='Tema activo: '+theme.selectedOptions[0]?.textContent;});
 
     overlay.querySelector('#onebaseSettingsClose').addEventListener('click',close);
     overlay.addEventListener('click',e=>{if(e.target===overlay)close();});
@@ -170,7 +182,7 @@
     input.addEventListener('change',async()=>{if(custom){await custom(input);return;}saveState({[key]:input.checked});});
   }
 
-  function open(){buildOverlay();document.getElementById('onebaseSettingsOverlay').classList.add('open');document.body.style.overflow='hidden';}
+  function open(){buildOverlay();const overlay=document.getElementById('onebaseSettingsOverlay');const s=state();for(const [id,key] of [['onebaseSettingConfirmDelete','confirmDelete'],['onebaseSettingAutoBackup','autoBackup'],['onebaseSettingAchievementPopups','achievementPopups'],['onebaseSettingEpisodeNotifications','episodeNotifications']]){const el=overlay.querySelector('#'+id);if(el)el.checked=Boolean(s[key]);}const theme=overlay.querySelector('#onebaseSettingsTheme');if(theme)theme.value=s.theme||localStorage.getItem('anime_tracker_theme')||'ink';overlay.classList.add('open');document.body.style.overflow='hidden';}
   function close(){document.getElementById('onebaseSettingsOverlay')?.classList.remove('open');document.body.style.overflow='';}
 
   function addButton(){
@@ -228,7 +240,7 @@
       window.OneBaseSettingsBackupTimer=setInterval(()=>{
         if(!state().autoBackup)return;
         try{
-          const list=Array.isArray(window.data)?window.data:[];if(!list.length)return;
+          const list=Array.isArray(window.__ONEBASE_DATA__)?window.__ONEBASE_DATA__:[];if(!list.length)return;
           const key=`onebase_backup_${new Date().toISOString().slice(0,16).replace(/[:T]/g,'-')}`;
           localStorage.setItem(key,JSON.stringify({createdAt:Date.now(),library:list}));
         }catch(_){ }
