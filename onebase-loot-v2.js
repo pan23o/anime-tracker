@@ -193,18 +193,37 @@ function opening(i){
   };
   const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 
-  const finish=()=>{
+  const finish=async()=>{
     if(!el.isConnected)return;
     if(status)status.textContent='¡Has descubierto un anime!';
-    if(result){
-      result.hidden=false;
-      requestAnimationFrame(()=>{
-        if(!el.isConnected)return;
-        el.classList.add('lv3-info-open');
-        result.querySelector('[data-lv2-save]')?.addEventListener('click',()=>{el.remove();save(i)});
-        result.querySelector('[data-lv2-skip]')?.addEventListener('click',()=>{el.remove();skip(i)});
-      });
+    if(!result)return;
+    // Never let the detail card participate in layout before the reveal.
+    // The old CSS had a later .lv3-result rule that could override [hidden].
+    result.hidden=true;
+    result.style.display='none';
+    result.style.opacity='0';
+    result.style.transform='translateY(-50%) scaleX(.04)';
+    result.style.clipPath='inset(0 100% 0 0 round 20px)';
+    result.querySelector('[data-lv2-save]')?.addEventListener('click',()=>{el.remove();save(i)});
+    result.querySelector('[data-lv2-skip]')?.addEventListener('click',()=>{el.remove();skip(i)});
+    await new Promise(requestAnimationFrame);
+    if(!el.isConnected)return;
+    result.hidden=false;
+    result.style.display='block';
+    const infoAnim=play(result,[
+      {opacity:0,transform:'translateY(-50%) scaleX(.04)',clipPath:'inset(0 100% 0 0 round 20px)'},
+      {opacity:1,transform:'translateY(-50%) scaleX(1)',clipPath:'inset(0 0 0 0 round 20px)'}
+    ],{duration:900,easing:'cubic-bezier(.16,1,.3,1)'});
+    const buttons=result.querySelector('.lv2-actions');
+    if(buttons){
+      buttons.style.opacity='0';
+      buttons.style.transform='translateX(-24px)';
+      play(buttons,[
+        {opacity:0,transform:'translateX(-24px)'},
+        {opacity:1,transform:'translateX(0)'}
+      ],{duration:500,delay:280,easing:'cubic-bezier(.16,1,.3,1)'});
     }
+    await infoAnim;
   };
 
   if(reduce){finish();return;}
