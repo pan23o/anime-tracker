@@ -76,7 +76,8 @@ function scoreCandidate(x,p,mode,targets){
 }
 function pick(candidates,p,mode,targets){
   const hist=loadHistory(),owned=ids();
-  const pool=candidates.filter(x=>x&&Number(x.id)>0&&!owned.has(Number(x.id))&&!hist.has(Number(x.id)));
+  const unique=new Map(candidates.filter(x=>x&&Number(x.id)>0).map(x=>[Number(x.id),x]));
+  const pool=[...unique.values()].filter(x=>!owned.has(Number(x.id))&&!hist.has(Number(x.id)));
   const ranked=pool.map(x=>({x,s:scoreCandidate(x,p,mode,targets)})).sort((a,b)=>b.s-a.s);
   const chosen=[];
   while(chosen.length<5&&ranked.length){
@@ -85,7 +86,10 @@ function pick(candidates,p,mode,targets){
     let r=Math.random()*total,pick=topPool[topPool.length-1];
     for(const o of topPool){r-=Math.max(.1,o.s);if(r<=0){pick=o;break}}
     chosen.push(pick.x);
-    const idx=ranked.findIndex(o=>Number(o.x.id)===Number(pick.x.id));if(idx>=0)ranked.splice(idx,1);
+    // A weighted candidate may be selected from topPool; return the other
+    // candidates to the pool so the same anime cannot appear twice.
+    ranked.push(...topPool.filter(o=>Number(o.x.id)!==Number(pick.x.id)));
+    ranked.sort((a,b)=>b.s-a.s);
   }
   return chosen.map(x=>({
     id:Number(x.id),
@@ -104,7 +108,7 @@ async function fetchRoll(){
   const p=profile(),taste=top(p.genres,8),targets=mode==='opposite'?oppositeGenres(p):[];
   const hist=loadHistory(),owned=[...ids()];
   const exclude=[...new Set([...hist,...owned])].filter(Number.isFinite).slice(-10000);
-  const body={mode,genres:taste,targetGenres:targets,excludeIds:exclude,page:1+Math.floor(Math.random()*8)};
+  const body={mode,genres:taste,targetGenres:targets,excludeIds:exclude.slice(-350),page:1+Math.floor(Math.random()*4)};
   const controller=typeof AbortController==='undefined'?null:new AbortController();
   const timer=controller?setTimeout(()=>controller.abort(),9000):null;
   try{
@@ -113,11 +117,11 @@ async function fetchRoll(){
     if(!r.ok||!payload?.ok)throw new Error(payload?.error||'No se pudieron preparar las cajas.');
     let picked=pick(Array.isArray(payload.results)?payload.results:[],p,mode,targets);
     if(picked.length<5){
-      const fallback=await fetch('/api/lootbox-recommendations-v2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...body,mode:'random',page:Math.floor(Math.random()*8)+1}),signal:controller?.signal});
+      const fallback=await fetch('/api/lootbox-recommendations-v2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...body,mode:'random',page:1}),signal:controller?.signal});
       const fp=await fallback.json().catch(()=>null);
       if(fallback.ok&&fp?.ok)picked=pick([...(payload.results||[]),...(fp.results||[])],p,mode,targets);
     }
-    if(picked.length<5)throw new Error('No hay 5 recomendaciones nuevas disponibles para esta tirada.');
+    if(picked.length<5)throw new Error('No hay 5 animes nuevos disponibles. Prueba otro modo o genera otra tirada.');
     return picked;
   }catch(error){
     if(error?.name==='AbortError')throw new Error('AniList tardó demasiado en responder. Pulsa Reintentar.');
@@ -183,7 +187,8 @@ function opening(i){
   const result=el.querySelector('.lv3-result');
   const wait=ms=>new Promise(r=>setTimeout(r,ms));
   const stage=async(cls,text,duration)=>{
-    el.classList.remove('lv3-shake-1','lv3-shake-2','lv3-shake-3','lv3-opened','lv3-card-rise','lv3-card-left');
+    // Preserve completed stages: the lid must stay open while the reward rises.
+    el.classList.remove('lv3-shake-1','lv3-shake-2','lv3-shake-3');
     void el.offsetWidth;
     if(text)status.textContent=text;
     el.classList.add(cls);
@@ -202,6 +207,7 @@ function opening(i){
     if(!el.isConnected)return;
     result.hidden=false;
     result.style.display='block';
+    el.classList.add('lv3-info-open');
     void result.offsetWidth;
     result.style.transition='transform 850ms cubic-bezier(.16,1,.3,1),opacity 850ms ease,clip-path 850ms cubic-bezier(.16,1,.3,1)';
     result.style.opacity='1';
@@ -251,9 +257,9 @@ function save(i){
   const owned=list().some(o=>Number(o.aniId||o.anilistId)===x.id||String(o.anime||'').toLowerCase()===x.title.toLowerCase());
   if(owned){markHistory(x.id);resolved.add(i);return closeDropThen(()=>{renderLoot();window.toast?.('Ese anime ya estaba en tu biblioteca.');})}
   const d=window.__ONEBASE_DATA__;
-  if(!Array.isArray(d))return;
+  if(!Array.isArray(d)){window.toast?.('La biblioteca no está lista. Vuelve a intentarlo.');return;}
   d.push({anime:x.title,watched:'0',total:x.episodes?String(x.episodes):'',duration:x.duration?String(x.duration):'',durationMin:x.duration||0,state:'pendiente',score:'',favorite:false,cover:x.cover,coverImage:x.cover,bannerImage:x.banner,description:x.description,genres:x.genres,tags:x.tags,apiStatus:x.status,anilistStatus:x.status,apiScore:x.score?x.score/10:0,aniId:x.id,anilistId:x.id,knownTotal:x.episodes?String(x.episodes):'',plannedEpisodes:x.episodes?String(x.episodes):'',newEpisodes:0,siteUrl:x.siteUrl,source:'onebase-lootbox-v2',addedAt:Date.now(),updatedAt:Date.now()});
-  try{window.save?.({skipBackup:true})}catch(_){try{window.save?.()}catch(__){}}
+  try{if(typeof window.save==='function')window.save({skipBackup:true});else {localStorage.setItem('anime_tracker_v6',JSON.stringify(d));window.dispatchEvent(new Event('animetracker:saved'));}}catch(error){window.toast?.('No se pudo guardar: '+String(error?.message||error));return;}
   markHistory(x.id);resolved.add(i);
   closeDropThen(()=>{renderLoot();window.toast?.('✓ Anime guardado como pendiente.')});
 }
