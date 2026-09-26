@@ -1207,7 +1207,21 @@ function createRow(i){
     }
     if(data[i].total && Number(v)>=Number(data[i].total)) data[i].newEpisodes=0;
     data[i].updatedAt=Date.now();
-    save();updateRow(row,data[i]);
+
+    // Persist chapter progress immediately. The cloud layer also listens to the
+    // normal "saved" event, but this dedicated event prevents a progress-only
+    // edit from waiting for the background observer.
+    save();
+    window.dispatchEvent(new CustomEvent('animetracker:progress-changed', {
+      detail: { index: i, watched: data[i].watched, updatedAt: data[i].updatedAt }
+    }));
+    updateRow(row,data[i]);
+  });
+
+  watched.addEventListener("change",()=> {
+    window.dispatchEvent(new CustomEvent('animetracker:progress-changed', {
+      detail: { index: i, watched: data[i]?.watched ?? "", updatedAt: data[i]?.updatedAt ?? Date.now() }
+    }));
   });
 
   updateRow(row,item);
