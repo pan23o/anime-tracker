@@ -239,7 +239,53 @@
       if (sync) sync.style.display = 'none'; if (logoutBtn) logoutBtn.style.display = 'none'; if (status) status.textContent = 'Modo local. Pulsa la nube para iniciar sesión.'; delete document.documentElement.dataset.atSession;
     }
   }
-  function injectUiStyle() { if ($('atAccountUiStyle')) return; const style = document.createElement('style'); style.id = 'atAccountUiStyle'; style.textContent = '.cloud-account-btn{z-index:10020!important}.cloud-account-btn[data-at-session="1"]{border-color:rgba(103,223,138,.55)!important;box-shadow:0 0 0 2px rgba(103,223,138,.18),0 0 26px rgba(103,223,138,.10)!important}.cloud-user-menu{z-index:10021!important;min-width:270px!important}.cloud-user-menu.show{display:block!important}.at-account-head{padding:10px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:8px}.at-account-state{font-size:10px;font-weight:900;color:#67df8a}.at-account-name{margin-top:5px;font-size:13px;font-weight:900}.at-account-email{margin-top:2px;font-size:10px;color:#777}.at-local-state{padding:10px;color:#aaa;font-size:10px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:8px}.cloud-logout-busy{opacity:.6!important;pointer-events:none!important}'; document.head.appendChild(style); }
+  function injectUiStyle() {
+    if ($('atAccountUiStyle')) return;
+    const style = document.createElement('style');
+    style.id = 'atAccountUiStyle';
+    style.textContent = `
+      .cloud-account-btn{z-index:10020!important}
+      .cloud-account-btn[data-at-session="1"]{border-color:rgba(103,223,138,.55)!important;box-shadow:0 0 0 2px rgba(103,223,138,.18),0 0 26px rgba(103,223,138,.10)!important}
+      .cloud-user-menu{z-index:10021!important;min-width:290px!important}
+      .cloud-user-menu.show{display:block!important}
+      .at-account-head{padding:12px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:8px}
+      .at-account-state{font-size:10px;font-weight:900;color:#67df8a}
+      .at-account-name{margin-top:5px;font-size:13px;font-weight:900}
+      .at-account-email{margin-top:2px;font-size:10px;color:#777}
+      .at-local-state{padding:10px;color:#aaa;font-size:10px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:8px}
+      .cloud-logout-busy{opacity:.6!important;pointer-events:none!important}
+
+      .cloud-auth-overlay{position:fixed;inset:0;z-index:10050;background:radial-gradient(circle at 50% 15%,rgba(255,215,0,.11),transparent 38%),rgba(0,0,0,.82);display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(16px)}
+      .cloud-auth-overlay.show{display:flex;animation:onebaseAuthIn .22s ease both}
+      .cloud-auth-card{position:relative;width:min(920px,100%);min-height:560px;overflow:hidden;background:linear-gradient(135deg,var(--panel),var(--panel2));border:1px solid rgba(255,255,255,.12);border-radius:28px;padding:0;box-shadow:0 30px 90px rgba(0,0,0,.55),0 0 70px rgba(255,215,0,.08);display:grid;grid-template-columns:42% 58%}
+      .cloud-auth-hero{padding:48px;display:flex;flex-direction:column;justify-content:space-between;border-right:1px solid rgba(255,255,255,.08);background:radial-gradient(circle at 20% 20%,rgba(255,215,0,.12),transparent 42%)}
+      .cloud-auth-logo{font-size:12px;font-weight:950;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+      .cloud-auth-hero h2{font-size:38px;line-height:1.02;margin:18px 0 12px;letter-spacing:-.04em}
+      .cloud-auth-hero p{color:var(--muted);line-height:1.6;margin:0}
+      .cloud-auth-features{display:grid;gap:12px;margin-top:28px}
+      .cloud-auth-feature{display:flex;gap:11px;align-items:flex-start;color:var(--text);font-size:13px}
+      .cloud-auth-feature b{display:block;margin-bottom:2px}
+      .cloud-auth-feature span{color:var(--muted);font-size:11px}
+      .cloud-auth-main{padding:48px 52px;display:flex;flex-direction:column;justify-content:center;position:relative}
+      .cloud-auth-close{position:absolute;top:18px;right:18px;width:38px;height:38px;border-radius:50%;border:1px solid var(--line2);background:var(--panel2);color:var(--text);font-size:22px;cursor:pointer}
+      .cloud-auth-main h3{font-size:25px;margin:0 0 7px}
+      .cloud-auth-main .authSubtitle{color:var(--muted);font-size:13px;margin:0 0 24px}
+      .cloud-auth-card label{display:block;font-size:11px;font-weight:800;color:var(--muted);margin:13px 0 6px;text-transform:uppercase;letter-spacing:.07em}
+      .cloud-auth-card input{width:100%;margin:0;padding:14px 15px;border-radius:12px;border:1px solid var(--line2);background:var(--bg2);color:var(--text);outline:none;transition:.2s}
+      .cloud-auth-card input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(255,215,0,.10)}
+      .authPasswordWrap{position:relative}.authPasswordWrap input{padding-right:52px}.authPasswordToggle{position:absolute;right:8px;top:7px;width:38px;height:38px;border:0;background:transparent;color:var(--muted);cursor:pointer}
+      .cloud-auth-actions{display:grid;grid-template-columns:1fr;gap:9px;margin-top:20px}
+      .cloud-auth-actions button{width:100%;padding:14px;border-radius:12px;border:1px solid var(--line2);background:var(--accent);color:#080808;font-weight:950;cursor:pointer;transition:transform .18s,box-shadow .18s}
+      .cloud-auth-actions button:hover{transform:translateY(-1px);box-shadow:0 8px 25px rgba(255,215,0,.18)}
+      .cloud-auth-actions .secondary{background:var(--panel2);color:var(--text)}
+      .auth-links{display:flex;justify-content:space-between;gap:10px;margin-top:14px}.auth-links button{border:0;background:none;color:var(--muted);cursor:pointer;font-size:11px}.auth-links button:hover{color:var(--accent)}
+      .cloud-status{min-height:18px;font-size:12px;color:var(--muted);margin-top:15px;padding:9px 11px;border-radius:10px;background:rgba(255,255,255,.035)}
+      .authTrust{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:10px;margin-top:18px}.authTrust strong{color:var(--text)}
+      @keyframes onebaseAuthIn{from{opacity:0;transform:scale(.985)}to{opacity:1;transform:none}}
+      @media(max-width:760px){.cloud-auth-card{grid-template-columns:1fr;min-height:0}.cloud-auth-hero{display:none}.cloud-auth-main{padding:42px 28px}}
+    `;
+    document.head.appendChild(style);
+  }
   function openAccountUi() { if (user) $('cloudUserMenu')?.classList.toggle('show'); else $('cloudAuthOverlay')?.classList.add('show'); }
   function bindUi() {
     if (bound) return; bound = true; injectUiStyle();
