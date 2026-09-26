@@ -260,7 +260,7 @@ function opening(i){
       const points=[
         `translateX(calc(-50% - ${dx.replace('-','')})) rotate(${rot})`,
         `translateX(calc(-50% + ${dx.replace('-','')})) rotate(${rot.replace('-','')})`,
-        `translateX(calc(-50% - ${Math.round(parseFloat(dx)*.65)}px)) rotate(-${Math.abs(parseFloat(rot)*.55)}deg)`,
+        `translateX(calc(-50% - ${Math.abs(Math.round(parseFloat(dx)*.65))}px)) rotate(-${Math.abs(parseFloat(rot)*.55)}deg)`,
         'translateX(-50%) rotate(0deg)'
       ];
       for(const p of points){chest.style.transform=p;await wait(Math.round(dur/5));}
