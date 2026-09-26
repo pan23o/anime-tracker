@@ -207,6 +207,7 @@ function opening(i){
       if(!await step('lv5-shake-'+n,'Temblor '+n+' de 3',n===3?650:540))return;
       if(n<3)await wait(240);
     }
+    el.classList.remove('lv5-shake-1','lv5-shake-2','lv5-shake-3');
     if(!await step('lv5-open','¡La caja se abre!',780))return;
     if(!await step('lv5-down','La caja desciende…',680))return;
     if(!await step('lv5-rise','¡Aparece tu anime!',1100))return;
