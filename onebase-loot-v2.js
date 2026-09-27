@@ -267,14 +267,29 @@ function opening(i){
   q('.obc-replay').onclick=()=>void play();
   q('.obc-save').onclick=()=>{if(!el.classList.contains('obc-done'))return;el.remove();save(i)};
   q('.obc-discard').onclick=()=>{if(!el.classList.contains('obc-done'))return;el.remove();skip(i)};
-  // A visible replay control also lets users opt into the animation if the
-  // operating system normally requests reduced motion.
-  if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches){
-    caption.textContent='Movimiento reducido activado · Pulsa «Repetir animación» para verla';
+  // Opening a box is an explicit request to see the reveal. Run exactly the
+  // same proven timeline as the Replay button on the first opening.
+  // Keep a skip control for users who prefer not to watch the sequence.
+  const skipButton=document.createElement('button');
+  skipButton.type='button';
+  skipButton.className='obc-replay';
+  skipButton.style.right='auto';
+  skipButton.style.left='18px';
+  skipButton.textContent='Saltar animación';
+  el.querySelector('.obc-stage').appendChild(skipButton);
+  skipButton.onclick=()=>{
+    ++runId;
+    animations.forEach(animation=>animation.cancel());
+    animations=[];
     lid.style.transform='translateY(-105px) rotateX(-80deg)';
-    box.style.opacity='0';card.style.opacity='1';card.style.transform=innerWidth<760?'translate(-50%,-50%) scale(.85)':'translate(calc(-50% - 245px),-50%)';
-    panel.style.opacity='1';panel.style.clipPath='inset(0 0 0 0)';finish();
-  }else void play();
+    box.style.opacity='0';
+    card.style.opacity='1';
+    card.style.transform=innerWidth<760?'translate(-50%,-50%) scale(.85)':'translate(calc(-50% - 245px),-50%)';
+    panel.style.opacity='1';
+    panel.style.clipPath='inset(0 0 0 0)';
+    finish();
+  };
+  void play();
 }
 
 function choose(i){
