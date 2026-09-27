@@ -169,107 +169,112 @@ function detail(x,i){
 }
 function opening(i){
   const x=roll?.[i];if(!x)return;
-  document.getElementById('lv2Opening')?.remove();
-  const el=document.createElement('div');
-  el.id='lv2Opening';el.className='lv6-overlay';
-  el.innerHTML='<div class="lv6-stage" role="dialog" aria-modal="true" aria-label="Apertura de lootbox">'+
-    '<p class="lv6-kicker">ONEBASE · RECOMPENSA MISTERIOSA</p>'+
-    '<div class="lv6-box"><div class="lv6-glow"></div><div class="lv6-chest"><div class="lv6-lid">ONEBASE</div><div class="lv6-interior"></div><div class="lv6-bottom">◈</div></div></div>'+
-    '<div class="lv6-prize"><div class="lv6-card">'+(x.cover?'<img src="'+esc(x.cover)+'" alt="Portada de '+esc(x.title)+'">':'◈')+'</div>'+
-    '<div class="lv6-info">'+detail(x,i)+'</div></div>'+
-    '<p class="lv6-caption" aria-live="polite">Tu caja está lista</p></div>';
+  document.getElementById('onebase-loot-cinema')?.remove();
+  // Self-contained component: its styles travel with its script. This avoids
+  // stale CSS, inherited lv2/lv3/lv4/lv5/lv6 rules and animation overrides.
+  if(!document.getElementById('onebase-loot-cinema-style')){
+    const style=document.createElement('style');style.id='onebase-loot-cinema-style';
+    style.textContent=`
+#onebase-loot-cinema{position:fixed!important;inset:0!important;z-index:2147483640!important;display:block!important;overflow:auto!important;overscroll-behavior:contain;background:radial-gradient(ellipse at 50% 43%,#322411 0%,#111115 54%,#08080b 100%)!important;color:#f8f2e9!important;font-family:system-ui,-apple-system,sans-serif!important}
+#onebase-loot-cinema *{box-sizing:border-box}
+#onebase-loot-cinema .obc-stage{position:relative;width:min(1040px,96vw);height:min(740px,96dvh);min-height:560px;margin:auto;isolation:isolate}
+#onebase-loot-cinema .obc-top{position:absolute;top:5%;left:0;right:0;text-align:center;color:#f0c66d;font-size:12px;font-weight:900;letter-spacing:3px}
+#onebase-loot-cinema .obc-caption{position:absolute;bottom:5%;left:0;right:0;text-align:center;color:#e6c88e;font-size:15px;font-weight:800;letter-spacing:.6px}
+#onebase-loot-cinema .obc-box{position:absolute;left:50%;top:46%;width:270px;height:260px;transform:translate(-50%,-50%);perspective:900px;z-index:3}
+#onebase-loot-cinema .obc-chest{position:absolute;left:50%;top:32%;width:220px;height:155px;transform:translateX(-50%);transform-origin:50% 65%}
+#onebase-loot-cinema .obc-lid{position:absolute;top:0;left:-7px;width:234px;height:60px;border:3px solid #f1c66d;border-radius:17px 17px 7px 7px;background:linear-gradient(140deg,#6e5024,#171820 54%,#7b5b2d);display:grid;place-items:center;z-index:5;color:#ffe0a0;font-size:13px;font-weight:950;letter-spacing:3px;transform-origin:50% 100%;box-shadow:0 0 25px #e7ac5355}
+#onebase-loot-cinema .obc-inside{position:absolute;inset:40px 8px 15px;background:#050508;box-shadow:inset 0 0 30px #ffd57e}
+#onebase-loot-cinema .obc-base{position:absolute;inset:42px 0 0;border:3px solid #d6a64f;border-radius:7px 7px 16px 16px;background:linear-gradient(145deg,#50381c,#101116 55%,#59401e);display:grid;place-items:center;color:#f7cc75;font-size:51px;box-shadow:0 18px 45px #000b}
+#onebase-loot-cinema .obc-light{position:absolute;left:50%;top:0;width:280px;height:280px;transform:translateX(-50%) scale(.35);opacity:0;background:radial-gradient(ellipse,#ffe099dd 0%,#f5bb624d 35%,transparent 73%);filter:blur(17px);pointer-events:none}
+#onebase-loot-cinema .obc-reward{position:absolute;inset:0;z-index:6;pointer-events:none}
+#onebase-loot-cinema .obc-card{position:absolute;left:50%;top:46%;width:190px;height:275px;transform:translate(-50%,110px) scale(.5);opacity:0;border:3px solid #f6cb75;border-radius:14px;overflow:hidden;background:#322618;box-shadow:0 0 38px #efbd5c88,0 22px 65px #000d;z-index:10}
+#onebase-loot-cinema .obc-card img{width:100%;height:100%;object-fit:cover;display:block}
+#onebase-loot-cinema .obc-panel{position:absolute;left:calc(50% - 145px);top:46%;width:min(660px,65vw);transform:translateY(-50%);opacity:0;clip-path:inset(0 100% 0 0);z-index:8;pointer-events:none}
+#onebase-loot-cinema .obc-content{padding:27px 28px 27px 115px;min-height:285px;border:1px solid #a87d3b;border-radius:19px;background:linear-gradient(130deg,#292117,#131317 70%);box-shadow:0 20px 65px #000b}
+#onebase-loot-cinema .obc-tag{color:#edc478;font-size:10px;font-weight:900;letter-spacing:1px}
+#onebase-loot-cinema .obc-title{font-size:clamp(23px,3vw,36px);line-height:1.12;margin:9px 0;font-weight:950;color:#fff}
+#onebase-loot-cinema .obc-meta{font-size:12px;color:#d1b991}
+#onebase-loot-cinema .obc-desc{font-size:13px;line-height:1.6;color:#d4d0c8;max-height:115px;overflow:auto}
+#onebase-loot-cinema .obc-actions{display:flex;gap:11px;flex-wrap:wrap;margin-top:18px}
+#onebase-loot-cinema .obc-actions button{font-size:12px;font-weight:900;border-radius:9px;padding:13px 15px;cursor:pointer}
+#onebase-loot-cinema .obc-save{background:#eac36f;color:#1a150b;border:1px solid #ffdf92}
+#onebase-loot-cinema .obc-discard{background:#221d1d;color:#ffaaa6;border:1px solid #ad6661}
+#onebase-loot-cinema .obc-replay{position:absolute;right:18px;top:16px;background:#1d1b19;color:#f0c675;border:1px solid #977340;border-radius:9px;padding:10px 14px;cursor:pointer;font-size:12px;z-index:20}
+#onebase-loot-cinema.obc-done .obc-reward,#onebase-loot-cinema.obc-done .obc-panel{pointer-events:auto}
+@media(max-width:760px){#onebase-loot-cinema .obc-stage{height:auto;min-height:950px;width:100%}#onebase-loot-cinema .obc-box{top:260px;transform:translate(-50%,-50%) scale(.75)}#onebase-loot-cinema .obc-card{top:325px;width:145px;height:210px}#onebase-loot-cinema .obc-panel{top:605px;left:4%;width:92%}#onebase-loot-cinema .obc-content{padding:22px 20px;min-height:280px}#onebase-loot-cinema .obc-actions{flex-direction:column}#onebase-loot-cinema .obc-actions button{width:100%}#onebase-loot-cinema .obc-caption{bottom:12px}#onebase-loot-cinema .obc-top{top:65px}}
+`;
+    document.head.appendChild(style);
+  }
+  const el=document.createElement('div');el.id='onebase-loot-cinema';
+  el.innerHTML='<div class="obc-stage" role="dialog" aria-modal="true" aria-label="Abriendo lootbox">'+
+    '<button class="obc-replay" type="button">↻ Repetir animación</button>'+
+    '<div class="obc-top">ONEBASE · RECOMPENSA MISTERIOSA</div>'+
+    '<div class="obc-box"><div class="obc-light"></div><div class="obc-chest"><div class="obc-lid">ONEBASE</div><div class="obc-inside"></div><div class="obc-base">◈</div></div></div>'+
+    '<div class="obc-reward"><div class="obc-card">'+(x.cover?'<img src="'+esc(x.cover)+'" alt="Portada de '+esc(x.title)+'">':'◈')+'</div>'+
+    '<div class="obc-panel"><div class="obc-content"><div class="obc-tag">◆ RECOMPENSA DESCUBIERTA</div>'+
+    '<h2 class="obc-title">'+esc(x.title)+'</h2><div class="obc-meta">'+esc((x.genres||[]).join(' · ')||'Anime')+(x.episodes?' · '+x.episodes+' episodios':'')+(x.score?' · ★ '+(x.score/10).toFixed(1):'')+'</div>'+
+    '<p class="obc-desc">'+esc(x.description||'Sin descripción disponible.')+'</p>'+
+    '<div class="obc-actions"><button type="button" class="obc-save">＋ GUARDAR ANIME</button><button type="button" class="obc-discard">DESCARTAR</button></div></div></div></div>'+
+    '<div class="obc-caption" aria-live="polite">La caja está lista…</div></div>';
   document.body.appendChild(el);
-  const chest=el.querySelector('.lv6-chest'),lid=el.querySelector('.lv6-lid'),box=el.querySelector('.lv6-box'),glow=el.querySelector('.lv6-glow'),card=el.querySelector('.lv6-card'),info=el.querySelector('.lv6-info'),caption=el.querySelector('.lv6-caption');
-  const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-  const live=()=>el.isConnected;
+  const q=s=>el.querySelector(s),chest=q('.obc-chest'),lid=q('.obc-lid'),box=q('.obc-box'),light=q('.obc-light'),card=q('.obc-card'),panel=q('.obc-panel'),caption=q('.obc-caption');
+  let runId=0,animations=[];
   const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-  const animate=async(node,frames,duration,easing='cubic-bezier(.22,1,.36,1)')=>{
-    if(!live())return;
-    const animation=node.animate(frames,{duration,easing,fill:'forwards'});
-    await animation.finished;
-    if(!live())return;
-    // Persist the actual end state; do not rely on a class that could be
-    // overridden by legacy lootbox styles.
-    const end=frames[frames.length-1];
-    for(const [key,value] of Object.entries(end)){
-      if(key==='offset'||key==='easing'||key==='composite')continue;
-      node.style[key]=value;
-    }
-    animation.cancel();
+  const move=async(node,frames,duration,id)=>{
+    if(runId!==id||!el.isConnected)return false;
+    // Explicit inline frames avoid global CSS animation/transition collisions.
+    const anim=node.animate(frames,{duration,easing:'cubic-bezier(.22,1,.36,1)',fill:'forwards'});
+    animations.push(anim);
+    try{await anim.finished}catch(_){return false}
+    if(runId!==id||!el.isConnected)return false;
+    const last=frames[frames.length-1];
+    for(const key of ['transform','opacity','clipPath'])if(last[key]!==undefined)node.style[key]=last[key];
+    anim.cancel();
+    return true;
   };
-  const finish=()=>{
-    if(!live())return;
-    caption.textContent='¡Has descubierto un anime!';
-    el.classList.add('lv6-finished');
-    info.querySelector('[data-lv2-save]')?.addEventListener('click',()=>{el.remove();save(i)},{once:true});
-    info.querySelector('[data-lv2-skip]')?.addEventListener('click',()=>{el.remove();skip(i)},{once:true});
+  const finish=()=>{el.classList.add('obc-done');caption.textContent='¡Has descubierto un anime!';};
+  const reset=()=>{
+    animations.forEach(a=>a.cancel());animations=[];
+    el.classList.remove('obc-done');
+    chest.style.transform='translateX(-50%)';lid.style.transform='none';box.style.opacity='1';light.style.opacity='0';light.style.transform='translateX(-50%) scale(.35)';
+    card.style.opacity='0';card.style.transform='translate(-50%,110px) scale(.5)';
+    panel.style.opacity='0';panel.style.clipPath='inset(0 100% 0 0)';
   };
-  (async()=>{
-    if(reduced){
-      lid.style.transform='translateY(-100px) rotateX(-75deg)';
-      chest.style.transform='translateX(-50%) translateY(245px) scale(.65)';
-      box.style.opacity='0';card.style.opacity='1';
-      card.style.transform=window.innerWidth<760?'translate(-50%,-50%)':'translate(calc(-50% - 245px),-50%)';
-      info.style.opacity='1';info.style.clipPath='inset(0 0 0 0)';
-      finish();return;
-    }
-    // 1: keep the closed box visible before any movement.
-    await wait(650);
-    // 2: exactly three separate shakes. The third is stronger.
+  async function play(){
+    const id=++runId;reset();
+    caption.textContent='La caja está lista…';await wait(700);
+    if(runId!==id)return;
     for(let n=1;n<=3;n++){
-      if(!live())return;
       caption.textContent='Temblor '+n+' de 3';
-      const px=9+n*5;
-      await animate(chest,[
-        {transform:'translateX(-50%) rotate(0deg)'},
-        {transform:'translateX(calc(-50% - '+px+'px)) rotate(-'+(n+1)+'deg)',offset:.23},
-        {transform:'translateX(calc(-50% + '+px+'px)) rotate('+(n+1)+'deg)',offset:.58},
-        {transform:'translateX(-50%) rotate(0deg)'}
-      ],550,'ease-in-out');
-      if(n<3)await wait(260);
+      const d=10+n*6;
+      if(!await move(chest,[{transform:'translateX(-50%) rotate(0deg)'},{transform:'translateX(calc(-50% - '+d+'px)) rotate(-'+(n+1)+'deg)',offset:.25},{transform:'translateX(calc(-50% + '+d+'px)) rotate('+(n+1)+'deg)',offset:.6},{transform:'translateX(-50%) rotate(0deg)'}],650,id))return;
+      await wait(250);if(runId!==id)return;
     }
-    if(!live())return;
-    // 3: open only after the third shake has finished.
     caption.textContent='¡La caja se abre!';
-    await Promise.all([
-      animate(lid,[{transform:'translateY(0) rotateX(0deg)'},{transform:'translateY(-100px) rotateX(-75deg)'}],900),
-      animate(glow,[{opacity:0,transform:'translateX(-50%) scale(.3)'},{opacity:1,transform:'translateX(-50%) scale(1.3)'}],900)
-    ]);
-    // 4: the open chest descends out of the center.
+    if(!(await Promise.all([move(lid,[{transform:'none'},{transform:'translateY(-105px) rotateX(-80deg)'}],950,id),move(light,[{opacity:0,transform:'translateX(-50%) scale(.35)'},{opacity:1,transform:'translateX(-50%) scale(1.3)'}],950,id)])).every(Boolean))return;
     caption.textContent='La caja desciende…';
-    await animate(chest,[{transform:'translateX(-50%) translateY(0) scale(1)'},{transform:'translateX(-50%) translateY(245px) scale(.65)'}],1000);
-    // 5: card rises into the center, with a visible pause at its destination.
-    caption.textContent='¡Tu anime!';
-    await Promise.all([
-      animate(card,[{opacity:0,transform:'translate(-50%,120px) scale(.55)'},{opacity:1,transform:'translate(-50%,-50%) scale(1)'}],1200),
-      animate(box,[{opacity:1},{opacity:0}],900)
-    ]);
-    await wait(650);
-    if(!live())return;
-    // 6: cover moves first; information then unfolds from BEHIND it.
-    caption.textContent='Descubriendo los detalles…';
-    const mobile=window.innerWidth<760;
-    if(mobile){
-      await animate(card,[{transform:'translate(-50%,-50%)'},{transform:'translate(-50%,-50%) scale(.82)'}],1000);
-    }else{
-      await animate(card,[{transform:'translate(-50%,-50%)'},{transform:'translate(calc(-50% - 245px),-50%)'}],1400);
-    }
-    if(!live())return;
-    await animate(info,[
-      {opacity:0,clipPath:'inset(0 100% 0 0)'},
-      {opacity:1,clipPath:'inset(0 0 0 0)'}
-    ],1600);
+    if(!await move(chest,[{transform:'translateX(-50%)'},{transform:'translateX(-50%) translateY(265px) scale(.65)'}],1050,id))return;
+    caption.textContent='La tarjeta aparece…';
+    if(!(await Promise.all([move(card,[{opacity:0,transform:'translate(-50%,110px) scale(.5)'},{opacity:1,transform:'translate(-50%,-50%) scale(1)'}],1250,id),move(box,[{opacity:1},{opacity:0}],1050,id)])).every(Boolean))return;
+    await wait(650);if(runId!==id)return;
+    caption.textContent='La tarjeta se desplaza…';
+    const mobile=innerWidth<760;
+    if(!await move(card,[{transform:'translate(-50%,-50%)'},{transform:mobile?'translate(-50%,-50%) scale(.85)':'translate(calc(-50% - 245px),-50%)'}],1500,id))return;
+    caption.textContent='Abriendo los detalles…';
+    if(!await move(panel,[{opacity:0,clipPath:'inset(0 100% 0 0)'},{opacity:1,clipPath:'inset(0 0 0 0)'}],1700,id))return;
     finish();
-  })().catch(error=>{
-    console.error('[OneBase lootbox sequence]',error);
-    if(!live())return;
-    lid.style.transform='translateY(-100px) rotateX(-75deg)';
-    box.style.opacity='0';card.style.opacity='1';
-    card.style.transform=window.innerWidth<760?'translate(-50%,-50%)':'translate(calc(-50% - 245px),-50%)';
-    info.style.opacity='1';info.style.clipPath='inset(0 0 0 0)';
-    caption.textContent='La animación no se pudo completar.';
-    finish();
-  });
+  }
+  q('.obc-replay').onclick=()=>void play();
+  q('.obc-save').onclick=()=>{if(!el.classList.contains('obc-done'))return;el.remove();save(i)};
+  q('.obc-discard').onclick=()=>{if(!el.classList.contains('obc-done'))return;el.remove();skip(i)};
+  // A visible replay control also lets users opt into the animation if the
+  // operating system normally requests reduced motion.
+  if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches){
+    caption.textContent='Movimiento reducido activado · Pulsa «Repetir animación» para verla';
+    lid.style.transform='translateY(-105px) rotateX(-80deg)';
+    box.style.opacity='0';card.style.opacity='1';card.style.transform=innerWidth<760?'translate(-50%,-50%) scale(.85)':'translate(calc(-50% - 245px),-50%)';
+    panel.style.opacity='1';panel.style.clipPath='inset(0 0 0 0)';finish();
+  }else void play();
 }
 
 function choose(i){
