@@ -177,7 +177,7 @@ function opening(i){
     style.textContent=`
 #onebase-loot-cinema{position:fixed!important;inset:0!important;z-index:2147483640!important;display:block!important;overflow:auto!important;overscroll-behavior:contain;background:radial-gradient(ellipse at 50% 43%,#322411 0%,#111115 54%,#08080b 100%)!important;color:#f8f2e9!important;font-family:system-ui,-apple-system,sans-serif!important}
 #onebase-loot-cinema *{box-sizing:border-box}
-#onebase-loot-cinema .obc-stage{position:relative;width:min(1040px,96vw);height:min(740px,96dvh);min-height:560px;margin:auto;isolation:isolate}
+#onebase-loot-cinema .obc-stage{position:relative;width:min(1320px,97vw);height:min(800px,96dvh);min-height:560px;margin:auto;isolation:isolate}
 #onebase-loot-cinema .obc-top{position:absolute;top:5%;left:0;right:0;text-align:center;color:#f0c66d;font-size:12px;font-weight:900;letter-spacing:3px}
 #onebase-loot-cinema .obc-caption{position:absolute;bottom:5%;left:0;right:0;text-align:center;color:#e6c88e;font-size:15px;font-weight:800;letter-spacing:.6px}
 #onebase-loot-cinema .obc-box{position:absolute;left:50%;top:46%;width:270px;height:260px;transform:translate(-50%,-50%);perspective:900px;z-index:3}
@@ -187,21 +187,21 @@ function opening(i){
 #onebase-loot-cinema .obc-base{position:absolute;inset:42px 0 0;border:3px solid #d6a64f;border-radius:7px 7px 16px 16px;background:linear-gradient(145deg,#50381c,#101116 55%,#59401e);display:grid;place-items:center;color:#f7cc75;font-size:51px;box-shadow:0 18px 45px #000b}
 #onebase-loot-cinema .obc-light{position:absolute;left:50%;top:0;width:280px;height:280px;transform:translateX(-50%) scale(.35);opacity:0;background:radial-gradient(ellipse,#ffe099dd 0%,#f5bb624d 35%,transparent 73%);filter:blur(17px);pointer-events:none}
 #onebase-loot-cinema .obc-reward{position:absolute;inset:0;z-index:6;pointer-events:none}
-#onebase-loot-cinema .obc-card{position:absolute;left:50%;top:46%;width:190px;height:275px;transform:translate(-50%,110px) scale(.5);opacity:0;border:3px solid #f6cb75;border-radius:14px;overflow:hidden;background:#322618;box-shadow:0 0 38px #efbd5c88,0 22px 65px #000d;z-index:10}
+#onebase-loot-cinema .obc-card{position:absolute;left:50%;top:46%;width:270px;height:390px;transform:translate(-50%,110px) scale(.5);opacity:0;border:3px solid #f6cb75;border-radius:14px;overflow:hidden;background:#322618;box-shadow:0 0 38px #efbd5c88,0 22px 65px #000d;z-index:10}
 #onebase-loot-cinema .obc-card img{width:100%;height:100%;object-fit:cover;display:block}
-#onebase-loot-cinema .obc-panel{position:absolute;left:calc(50% - 145px);top:46%;width:min(660px,65vw);transform:translateY(-50%);opacity:0;clip-path:inset(0 100% 0 0);z-index:8;pointer-events:none}
-#onebase-loot-cinema .obc-content{padding:27px 28px 27px 115px;min-height:285px;border:1px solid #a87d3b;border-radius:19px;background:linear-gradient(130deg,#292117,#131317 70%);box-shadow:0 20px 65px #000b}
+#onebase-loot-cinema .obc-panel{position:absolute;left:calc(50% - 190px);top:46%;width:min(850px,64vw);transform:translateY(-50%);opacity:0;clip-path:inset(0 100% 0 0);z-index:8;pointer-events:none}
+#onebase-loot-cinema .obc-content{padding:36px 42px 36px 42px;min-height:400px;border:1px solid #a87d3b;border-radius:19px;background:linear-gradient(130deg,#292117,#131317 70%);box-shadow:0 20px 65px #000b}
 #onebase-loot-cinema .obc-tag{color:#edc478;font-size:10px;font-weight:900;letter-spacing:1px}
-#onebase-loot-cinema .obc-title{font-size:clamp(23px,3vw,36px);line-height:1.12;margin:9px 0;font-weight:950;color:#fff}
-#onebase-loot-cinema .obc-meta{font-size:12px;color:#d1b991}
-#onebase-loot-cinema .obc-desc{font-size:13px;line-height:1.6;color:#d4d0c8;max-height:115px;overflow:auto}
-#onebase-loot-cinema .obc-actions{display:flex;gap:11px;flex-wrap:wrap;margin-top:18px}
-#onebase-loot-cinema .obc-actions button{font-size:12px;font-weight:900;border-radius:9px;padding:13px 15px;cursor:pointer}
+#onebase-loot-cinema .obc-title{font-size:clamp(25px,2.35vw,38px);line-height:1.16;margin:14px 0 12px;font-weight:950;color:#fff}
+#onebase-loot-cinema .obc-meta{font-size:14px;color:#d1b991}
+#onebase-loot-cinema .obc-desc{font-size:15px;line-height:1.75;color:#d4d0c8;max-height:170px;overflow:auto}
+#onebase-loot-cinema .obc-actions{display:flex;gap:14px;flex-wrap:wrap;margin-top:24px}
+#onebase-loot-cinema .obc-actions button{font-size:13px;font-weight:900;border-radius:10px;padding:16px 20px;cursor:pointer}
 #onebase-loot-cinema .obc-save{background:#eac36f;color:#1a150b;border:1px solid #ffdf92}
 #onebase-loot-cinema .obc-discard{background:#221d1d;color:#ffaaa6;border:1px solid #ad6661}
 #onebase-loot-cinema .obc-replay{position:absolute;right:18px;top:16px;background:#1d1b19;color:#f0c675;border:1px solid #977340;border-radius:9px;padding:10px 14px;cursor:pointer;font-size:12px;z-index:20}
 #onebase-loot-cinema.obc-done .obc-reward,#onebase-loot-cinema.obc-done .obc-panel{pointer-events:auto}
-@media(max-width:760px){#onebase-loot-cinema .obc-stage{height:auto;min-height:950px;width:100%}#onebase-loot-cinema .obc-box{top:260px;transform:translate(-50%,-50%) scale(.75)}#onebase-loot-cinema .obc-card{top:325px;width:145px;height:210px}#onebase-loot-cinema .obc-panel{top:605px;left:4%;width:92%}#onebase-loot-cinema .obc-content{padding:22px 20px;min-height:280px}#onebase-loot-cinema .obc-actions{flex-direction:column}#onebase-loot-cinema .obc-actions button{width:100%}#onebase-loot-cinema .obc-caption{bottom:12px}#onebase-loot-cinema .obc-top{top:65px}}
+@media(max-width:760px){#onebase-loot-cinema .obc-stage{height:auto;min-height:950px;width:100%}#onebase-loot-cinema .obc-box{top:260px;transform:translate(-50%,-50%) scale(.75)}#onebase-loot-cinema .obc-card{top:325px;width:145px;height:210px}#onebase-loot-cinema .obc-panel{top:605px;left:4%;width:92%}#onebase-loot-cinema .obc-card{width:175px;height:255px}#onebase-loot-cinema .obc-content{padding:26px 22px;min-height:320px}#onebase-loot-cinema .obc-desc{font-size:14px;max-height:210px}#onebase-loot-cinema .obc-actions{flex-direction:column}#onebase-loot-cinema .obc-actions button{width:100%}#onebase-loot-cinema .obc-caption{bottom:12px}#onebase-loot-cinema .obc-top{top:65px}}
 `;
     document.head.appendChild(style);
   }
@@ -259,7 +259,7 @@ function opening(i){
     await wait(650);if(runId!==id)return;
     caption.textContent='La tarjeta se desplaza…';
     const mobile=innerWidth<760;
-    if(!await move(card,[{transform:'translate(-50%,-50%)'},{transform:mobile?'translate(-50%,-50%) scale(.85)':'translate(calc(-50% - 245px),-50%)'}],1500,id))return;
+    if(!await move(card,[{transform:'translate(-50%,-50%)'},{transform:mobile?'translate(-50%,-50%) scale(.85)':'translate(calc(-50% - 365px),-50%)'}],1500,id))return;
     caption.textContent='Abriendo los detalles…';
     if(!await move(panel,[{opacity:0,clipPath:'inset(0 100% 0 0)'},{opacity:1,clipPath:'inset(0 0 0 0)'}],1700,id))return;
     finish();
@@ -284,7 +284,7 @@ function opening(i){
     lid.style.transform='translateY(-105px) rotateX(-80deg)';
     box.style.opacity='0';
     card.style.opacity='1';
-    card.style.transform=innerWidth<760?'translate(-50%,-50%) scale(.85)':'translate(calc(-50% - 245px),-50%)';
+    card.style.transform=innerWidth<760?'translate(-50%,-50%) scale(.85)':'translate(calc(-50% - 365px),-50%)';
     panel.style.opacity='1';
     panel.style.clipPath='inset(0 0 0 0)';
     finish();
