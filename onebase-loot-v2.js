@@ -133,13 +133,14 @@ function boxMarkup(x,i){
   const locked=selected!==null&&selected!==i;
   const done=resolved.has(i);
   const opened=done&&selected===i;
-  return '<article class="lv2-case '+(locked?'locked ':'')+(done?'resolved ':'')+(opened?'opened ':'')+(selected===i?'selected ':'')+'" style="--lv2-i:'+i+'">'+
-    '<button class="lv2-case-button" data-lv2-open="'+i+'" '+(locked||done||busy?'disabled':'')+' aria-label="'+(locked?'Caja bloqueada':opened?'Caja abierta':'Abrir caja '+(i+1))+'">'+
-      '<span class="lv2-case-shell"><span class="lv2-case-edge"></span><span class="lv2-case-band"></span><span class="lv2-case-lock"></span><span class="lv2-case-rarity"></span></span>'+
-      (opened?'<span class="lv2-case-open-lid"><span>ONEBASE</span></span><span class="lv2-case-open-glow"></span>':'')+
-      '<span class="lv2-case-number">CASE '+String(i+1).padStart(2,'0')+'</span><span class="lv2-case-label">'+(opened?'✓ ABIERTA':locked?'🔒 BLOQUEADA':'ABRIR CAJA')+'</span><span class="lv2-case-sub">'+(opened?'DROP RESUELTO':locked?'HAZ REROLL PARA OTRA TIRADA':'DROP DISPONIBLE')+'</span><span class="lv2-case-glint"></span>'+
+  return '<article class="lv2-case obc-choice '+(locked?'locked ':'')+(done?'resolved ':'')+(opened?'opened ':'')+(selected===i?'selected ':'')+'" style="--lv2-i:'+i+'">'+
+    '<button class="lv2-case-button obc-choice-button" data-lv2-open="'+i+'" '+(locked||done||busy?'disabled':'')+' aria-label="'+(locked?'Caja bloqueada':opened?'Caja abierta':'Abrir caja '+(i+1))+'">'+
+      '<span class="obc-choice-chest"><span class="obc-choice-light"></span><span class="obc-choice-inside"></span><span class="obc-choice-base">◈</span><span class="obc-choice-lid">ONEBASE</span></span>'+
+      '<span class="obc-choice-number">CAJA '+String(i+1).padStart(2,'0')+'</span>'+
+      '<span class="obc-choice-label">'+(opened?'✓ ABIERTA':locked?'BLOQUEADA':'ABRIR CAJA')+'</span>'+
     '</button></article>';
 }
+
 function shell(){
   const disabled=busy||selected!==null;
   const cases=roll?'<div class="lv2-cases">'+roll.map((x,i)=>boxMarkup(x,i)).join('')+'</div>':'';
