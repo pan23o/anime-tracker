@@ -538,3 +538,25 @@
 .lv6-info .lv2-reveal-cover{display:none!important}.lv6-info .lv2-reveal-desc{max-height:145px;overflow:auto}
 .lv6-info .lv2-actions{display:flex;gap:10px;flex-wrap:wrap}.lv6-finished .lv6-prize,.lv6-finished .lv6-info{pointer-events:auto}
 @media(max-width:760px){.lv6-stage{min-height:900px;height:auto}.lv6-box{top:250px;transform:translate(-50%,-50%) scale(.8)}.lv6-card{top:295px;width:145px;height:210px}.lv6-info{top:540px;left:4%;width:92%}.lv6-info .lv2-reveal-inner{padding:18px!important}.lv6-info .lv2-actions{flex-direction:column}.lv6-info .lv2-actions button{width:100%;min-height:46px}.lv6-caption{bottom:8px}}
+
+/* Cinematic lootbox chest reused on selection cards (v21). */
+.onebase-loot-v2 .lv2-cases{gap:18px}
+.onebase-loot-v2 .obc-choice{filter:none!important;animation:lv2CaseIn .55s cubic-bezier(.16,1,.3,1) both}
+.onebase-loot-v2 .obc-choice-button{display:block;aspect-ratio:1/.99;overflow:visible;border:1px solid #7b5b30;border-radius:18px;background:radial-gradient(circle at 50% 39%,#382818,#111116 78%);box-shadow:inset 0 1px #f7d68a24,0 15px 40px #0008;transition:transform .3s,box-shadow .3s,border-color .3s}
+.onebase-loot-v2 .obc-choice-button:hover:not(:disabled){transform:translateY(-7px)!important;filter:none!important;border-color:#f5ca75;box-shadow:0 0 34px #edb85733,0 22px 50px #000b}
+.onebase-loot-v2 .obc-choice-chest{position:absolute;left:50%;top:39%;width:160px;height:118px;transform:translate(-50%,-50%);perspective:800px;filter:drop-shadow(0 15px 15px #000a)}
+.onebase-loot-v2 .obc-choice-lid{position:absolute;left:-5px;top:0;width:170px;height:43px;border:2px solid #f1c66d;border-radius:13px 13px 5px 5px;background:linear-gradient(140deg,#6e5024,#171820 54%,#7b5b2d);display:grid;place-items:center;z-index:5;color:#ffe0a0;font:950 10px system-ui;letter-spacing:2px;transform-origin:50% 100%;box-shadow:0 0 18px #e7ac5340;transition:transform .6s cubic-bezier(.16,1,.3,1)}
+.onebase-loot-v2 .obc-choice-inside{position:absolute;inset:30px 6px 10px;background:#050508;box-shadow:inset 0 0 22px #ffd57e}
+.onebase-loot-v2 .obc-choice-base{position:absolute;inset:31px 0 0;border:2px solid #d6a64f;border-radius:5px 5px 13px 13px;background:linear-gradient(145deg,#50381c,#101116 55%,#59401e);display:grid;place-items:center;color:#f7cc75;font-size:38px;box-shadow:0 14px 32px #000b}
+.onebase-loot-v2 .obc-choice-light{position:absolute;left:50%;top:-32px;width:170px;height:140px;transform:translateX(-50%) scale(.65);opacity:0;background:radial-gradient(ellipse,#ffe099cc,#f5bb6240 40%,transparent 75%);filter:blur(12px);transition:opacity .55s,transform .55s}
+.onebase-loot-v2 .obc-choice-number{position:absolute;left:12px;top:12px;font:900 10px system-ui;letter-spacing:1.6px;color:#f1cb82}
+.onebase-loot-v2 .obc-choice-label{position:absolute;left:10px;right:10px;bottom:14px;text-align:center;font:900 11px system-ui;letter-spacing:1.7px;color:#f6d48c}
+.onebase-loot-v2 .obc-choice.opened .obc-choice-lid{transform:translateY(-39px) rotateX(-70deg)}
+.onebase-loot-v2 .obc-choice.opened .obc-choice-light{opacity:1;transform:translateX(-50%) scale(1.15)}
+.onebase-loot-v2 .obc-choice.opened .obc-choice-button{border-color:#e9b963;box-shadow:0 0 30px #e9b96336,inset 0 1px #f7d68a33}
+.onebase-loot-v2 .obc-choice.locked .obc-choice-button{opacity:.42;filter:grayscale(.7)}
+.onebase-loot-v2 .obc-choice.locked .obc-choice-label{color:#b9ad9d}
+.onebase-loot-v2 .obc-choice.resolved:not(.opened) .obc-choice-button{opacity:.55}
+.onebase-loot-v2 .obc-choice.selected:not(.opened) .obc-choice-button{border-color:#f5cb75;box-shadow:0 0 30px #e9b96344}
+@media(max-width:1100px){.onebase-loot-v2 .obc-choice-chest{transform:translate(-50%,-50%) scale(.83)}}
+@media(max-width:620px){.onebase-loot-v2 .obc-choice-button{aspect-ratio:1/.96}.onebase-loot-v2 .obc-choice-chest{transform:translate(-50%,-50%) scale(.78)}}
