@@ -386,8 +386,19 @@ function setup(){
  if($('#onebasePageApp'))return;
  const main=$('main');if(!main)return;
  const app=document.createElement('section');app.id='onebasePageApp';app.className='onebase-page-app';main.prepend(app);
+ app.addEventListener('click',e=>{
+  const b=e.target?.closest?.('[data-go],[data-ob-add],[data-open],[data-epopen],[data-discover-genre],[data-discover-roll],[data-discover-open]');if(!b)return;
+  if(b.matches('[data-discover-genre]')){e.preventDefault();window.__ONEBASE_DISCOVER_GENRE__=b.dataset.discoverGenre;rollDiscovery();return}
+  if(b.matches('[data-discover-roll]')){e.preventDefault();rollDiscovery();return}
+  if(b.matches('[data-discover-open]')){e.preventDefault();openInfo(Number(b.dataset.discoverOpen));return}
+  if(b.matches('[data-epopen]')){e.preventDefault();window.OneBasePremium?.openEpisodes?.(Number(b.dataset.epopen));return}
+  if(b.matches('[data-go]')){e.preventDefault();navigate(b.dataset.go);return}
+  if(b.matches('[data-ob-add]')){e.preventDefault();window.OneBaseAniListSearch?.open?.();return}
+  if(b.matches('[data-open]')){e.preventDefault();openInfo(Number(b.dataset.open))}
+ });
  const side=document.createElement('aside');side.id='onebaseSidebar';side.className='onebase-sidebar';
  side.innerHTML='<div class="onebase-sidebar-brand"><span>◉</span><b>ONEBASE</b></div><nav><button data-page="home"><i>⌂</i><span>Inicio</span></button><button data-page="library"><i>▦</i><span>Biblioteca</span></button><button data-page="episodes"><i>▶</i><span>Episodios</span></button><button data-page="stats"><i>◈</i><span>Estadísticas</span></button><button data-page="profile"><i>♙</i><span>Perfil</span></button><button data-page="loot"><i>◇</i><span>Lootboxes</span></button></nav><div class="onebase-sidebar-bottom"><button data-page="health"><i>🛡</i><span>Health</span></button><button data-page="settings"><i>⚙</i><span>Ajustes</span></button><button type="button" id="onebaseToolsToggle" aria-controls="onebaseToolsMenu" aria-expanded="false"><i>•••</i><span>Más</span></button></div>';
+ side.addEventListener('click',e=>{const b=e.target?.closest?.('[data-page]');if(b)navigate(b.dataset.page)});
  document.body.appendChild(side);
  const tools=document.createElement('div');tools.id='onebaseToolsMenu';tools.className='onebase-tools-menu';tools.hidden=true;
  tools.innerHTML='<div class="onebase-tools-head"><span>HERRAMIENTAS</span><button type="button" data-tools-close aria-label="Cerrar">×</button></div><button type="button" data-tool="refreshAll">↻ Actualizar datos</button><button type="button" data-tool="achBtn">✦ Logros</button><button type="button" data-tool="trashBtn">♻ Papelera</button><button type="button" data-tool="exportBtn">⇩ Exportar biblioteca</button><button type="button" data-tool="importBtn">⇧ Importar biblioteca</button><button type="button" data-tool="themeSelect">◐ Cambiar tema</button>';
