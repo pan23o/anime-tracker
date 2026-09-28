@@ -30,7 +30,7 @@ html = html.replace(/<title>\s*AnimeTracker\s*<\/title>/i, '<title>ONEBASE</titl
 
 const headAssets = `
 <script src="/onebase-safe-boot.js?v=1"></script>
-<link rel="stylesheet" href="/onebase-loot-v2.css?v=8">
+<link rel="stylesheet" href="/onebase-loot-v2.css?v=21">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=13">
 <link rel="stylesheet" href="/onebase-brand.css?v=7">
 <link rel="stylesheet" href="/onebase-experience-v1.css?v=3">
@@ -44,7 +44,7 @@ html = html.replace(/([\s\S]*)(<\/script>\s*<button class="cloud-account-btn")/i
 html = html.replace(/<\/head>/i, `${headAssets}\n</head>`);
 
 // Force the browser to fetch the corrected persistence engine.
-html = html.replace(/profile-enhancer\.js(?:\?[^"']*)?/g, 'profile-enhancer.js?v=9');
+html = html.replace(/profile-enhancer\.js(?:\?[^"']*)?/g, 'profile-enhancer.js?v=10');
 
 const runtimeScripts = [
   ['onebase-auto-complete.js', 'v=4'],
@@ -56,13 +56,13 @@ const runtimeScripts = [
   ['onebase-profile-cleanup.js', 'v=3'],
   ['onebase-level-sync.js', 'v=2'],
   ['onebase-eye-v2.js', 'v=4'],
-  ['onebase-experience-v1.js', 'v=2'],
+  ['onebase-experience-v1.js', 'v=3'],
   ['onebase-custom-webs-v3.js', 'v=11'],
   ['onebase-source-search-v2.js', 'v=14'],
-  ['onebase-anilist-search.js', 'v=6'],
+  ['onebase-anilist-search.js', 'v=7'],
   ['onebase-anime-add-cleanup.js', 'v=2'],
-  ['onebase-premium.js', 'v=18'],
-  ['onebase-loot-v2.js', 'v=8'],
+  ['onebase-premium.js', 'v=30'],
+  ['onebase-loot-v2.js', 'v=21'],
   ['onebase-integrations.js', 'v=1'],
   ['onebase-beast.js', 'v=1']
 ];

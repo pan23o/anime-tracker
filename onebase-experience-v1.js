@@ -11,8 +11,8 @@
   let dataInput=null;
   let restoreInput=null;
 
-  const q=(s,r=document)=>r.querySelector(s);
-  const qs=(s,r=document)=>[...r.querySelectorAll(s)];
+  const q=(s,r=document)=>r?.querySelector?.(s)||null;
+  const qs=(s,r=document)=>r?[...r.querySelectorAll(s)]:[];
   const notify=(message)=>{ try{ if(typeof toast==='function') toast(message); else window.alert(message); }catch(_){ window.alert(message); } };
   const library=()=>{ try{return (typeof data!=='undefined'&&Array.isArray(data))?data:[];}catch(_){return [];} };
   const normTitle=s=>String(s||'').toLowerCase().trim().replace(/[^\p{L}\p{N}]+/gu,' ');
