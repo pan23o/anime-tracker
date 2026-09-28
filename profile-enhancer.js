@@ -219,7 +219,7 @@
       return true;
     }
     const emergency = await loadEmergencyMirror();
-    if (emergency.length) { const merged = mergeLatest(emergency, localList()); setLocalList(merged); await uploadAccountFile(merged); return true; }
+    if (!tableRowExists && emergency.length) { const merged = mergeLatest(emergency, localList()); setLocalList(merged); await uploadAccountFile(merged); return true; }
 
     // No remote copy exists yet: keep the current local library and seed the
     // account once authentication is ready. An explicitly empty table row is
