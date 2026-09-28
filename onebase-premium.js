@@ -188,13 +188,16 @@ function ensureEpisodeModal(){
   document.body.appendChild(m);
   m.querySelector('.onebase-episodes-close').addEventListener('click',closeEpisodes);
   m.addEventListener('click',e=>{if(e.target===m)closeEpisodes()});
+  m.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();closeEpisodes()}});
+  m.querySelector('#onebaseEpisodeJump').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();episodeAction('jump')}});
   m.querySelectorAll('[data-ep-action]').forEach(b=>b.addEventListener('click',()=>episodeAction(b.dataset.epAction)));
 }
 function openEpisodes(i){
   if(!Number.isInteger(i)||!getData()[i])return;
-  episodeIndex=i;episodePage=Math.max(0,Math.floor((Number(getData()[i].watched)||0)/50));ensureEpisodeModal();
+  episodeIndex=i;episodePage=Math.max(0,Math.floor(Math.max(0,(Number(getData()[i].watched)||0)-1)/50));ensureEpisodeModal();
   safeTransition(()=>{$('#onebaseEpisodesModal').classList.add('open')});
   renderEpisodes();
+  $('#onebaseEpisodesModal .onebase-episodes-close')?.focus();
 }
 function closeEpisodes(){safeTransition(()=>$('#onebaseEpisodesModal')?.classList.remove('open'))}
 function renderEpisodes(){
@@ -356,7 +359,7 @@ function bindEvents(){
 }
 function boot(){
   if(booted)return;booted=true;
-  const link=document.createElement('link');link.rel='stylesheet';link.href='/onebase-premium.css?v=3';document.head.appendChild(link);
+  const link=document.createElement('link');link.rel='stylesheet';link.href='/onebase-premium.css?v=4';document.head.appendChild(link);
   ensureHealthButton();ensureHealth();ensureEpisodeModal();ensurePublicSection();wrapRender();bindEvents();refresh();void loadPublicSettings();void syncPublicSnapshot();
   window.OneBasePremium={refresh,openHealth,openEpisodes,openInfo:openInfoIndex,runHealth,publicUrl};
 }
