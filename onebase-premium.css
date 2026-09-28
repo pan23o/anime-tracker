@@ -566,3 +566,179 @@ body.onebase-pages-mode header .controls{display:none!important}
 .ob-continue-air button small{color:#d4b36f;font-size:8px;white-space:nowrap}
 @media(max-width:680px){.ob-discover-feature{grid-template-columns:1fr}.ob-discover-art{min-height:190px;max-height:250px}.ob-discover-copy{padding:22px}.ob-discover-actions{width:100%}.ob-discover-actions button{flex:1}.ob-continue-feature{grid-template-columns:112px minmax(0,1fr);min-height:205px}.ob-continue-poster{min-height:205px}.ob-continue-copy{padding:17px}.ob-continue-copy h3{font-size:21px}.ob-continue-cta{padding:9px 11px;font-size:10px}.ob-continue-heading{align-items:flex-start}.ob-continue-air button{max-width:100%}}
 @media(prefers-reduced-motion:reduce){.ob-discover-art img,.ob-discover-chip,.ob-discover-actions button,.ob-continue-row,.ob-continue-cta{transition:none}}
+
+/* Complete theme bridge: keep every OneBase view on the palette selected in Settings. */
+body[data-theme]{
+  color:var(--text)!important;
+  background:var(--bg)!important;
+  color-scheme:dark;
+}
+body[data-theme="high-white"],body[data-theme="manga"]{color-scheme:light}
+body[data-theme]::before{
+  background:
+    radial-gradient(circle at 50% -12%,color-mix(in srgb,var(--accent) 10%,transparent),transparent 34%),
+    linear-gradient(180deg,color-mix(in srgb,var(--text) 3%,transparent),transparent 24%),
+    linear-gradient(135deg,var(--bg) 0%,var(--bg2) 50%,var(--bg) 100%)!important;
+}
+body[data-theme] .onebase-sidebar,
+body[data-theme] .onebase-tools-menu,
+body[data-theme] .ob-stat-card,
+body[data-theme] .ob-section-card,
+body[data-theme] .ob-home-anime,
+body[data-theme] .ob-episode-row,
+body[data-theme] .ob-activity,
+body[data-theme] .ob-library-tools,
+body[data-theme] .ob-library-filters,
+body[data-theme] .ob-card-open,
+body[data-theme] .ob-card-body,
+body[data-theme] .ob-profile-hero,
+body[data-theme] .ob-favorite-grid button,
+body[data-theme] .ob-discover-feature,
+body[data-theme] .ob-discover-empty,
+body[data-theme] .ob-continue-feature,
+body[data-theme] .ob-loot-box-button,
+body[data-theme] .ob-loot-reveal,
+body[data-theme] .onebase-health-card,
+body[data-theme] .onebase-episodes-card,
+body[data-theme] .ob-settings-window,
+body[data-theme] .ob-settings-section,
+body[data-theme] .ob-settings-extra,
+body[data-theme] .obx-data-card{
+  color:var(--text)!important;
+  border-color:var(--line)!important;
+  background:var(--panel)!important;
+  box-shadow:0 16px 44px color-mix(in srgb,var(--bg) 28%,transparent)!important;
+}
+body[data-theme] .ob-discover-panel,
+body[data-theme] .ob-continue-page{
+  color:var(--text)!important;
+  border-color:var(--line)!important;
+  background:linear-gradient(145deg,var(--panel2),var(--panel))!important;
+}
+body[data-theme] .ob-card-body,
+body[data-theme] .ob-home-anime,
+body[data-theme] .ob-episode-row,
+body[data-theme] .ob-activity,
+body[data-theme] .ob-loot-reveal,
+body[data-theme] .ob-library-filter-grid select,
+body[data-theme] .ob-library-filter-grid button,
+body[data-theme] .ob-library-tools input,
+body[data-theme] .ob-library-tools select,
+body[data-theme] .ob-library-tools button{
+  color:var(--text)!important;
+  background:var(--panel2)!important;
+  border-color:var(--line2)!important;
+}
+body[data-theme] .onebase-sidebar button,
+body[data-theme] .onebase-tools-menu>[data-tool],
+body[data-theme] .onebase-tools-head,
+body[data-theme] .onebase-tools-head button,
+body[data-theme] .onebase-page-head p,
+body[data-theme] .onebase-page-kicker,
+body[data-theme] .ob-stat-card span,
+body[data-theme] .ob-stat-card small,
+body[data-theme] .ob-home-anime small,
+body[data-theme] .ob-episode-row small,
+body[data-theme] .ob-activity small,
+body[data-theme] .ob-library-meta,
+body[data-theme] .ob-card-foot,
+body[data-theme] .ob-card-meta span,
+body[data-theme] .ob-profile-hero p,
+body[data-theme] .ob-discover-meta,
+body[data-theme] .ob-discover-progress,
+body[data-theme] .ob-discover-count,
+body[data-theme] .ob-discover-empty p,
+body[data-theme] .ob-loot-meta,
+body[data-theme] .ob-loot-description,
+body[data-theme] .ob-settings-section-head p,
+body[data-theme] .ob-setting-copy span,
+body[data-theme] .ob-theme-note,
+body[data-theme] .obx-data-card p{
+  color:var(--muted)!important;
+}
+body[data-theme] .onebase-sidebar button:hover,
+body[data-theme] .onebase-sidebar button.active,
+body[data-theme] .onebase-tools-menu>[data-tool]:hover,
+body[data-theme] .ob-library-filters[open]>summary,
+body[data-theme] .ob-discover-chip,
+body[data-theme] .ob-discover-actions button,
+body[data-theme] .ob-continue-heading button{
+  color:var(--text)!important;
+  background:var(--soft)!important;
+  border-color:var(--line2)!important;
+}
+body[data-theme] .ob-discover-heading>div>span,
+body[data-theme] .ob-discover-overline,
+body[data-theme] .ob-continue-kicker,
+body[data-theme] .ob-home-anime em,
+body[data-theme] .ob-episode-row em,
+body[data-theme] .ob-card-progress span,
+body[data-theme] .ob-bar-row i,
+body[data-theme] .ob-discover-chip.is-active{
+  color:var(--accent)!important;
+}
+body[data-theme] .ob-page-add,
+body[data-theme] .ob-discover-actions .ob-discover-open,
+body[data-theme] .ob-discover-actions .ob-continue-cta,
+body[data-theme] .onebase-episode-actions .primary,
+body[data-theme] .onebase-episode-button,
+body[data-theme] .ob-loot-save,
+body[data-theme] .ob-loot-discard{
+  color:var(--bg)!important;
+  background:var(--accent)!important;
+  border-color:var(--accent)!important;
+}
+body[data-theme] .ob-discover-chip.is-active{
+  background:color-mix(in srgb,var(--accent) 16%,var(--panel2))!important;
+}
+body[data-theme] .ob-discover-art,
+body[data-theme] .ob-continue-poster,
+body[data-theme] .ob-home-cover,
+body[data-theme] .ob-episode-cover,
+body[data-theme] .ob-card-cover,
+body[data-theme] .ob-profile-avatar,
+body[data-theme] .ob-favorite-grid span{
+  background:var(--panel2)!important;
+  color:var(--muted)!important;
+}
+body[data-theme] .onebase-episodes-modal,
+body[data-theme] .onebase-health-modal,
+body[data-theme] #onebaseSettingsOverlay{
+  background:color-mix(in srgb,var(--bg) 78%,transparent)!important;
+}
+body[data-theme] .onebase-episodes-close,
+body[data-theme] .onebase-health-close,
+body[data-theme] .ob-settings-close,
+body[data-theme] .ob-theme-select,
+body[data-theme] .obx-data-card button{
+  color:var(--text)!important;
+  background:var(--soft)!important;
+  border-color:var(--line2)!important;
+}
+body[data-theme] .ob-settings-head,
+body[data-theme] .ob-settings-section-head,
+body[data-theme] .ob-setting-row,
+body[data-theme] .obx-data-card{
+  border-color:var(--line)!important;
+}
+body[data-theme] #onebase-loot-cinema .obc-stage,
+body[data-theme] #onebase-loot-cinema .obc-panel,
+body[data-theme] #onebase-loot-cinema .obc-content{
+  color:var(--text)!important;
+  background:var(--panel)!important;
+  border-color:var(--line)!important;
+}
+body[data-theme] #onebase-loot-cinema .obc-replay,
+body[data-theme] #onebase-loot-cinema .obc-caption,
+body[data-theme] #onebase-loot-cinema .obc-meta{color:var(--text)!important}
+body[data-theme] #onebase-loot-cinema .obc-save{
+  color:var(--bg)!important;background:var(--accent)!important;border-color:var(--accent)!important
+}
+body[data-theme] #onebase-loot-cinema .obc-discard{
+  color:var(--text)!important;background:var(--panel2)!important;border-color:var(--line2)!important
+}
+body[data-theme] :is(input,select,textarea){
+  color:var(--text);
+  color-scheme:inherit;
+}
+
