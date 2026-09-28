@@ -361,7 +361,7 @@ function bindEvents(){
 }
 function boot(){
   if(booted)return;booted=true;
-  const link=document.createElement('link');link.rel='stylesheet';link.href='/onebase-premium.css?v=7';document.head.appendChild(link);
+  const link=document.createElement('link');link.rel='stylesheet';link.href='/onebase-premium.css?v=8';document.head.appendChild(link);
   ensureHealthButton();ensureHealth();ensureEpisodeModal();ensurePublicSection();wrapRender();bindEvents();refresh();void loadPublicSettings();void syncPublicSnapshot();
   window.OneBasePremium={refresh,openHealth,openEpisodes,openInfo:openInfoIndex,runHealth,publicUrl};
 }
@@ -598,6 +598,14 @@ function render(){
    window.addEventListener('onebase:loot-v2-ready',ready,{once:true});
    return;
  }app.innerHTML=page==='home'?home():page==='library'?library():page==='episodes'?episodes():page==='stats'?statistics():page==='loot'?lootboxes():profilePage();$('#onebaseSidebar')?.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));bind();document.title='ONEBASE · '+({home:'Inicio',library:'Biblioteca',episodes:'Episodios',stats:'Estadísticas',profile:'Perfil',loot:'Lootboxes'}[page]||'');}
-function boot(){if(booted)return;booted=true;setup();const h=location.hash.slice(1);page=['home','library','episodes','stats','profile','loot'].includes(h)?h:'home';try{history.replaceState({onebasePage:page},'',location.pathname+'#'+page)}catch(_){}render();addEventListener('popstate',e=>{const p=e.state?.onebasePage||location.hash.slice(1)||'home';if(['home','library','episodes','stats','profile','loot'].includes(p)){page=p;render()}});['animetracker:saved','animetracker:restored','onebase:anime-added'].forEach(ev=>addEventListener(ev,()=>setTimeout(render,0)));window.OneBasePages={navigate,refresh:render}}
+function boot(){if(booted)return;booted=true;setup();
+ if(!window.__ONEBASE_DISCOVERY_EVENTS_BOUND__){window.__ONEBASE_DISCOVERY_EVENTS_BOUND__=true;document.addEventListener('click',e=>{
+  const target=e.target?.closest?.('[data-discover-genre],[data-discover-roll],[data-discover-open],[data-epopen]');if(!target)return;
+  if(target.matches('[data-discover-genre]')){e.preventDefault();e.stopImmediatePropagation();window.__ONEBASE_DISCOVER_GENRE__=target.dataset.discoverGenre;rollDiscovery();return}
+  if(target.matches('[data-discover-roll]')){e.preventDefault();e.stopImmediatePropagation();rollDiscovery();return}
+  if(target.matches('[data-discover-open]')){e.preventDefault();e.stopImmediatePropagation();openInfo(Number(target.dataset.discoverOpen));return}
+  if(target.matches('[data-epopen]')){e.preventDefault();e.stopImmediatePropagation();window.OneBasePremium?.openEpisodes?.(Number(target.dataset.epopen))}
+ },true)}
+ const h=location.hash.slice(1);page=['home','library','episodes','stats','profile','loot'].includes(h)?h:'home';try{history.replaceState({onebasePage:page},'',location.pathname+'#'+page)}catch(_){}render();addEventListener('popstate',e=>{const p=e.state?.onebasePage||location.hash.slice(1)||'home';if(['home','library','episodes','stats','profile','loot'].includes(p)){page=p;render()}});['animetracker:saved','animetracker:restored','onebase:anime-added'].forEach(ev=>addEventListener(ev,()=>setTimeout(render,0)));window.OneBasePages={navigate,refresh:render}}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else setTimeout(boot,0);
 })();
