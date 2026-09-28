@@ -58,9 +58,9 @@ const runtimeScripts = [
   ['onebase-experience-v1.js', 'v=2'],
   ['onebase-custom-webs-v3.js', 'v=11'],
   ['onebase-source-search-v2.js', 'v=14'],
-  ['onebase-anilist-search.js', 'v=6'],
+  ['onebase-anilist-search.js', 'v=7'],
   ['onebase-anime-add-cleanup.js', 'v=2'],
-  ['onebase-premium.js', 'v=18'],
+  ['onebase-premium.js', 'v=19'],
   ['onebase-loot-v2.js', 'v=21']
 ];
 
