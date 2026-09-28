@@ -53,7 +53,7 @@
     for (const item of clean(remote)) items.set(keyOf(item), item);
     for (const item of clean(local)) {
       const key = keyOf(item), previous = items.get(key);
-      if (!previous || (Number(item.updatedAt) || Number(item.addedAt) || 0) >= (Number(previous.updatedAt) || Number(previous.addedAt) || 0)) items.set(key, item);
+      if (!previous || (Number(item.updatedAt) || Number(item.addedAt) || 0) > (Number(previous.updatedAt) || Number(previous.addedAt) || 0)) items.set(key, item);
     }
     return [...items.values()];
   }
@@ -146,36 +146,74 @@
     saving = true;
     try {
       const current = localList();
+
+      // The database row is canonical. Storage and the local emergency copy are
+      // mirrors, so an old TXT file can never outrank a successful table save.
+      const tableSaved = await saveCloudTable(current);
       const fileSaved = await uploadAccountFile(current);
       await saveEmergencyMirror(current);
-      await saveCloudTable(current);
-      window.OneBaseLibrarySync = { status: fileSaved ? 'saved' : 'failed', lastSavedAt: fileSaved ? now() : null };
-      if (!fileSaved) toast('⚠️ No se pudo escribir el archivo de biblioteca.');
-      return fileSaved;
+
+      const saved = tableSaved || fileSaved;
+      window.OneBaseLibrarySync = {
+        status: saved ? 'saved' : 'failed',
+        lastSavedAt: saved ? now() : null,
+        cloudTable: tableSaved,
+        storageFile: fileSaved
+      };
+      if (!saved) toast('⚠️ No se pudo guardar la biblioteca en la nube.');
+      return saved;
     } finally { saving = false; if (queuedSave) { queuedSave = false; void saveLibraryNow(); } }
   }
   function scheduleLibrarySave() { clearTimeout(saveTimer); saveEmergencyMirror(localList()); if (user) saveTimer = setTimeout(() => void saveLibraryNow(), 500); }
 
   async function restoreAccountLibrary() {
     if (!user) return false;
-    const fileList = await downloadAccountFile(user.id);
-    if (fileList && fileList.length) {
-      const local = localList();
-      const merged = mergeLatest(fileList, local);
-      setLocalList(merged);
-      await saveEmergencyMirror(merged);
-      if (fingerprint(merged) !== fingerprint(fileList)) void saveLibraryNow();
-      return true;
-    }
+
+    let tableList = [];
+    let tableHasLibrary = false;
+    let fileList = [];
     try {
-      const { data, error } = await client.from('tracker_state').select('state,revision,saved_at,updated_at').eq('user_id', user.id).maybeSingle();
+      const { data: remote, error } = await client.from('tracker_state')
+        .select('state,revision,saved_at,updated_at')
+        .eq('user_id', user.id)
+        .maybeSingle();
       if (!error) {
-        const tableList = clean(parse(data?.state?.[LIB] || '[]', []));
-        if (tableList.length) { const merged = mergeLatest(tableList, localList()); setLocalList(merged); await uploadAccountFile(merged); await saveEmergencyMirror(merged); return true; }
+        const state = remote?.state && typeof remote.state === 'object' ? remote.state : {};
+        tableHasLibrary = Object.prototype.hasOwnProperty.call(state, LIB);
+        if (tableHasLibrary) tableList = clean(parse(state[LIB] || '[]', []));
       }
     } catch (e) { console.warn('[AnimeTracker] tracker_state restore failed:', e); }
+    try { fileList = (await downloadAccountFile(user.id)) || []; }
+    catch (e) { console.warn('[AnimeTracker] account TXT restore failed:', e); }
+
+    if (tableHasLibrary) {
+      // An explicitly empty table library is a real empty state. Do not merge
+      // stale local, emergency, or Storage copies back into it.
+      const merged = tableList.length ? mergeLatest(tableList, localList()) : [];
+      setLocalList(merged);
+      await saveEmergencyMirror(merged);
+      if (fingerprint(merged) !== fingerprint(tableList) || fingerprint(merged) !== fingerprint(fileList)) {
+        void saveLibraryNow();
+      }
+      return true;
+    }
+
     const emergency = await loadEmergencyMirror();
-    if (emergency.length) { const merged = mergeLatest(emergency, localList()); setLocalList(merged); await uploadAccountFile(merged); return true; }
+    const recovery = fileList.length ? fileList : emergency;
+    if (recovery.length) {
+      const merged = mergeLatest(recovery, localList());
+      setLocalList(merged);
+      await saveEmergencyMirror(merged);
+      void saveLibraryNow();
+      return true;
+    }
+
+    // No cloud copy exists yet: preserve and seed the current browser library.
+    const local = localList();
+    if (local.length) {
+      void saveLibraryNow();
+      return true;
+    }
     return false;
   }
 
