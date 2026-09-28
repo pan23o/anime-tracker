@@ -43,7 +43,7 @@ html = html.replace(/([\s\S]*)(<\/script>\s*<button class="cloud-account-btn")/i
 html = html.replace(/<\/head>/i, `${headAssets}\n</head>`);
 
 // Force the browser to fetch the corrected persistence engine.
-html = html.replace(/profile-enhancer\.js(?:\?[^"']*)?/g, 'profile-enhancer.js?v=9');
+html = html.replace(/profile-enhancer\.js(?:\?[^"']*)?/g, 'profile-enhancer.js?v=10');
 
 const runtimeScripts = [
   ['onebase-auto-complete.js', 'v=4'],
