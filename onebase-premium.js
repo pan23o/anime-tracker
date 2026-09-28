@@ -347,6 +347,7 @@ async function copyPublicLink(){
 }
 async function openPublicLink(){const user=await currentUser();if(!user||!publicState.enabled){window.toast?.('Activa el perfil público e inicia sesión.');return}window.open(publicUrl(user.id),'_blank','noopener,noreferrer')}
 function bindEvents(){
+  document.addEventListener('click',e=>{const b=e.target?.closest?.('[data-epopen]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();openEpisodes(Number(b.dataset.epopen))},true);
   document.addEventListener('click',captureInfoClick,true);
   document.addEventListener('click',e=>{const b=e.target?.closest?.('[data-ob-open]');if(b)openInfoIndex(Number(b.dataset.obOpen))});
   document.getElementById('settingsBtn')?.addEventListener('click',()=>setTimeout(()=>{ensurePublicSection();void loadPublicSettings()},30));
