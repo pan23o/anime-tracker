@@ -569,7 +569,7 @@ function bind(){
  app.querySelectorAll('[data-ob-add]').forEach(b=>b.onclick=()=>window.OneBaseAniListSearch?.open?.());
  app.querySelectorAll('[data-open]').forEach(b=>b.onclick=e=>{e.preventDefault();openInfo(Number(b.dataset.open))});
  app.querySelectorAll('[data-epopen]').forEach(b=>b.onclick=()=>window.OneBasePremium?.openEpisodes?.(Number(b.dataset.epopen)));
- app.querySelectorAll('[data-discover-genre]').forEach(b=>b.onclick=()=>{window.__ONEBASE_DISCOVER_GENRE__=b.dataset.window.__ONEBASE_DISCOVER_GENRE__;rollDiscovery()});
+ app.querySelectorAll('[data-discover-genre]').forEach(b=>b.onclick=()=>{window.__ONEBASE_DISCOVER_GENRE__=b.dataset.discoverGenre;rollDiscovery()});
  app.querySelectorAll('[data-discover-roll]').forEach(b=>b.onclick=rollDiscovery);
  app.querySelectorAll('[data-discover-open]').forEach(b=>b.onclick=()=>openInfo(Number(b.dataset.discoverOpen)));
  app.querySelectorAll('[data-loot-open]').forEach(b=>b.onclick=()=>{
