@@ -9,7 +9,7 @@ const SUPABASE_URL='https://djfjqecahztogacliavh.supabase.co';
 const SUPABASE_KEY='sb_publishable_tm8Tid_HSYtu6cxXQ3ddKA_RWN15BSB';
 const PUBLIC_KEY='onebase_public_profile_v1';
 const STATUS={viendo:'Viendo',terminado:'Terminado',pendiente:'Pendiente',pausa:'En pausa',abandonado:'Abandonado'};
-let booted=false,originalRender=null,pendingInfoIndex=null,episodeIndex=null,episodePage=0,episodeTotalPages=1,airingTimer=0,publicTimer=0,discoverGenre='all';
+let booted=false,originalRender=null,pendingInfoIndex=null,episodeIndex=null,episodePage=0,episodeTotalPages=1,airingTimer=0,publicTimer=0;window.__ONEBASE_DISCOVER_GENRE__=window.__ONEBASE_DISCOVER_GENRE__||'all';
 let publicState=loadLocalPublic();
 let supa=null;
 
@@ -361,7 +361,7 @@ function bindEvents(){
 }
 function boot(){
   if(booted)return;booted=true;
-  const link=document.createElement('link');link.rel='stylesheet';link.href='/onebase-premium.css?v=6';document.head.appendChild(link);
+  const link=document.createElement('link');link.rel='stylesheet';link.href='/onebase-premium.css?v=7';document.head.appendChild(link);
   ensureHealthButton();ensureHealth();ensureEpisodeModal();ensurePublicSection();wrapRender();bindEvents();refresh();void loadPublicSettings();void syncPublicSnapshot();
   window.OneBasePremium={refresh,openHealth,openEpisodes,openInfo:openInfoIndex,runHealth,publicUrl};
 }
@@ -422,13 +422,13 @@ function home(){
  if(!choice&&library.length){choice=library[0];window.__ONEBASE_DISCOVER_KEY__=choice.i}
  const x=choice?.x,cover=String(x?.cover||x?.coverImage||'').trim(),watched=Number(x?.watched)||0,total=Number(x?.total)||0;
  const currentGenres=Array.isArray(x?.genres)?x.genres.slice(0,3).join(' · '):'';
- const genreButtons=['all',...availableGenres].map(g=>'<button type="button" class="ob-discover-chip '+(discoverGenre===g?'is-active':'')+'" data-discover-genre="'+esc(g)+'">'+(g==='all'?'Todos':esc(g))+'</button>').join('');
+ const genreButtons=['all',...availableGenres].map(g=>'<button type="button" class="ob-discover-chip '+(window.__ONEBASE_DISCOVER_GENRE__===g?'is-active':'')+'" data-discover-genre="'+esc(g)+'">'+(g==='all'?'Todos':esc(g))+'</button>').join('');
  const feature=x?'<section class="ob-discover-feature"><div class="ob-discover-art">'+(cover?'<img src="'+esc(cover)+'" alt="Portada de '+esc(x.anime)+'">':'<div class="ob-discover-no-cover">ONEBASE</div>')+'<span class="ob-discover-stamp">TU BIBLIOTECA</span></div><div class="ob-discover-copy"><div class="ob-discover-overline">ELECCIÓN DE HOY</div><h3>'+esc(x.anime)+'</h3><p class="ob-discover-meta">'+esc(currentGenres||status[x.state]||'En tu biblioteca')+'</p><p class="ob-discover-progress">'+esc(status[x.state]||'Sin estado')+(total?' · '+watched+' / '+total+' episodios':'')+'</p><div class="ob-discover-actions"><button type="button" class="ob-discover-open" data-discover-open="'+choice.i+'">Ver ficha</button><button type="button" class="ob-discover-roll" data-discover-roll>✦ Sorpréndeme</button></div></div></section>':'<section class="ob-discover-empty"><div class="ob-discover-empty-icon">✦</div><h3>Tu próxima serie empieza aquí</h3><p>Añade anime a tu biblioteca y deja que OneBase elija una opción para ti.</p><button type="button" class="ob-page-add" data-ob-add>＋ Añadir anime</button></section>';
  return shell('DESCUBRIR','¿Qué vemos hoy?','Elige un género o deja que OneBase saque una sugerencia de tu biblioteca.',
  '<section class="ob-discover-panel"><div class="ob-discover-heading"><div><span>UN ANIME, SIN DAR VUELTAS</span><h3>Déjate recomendar</h3></div><span class="ob-discover-count">'+library.length+' '+(library.length===1?'anime':'animes')+'</span></div><div class="ob-discover-filters" aria-label="Filtrar sugerencias por género">'+genreButtons+'</div>'+feature+'</section>');
 }
 function rollDiscovery(){
- const pool=items().filter(o=>discoverGenre==='all'||(Array.isArray(o.x.genres)&&o.x.genres.some(g=>String(g).toLowerCase()===discoverGenre.toLowerCase())));
+ const pool=items().filter(o=>window.__ONEBASE_DISCOVER_GENRE__==='all'||(Array.isArray(o.x.genres)&&o.x.genres.some(g=>String(g).toLowerCase()===window.__ONEBASE_DISCOVER_GENRE__.toLowerCase())));
  const alternatives=pool.filter(o=>o.i!==window.__ONEBASE_DISCOVER_KEY__),pick=alternatives[Math.floor(Math.random()*alternatives.length)]||pool[0];
  if(pick)window.__ONEBASE_DISCOVER_KEY__=pick.i;
  render();
@@ -569,7 +569,7 @@ function bind(){
  app.querySelectorAll('[data-ob-add]').forEach(b=>b.onclick=()=>window.OneBaseAniListSearch?.open?.());
  app.querySelectorAll('[data-open]').forEach(b=>b.onclick=e=>{e.preventDefault();openInfo(Number(b.dataset.open))});
  app.querySelectorAll('[data-epopen]').forEach(b=>b.onclick=()=>window.OneBasePremium?.openEpisodes?.(Number(b.dataset.epopen)));
- app.querySelectorAll('[data-discover-genre]').forEach(b=>b.onclick=()=>{discoverGenre=b.dataset.discoverGenre;rollDiscovery()});
+ app.querySelectorAll('[data-discover-genre]').forEach(b=>b.onclick=()=>{window.__ONEBASE_DISCOVER_GENRE__=b.dataset.window.__ONEBASE_DISCOVER_GENRE__;rollDiscovery()});
  app.querySelectorAll('[data-discover-roll]').forEach(b=>b.onclick=rollDiscovery);
  app.querySelectorAll('[data-discover-open]').forEach(b=>b.onclick=()=>openInfo(Number(b.dataset.discoverOpen)));
  app.querySelectorAll('[data-loot-open]').forEach(b=>b.onclick=()=>{
