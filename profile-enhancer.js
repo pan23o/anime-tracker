@@ -53,7 +53,7 @@
     for (const item of clean(remote)) items.set(keyOf(item), item);
     for (const item of clean(local)) {
       const key = keyOf(item), previous = items.get(key);
-      if (!previous || (Number(item.updatedAt) || Number(item.addedAt) || 0) >= (Number(previous.updatedAt) || Number(previous.addedAt) || 0)) items.set(key, item);
+      if (!previous || (Number(item.updatedAt) || Number(item.addedAt) || 0) > (Number(previous.updatedAt) || Number(previous.addedAt) || 0)) items.set(key, item);
     }
     return [...items.values()];
   }
@@ -189,13 +189,17 @@
     // even when tracker_state already contained a newer progress update.
     let fileList = [];
     let tableList = [];
+    let tableRowExists = false;
     try { fileList = (await downloadAccountFile(user.id)) || []; } catch (_) {}
     try {
       const { data, error } = await client.from('tracker_state')
         .select('state,revision,saved_at,updated_at')
         .eq('user_id', user.id)
         .maybeSingle();
-      if (!error) tableList = clean(parse(data?.state?.[LIB] || '[]', []));
+      if (!error) {
+        tableRowExists = Boolean(data);
+        tableList = clean(parse(data?.state?.[LIB] || '[]', []));
+      }
     } catch (e) {
       console.warn('[AnimeTracker] tracker_state restore failed:', e);
     }
@@ -216,6 +220,17 @@
     }
     const emergency = await loadEmergencyMirror();
     if (emergency.length) { const merged = mergeLatest(emergency, localList()); setLocalList(merged); await uploadAccountFile(merged); return true; }
+
+    // No remote copy exists yet: keep the current local library and seed the
+    // account once authentication is ready. An explicitly empty table row is
+    // authoritative and must not resurrect deleted entries from the browser.
+    if (!tableRowExists && !fileList.length) {
+      const local = localList();
+      if (local.length) {
+        void saveLibraryNow();
+        return true;
+      }
+    }
     return false;
   }
 
