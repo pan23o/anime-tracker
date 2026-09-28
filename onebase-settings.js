@@ -105,7 +105,7 @@
         '--ob-gold-dark':vars.accent,'--obx-gold':vars.accent,'--obx-surface':vars.panel,
         '--obx-surface-2':vars.panel2,'--obx-border':vars.line2
       };
-      Object.entries(palette).forEach(([key,val])=>body.style.setProperty(key,val));
+      Object.entries(palette).forEach(([key,val])=>body.style.setProperty(key,val,'important'));
       const lightCustom=/^#(?:[fF]{2}|[eE][eE]|[dD][dD])/.test(vars.bg||'');
       body.classList.toggle('onebase-light-theme',theme==='high-white'||theme==='manga'||(theme==='custom'&&lightCustom));
     }
