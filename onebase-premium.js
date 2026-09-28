@@ -428,21 +428,31 @@ function navigate(p,push=true){
 }
 function shell(k,t,s,b){const action=(page==='home'||page==='library')?'<button type="button" class="ob-page-add" data-ob-add>＋ Añadir anime</button>':'';return '<div class="onebase-page-head"><div><div class="onebase-page-kicker">ONEBASE · '+esc(k)+'</div><h2>'+esc(t)+'</h2><p>'+esc(s)+'</p></div>'+action+'</div><div class="onebase-page-body">'+b+'</div>'}
 function card(label,value,sub){return '<article class="ob-stat-card"><span>'+esc(label)+'</span><b>'+esc(value)+'</b><small>'+esc(sub||'')+'</small></article>'}
+function discoveryPool(){
+ return items().filter(({x})=>{
+  const watched=Math.max(0,Number(x.watched)||0),total=Math.max(0,Number(x.total)||0);
+  return x.state==='pendiente'||x.state==='abandonado'||(total>0&&watched<total);
+ });
+}
 function home(){
- const library=items(),availableGenres=genres().slice(0,6);
- let choice=library.find(o=>o.i===window.__ONEBASE_DISCOVER_KEY__);
- if(!choice&&library.length){choice=library[0];window.__ONEBASE_DISCOVER_KEY__=choice.i}
+ const eligible=discoveryPool(),availableGenres=[...new Set(eligible.flatMap(o=>Array.isArray(o.x.genres)?o.x.genres:[]).map(String).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es')).slice(0,6);
+ const selectedGenre=window.__ONEBASE_DISCOVER_GENRE__||'all';
+ const pool=eligible.filter(o=>selectedGenre==='all'||(Array.isArray(o.x.genres)&&o.x.genres.some(g=>String(g).toLowerCase()===selectedGenre.toLowerCase())));
+ let choice=pool.find(o=>o.i===window.__ONEBASE_DISCOVER_KEY__);
+ if(!choice&&pool.length){choice=pool[Math.floor(Math.random()*pool.length)];window.__ONEBASE_DISCOVER_KEY__=choice.i}
+ if(!choice)delete window.__ONEBASE_DISCOVER_KEY__;
  const x=choice?.x,cover=String(x?.cover||x?.coverImage||'').trim(),watched=Number(x?.watched)||0,total=Number(x?.total)||0;
  const currentGenres=Array.isArray(x?.genres)?x.genres.slice(0,3).join(' · '):'';
- const genreButtons=['all',...availableGenres].map(g=>'<button type="button" class="ob-discover-chip '+(window.__ONEBASE_DISCOVER_GENRE__===g?'is-active':'')+'" data-discover-genre="'+esc(g)+'" onclick="window.OneBasePages.setDiscoveryGenre(this.dataset.discoverGenre)">'+(g==='all'?'Todos':esc(g))+'</button>').join('');
- const feature=x?'<section class="ob-discover-feature"><div class="ob-discover-art">'+(cover?'<img src="'+esc(cover)+'" alt="Portada de '+esc(x.anime)+'">':'<div class="ob-discover-no-cover">ONEBASE</div>')+'<span class="ob-discover-stamp">TU BIBLIOTECA</span></div><div class="ob-discover-copy"><div class="ob-discover-overline">ELECCIÓN DE HOY</div><h3>'+esc(x.anime)+'</h3><p class="ob-discover-meta">'+esc(currentGenres||status[x.state]||'En tu biblioteca')+'</p><p class="ob-discover-progress">'+esc(status[x.state]||'Sin estado')+(total?' · '+watched+' / '+total+' episodios':'')+'</p><div class="ob-discover-actions"><button type="button" class="ob-discover-open" data-discover-open="'+choice.i+'" onclick="window.OneBasePages.openDiscoveryPick(this.dataset.discoverOpen)">Ver ficha</button><button type="button" class="ob-discover-roll" data-discover-roll onclick="window.OneBasePages.rollDiscovery()">✦ Sorpréndeme</button></div></div></section>':'<section class="ob-discover-empty"><div class="ob-discover-empty-icon">✦</div><h3>Tu próxima serie empieza aquí</h3><p>Añade anime a tu biblioteca y deja que OneBase elija una opción para ti.</p><button type="button" class="ob-page-add" data-ob-add>＋ Añadir anime</button></section>';
- return shell('DESCUBRIR','¿Qué vemos hoy?','Elige un género o deja que OneBase saque una sugerencia de tu biblioteca.',
- '<section class="ob-discover-panel"><div class="ob-discover-heading"><div><span>UN ANIME, SIN DAR VUELTAS</span><h3>Déjate recomendar</h3></div><span class="ob-discover-count">'+library.length+' '+(library.length===1?'anime':'animes')+'</span></div><div class="ob-discover-filters" aria-label="Filtrar sugerencias por género">'+genreButtons+'</div>'+feature+'</section>');
+ const genreButtons=['all',...availableGenres].map(g=>'<button type="button" class="ob-discover-chip '+(selectedGenre===g?'is-active':'')+'" data-discover-genre="'+esc(g)+'" onclick="window.OneBasePages.setDiscoveryGenre(this.dataset.discoverGenre)">'+(g==='all'?'Todos':esc(g))+'</button>').join('');
+ const feature=x?'<section class="ob-discover-feature"><div class="ob-discover-art">'+(cover?'<img src="'+esc(cover)+'" alt="Portada de '+esc(x.anime)+'">':'<div class="ob-discover-no-cover">ONEBASE</div>')+'<span class="ob-discover-stamp">POR VER</span></div><div class="ob-discover-copy"><div class="ob-discover-overline">AÚN TE QUEDA POR VER</div><h3>'+esc(x.anime)+'</h3><p class="ob-discover-meta">'+esc(currentGenres||status[x.state]||'En tu biblioteca')+'</p><p class="ob-discover-progress">'+esc(status[x.state]||'Sin estado')+(total?' · '+watched+' / '+total+' episodios':'')+'</p><div class="ob-discover-actions"><button type="button" class="ob-discover-open" data-discover-open="'+choice.i+'" onclick="window.OneBasePages.openDiscoveryPick(this.dataset.discoverOpen)">Ver ficha</button><button type="button" class="ob-discover-roll" data-discover-roll onclick="window.OneBasePages.rollDiscovery()">✦ Sorpréndeme</button></div></div></section>':eligible.length?'<section class="ob-discover-empty"><div class="ob-discover-empty-icon">⌕</div><h3>No hay pendientes de este género</h3><p>Prueba otro género o vuelve a “Todos” para ver el resto de tu lista por continuar.</p></section>':'<section class="ob-discover-empty"><div class="ob-discover-empty-icon">✓</div><h3>¡Todo al día!</h3><p>No tienes episodios pendientes ni animes por empezar o retomar.</p><button type="button" class="ob-page-add" data-ob-add>＋ Añadir anime</button></section>';
+ return shell('DESCUBRIR','¿Qué vemos hoy?','Encuentra una serie pendiente o retoma los episodios que te quedan.',
+ '<section class="ob-discover-panel"><div class="ob-discover-heading"><div><span>SOLO LO QUE TE QUEDA POR VER</span><h3>Tu próxima sesión</h3></div><span class="ob-discover-count">'+eligible.length+' '+(eligible.length===1?'anime por continuar':'animes por continuar')+'</span></div>'+(eligible.length?'<div class="ob-discover-filters" aria-label="Filtrar pendientes por género">'+genreButtons+'</div>':'')+feature+'</section>');
 }
 function rollDiscovery(){
- const pool=items().filter(o=>window.__ONEBASE_DISCOVER_GENRE__==='all'||(Array.isArray(o.x.genres)&&o.x.genres.some(g=>String(g).toLowerCase()===window.__ONEBASE_DISCOVER_GENRE__.toLowerCase())));
+ const genre=window.__ONEBASE_DISCOVER_GENRE__||'all';
+ const pool=discoveryPool().filter(o=>genre==='all'||(Array.isArray(o.x.genres)&&o.x.genres.some(g=>String(g).toLowerCase()===genre.toLowerCase())));
  const alternatives=pool.filter(o=>o.i!==window.__ONEBASE_DISCOVER_KEY__),pick=alternatives[Math.floor(Math.random()*alternatives.length)]||pool[0];
- if(pick)window.__ONEBASE_DISCOVER_KEY__=pick.i;
+ if(pick)window.__ONEBASE_DISCOVER_KEY__=pick.i;else delete window.__ONEBASE_DISCOVER_KEY__;
  render();
 }
 function cardFlags(x){const a=[];if(x.state==='viendo')a.push('is-watching');if(x.state==='abandonado')a.push('is-abandoned');if(x.state==='pendiente')a.push('is-pending');if(x.favorite)a.push('is-favorite');if(Number(x.score)===10)a.push('is-perfect');return a.join(' ')}
