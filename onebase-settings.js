@@ -263,6 +263,8 @@
 
   function boot(){
     css();
+    const initialTheme=localStorage.getItem('onebase_theme_v1')||localStorage.getItem('anime_tracker_theme')||findOriginalThemeSelect()?.value||document.body.dataset.theme||'ink';
+    applySettingsTheme(initialTheme);
     addButton();
     cleanupLegacyHeaderControls();
     installProtection();
