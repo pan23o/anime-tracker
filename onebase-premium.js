@@ -9,7 +9,7 @@ const SUPABASE_URL='https://djfjqecahztogacliavh.supabase.co';
 const SUPABASE_KEY='sb_publishable_tm8Tid_HSYtu6cxXQ3ddKA_RWN15BSB';
 const PUBLIC_KEY='onebase_public_profile_v1';
 const STATUS={viendo:'Viendo',terminado:'Terminado',pendiente:'Pendiente',pausa:'En pausa',abandonado:'Abandonado'};
-let booted=false,originalRender=null,pendingInfoIndex=null,episodeIndex=null,episodePage=0,episodeTotalPages=1,airingTimer=0,publicTimer=0;
+let booted=false,originalRender=null,pendingInfoIndex=null,episodeIndex=null,episodePage=0,episodeTotalPages=1,airingTimer=0,publicTimer=0,discoverGenre='all',discoverKey=null;
 let publicState=loadLocalPublic();
 let supa=null;
 
@@ -214,7 +214,7 @@ function renderEpisodes(){
   grid.innerHTML=Array.from({length:end-start+1},(_,n)=>{const ep=start+n,isWatched=ep<=watched,isNext=ep===watched+1,state=isWatched?(ep===watched&&watched>0?'ÚLTIMO VISTO':'VISTO'):isNext?'SIGUIENTE':'PENDIENTE';return '<button type="button" class="onebase-episode '+(isWatched?'is-watched ':'')+(isNext?'is-next ':'')+(ep===watched&&watched>0?'is-current':'')+'" data-ep="'+ep+'" aria-label="Episodio '+ep+': '+state+'"><span class="onebase-episode-number">Episodio '+ep+'</span><span class="onebase-episode-state">'+state+'</span></button>'}).join('');
   grid.querySelectorAll('[data-ep]').forEach(b=>b.addEventListener('click',()=>setWatchedEpisode(Number(b.dataset.ep))));
   if(pagination){pagination.innerHTML=episodeTotalPages>1?'<button type="button" data-episode-page="prev" '+(episodePage===0?'disabled':'')+'>‹ Anteriores</button><span>Episodios '+start+'–'+end+' de '+total+'</span><button type="button" data-episode-page="next" '+(episodePage>=episodeTotalPages-1?'disabled':'')+'>Siguientes ›</button>':'';pagination.querySelectorAll('[data-episode-page]').forEach(b=>b.addEventListener('click',()=>{episodePage+=b.dataset.episodePage==='next'?1:-1;renderEpisodes()}))}
-  const source=$('#onebaseEpisodesModal [data-ep-action="source"]');if(source)source.textContent='Buscar dónde ver · episodio '+(watched||1);
+  const source=$('#onebaseEpisodesModal [data-ep-action="source"]'),nextEpisode=watched+1,complete=Boolean(total&&watched>=total);if(source){source.textContent=complete?'Serie completada · '+watched+' vistos':'Buscar dónde ver · episodio '+nextEpisode;source.disabled=complete;source.setAttribute('aria-label',complete?'Todos los episodios están vistos':'Buscar dónde ver el episodio '+nextEpisode)}
 }
 function setWatchedEpisode(ep){
   const item=getData()[episodeIndex];if(!item)return;
@@ -234,8 +234,10 @@ function episodeAction(action){
   if(action==='close'){closeEpisodes();return}
   if(action==='source'){
     const row=document.querySelector('.row[data-index="'+episodeIndex+'"]');
-    const ep=Number(item.watched)||0;
-    const modal=$('#sourceModal');if(modal)modal.dataset.sourceEpisode=String(ep>0?ep:1);
+    const total=Number(item.total)||Number(item.knownTotal)||0,watched=Number(item.watched)||0;
+    if(total&&watched>=total){window.toast?.('Ya has visto todos los episodios disponibles.');return}
+    const ep=watched+1;
+    const modal=$('#sourceModal');if(modal)modal.dataset.sourceEpisode=String(ep);
     row?.querySelector('.animeLink')?.click();closeEpisodes();return;
   }
   if(action==='latest'){const t=Number(item.total)||Number(item.knownTotal)||0;if(t)setWatchedEpisode(t);return}
@@ -415,14 +417,21 @@ function navigate(p,push=true){
 function shell(k,t,s,b){const action=(page==='home'||page==='library')?'<button type="button" class="ob-page-add" data-ob-add>＋ Añadir anime</button>':'';return '<div class="onebase-page-head"><div><div class="onebase-page-kicker">ONEBASE · '+esc(k)+'</div><h2>'+esc(t)+'</h2><p>'+esc(s)+'</p></div>'+action+'</div><div class="onebase-page-body">'+b+'</div>'}
 function card(label,value,sub){return '<article class="ob-stat-card"><span>'+esc(label)+'</span><b>'+esc(value)+'</b><small>'+esc(sub||'')+'</small></article>'}
 function home(){
- const s=stats(),active=items().filter(o=>o.x.state==='viendo'&&Number(o.x.total||0)>Number(o.x.watched||0)).sort((a,b)=>(Number(b.x.updatedAt)||0)-(Number(a.x.updatedAt)||0)).slice(0,6);
- const air=items().filter(o=>Number(o.x.nextAiringAt)>0&&Number(o.x.nextAiringEpisode)>0&&Number(o.x.nextAiringAt)*1000>Date.now()-86400000).sort((a,b)=>Number(a.x.nextAiringAt)-Number(b.x.nextAiringAt)).slice(0,5);
- const recent=items().sort((a,b)=>(Number(b.x.updatedAt)||0)-(Number(a.x.updatedAt)||0)).slice(0,6);
- return shell('INICIO','Tu biblioteca, de un vistazo','Lo importante primero. El resto está a un clic.',
- '<div class="ob-stat-grid">'+card('Animes',fmt(s.a.length),s.active+' activos')+card('Completados',fmt(s.c),s.a.length?Math.round(s.c/s.a.length*100)+'% de la lista':'—')+card('Capítulos vistos',fmt(s.w),fmt(s.t)+' conocidos')+card('Tiempo visto',s.h>=24?(s.h/24).toFixed(1)+' días':s.h.toFixed(1)+' h','estimado')+card('Pendientes',fmt(s.p),'por ver')+card('Progreso global',s.t?Math.round(s.w/s.t*100)+'%':'—','biblioteca')+card('Nota media',s.r.length?(s.r.reduce((z,x)=>z+Number(x.score),0)/s.r.length).toFixed(1)+'/10':'—',s.r.length+' valoraciones')+card('Favoritos',fmt(s.f),'colección')+'</div>'+
- '<div class="ob-home-columns"><section class="ob-section-card"><header><h3>▶ Continuar viendo</h3><span class="ob-section-count">'+active.length+' activas</span></header><div class="ob-home-list">'+(active.length?active.map(o=>mini(o)).join(''):'<div class="ob-empty">No tienes series activas con episodios pendientes.</div>')+'</div></section>'+
- '<section class="ob-section-card"><header><h3>◷ Próximos episodios</h3><span class="ob-section-count">'+air.length+' registrados</span></header><div class="ob-home-list">'+(air.length?air.map(o=>mini(o,true)).join(''):'<div class="ob-empty">No hay próximos episodios registrados.</div>')+'</div></section></div>'+
- '<section class="ob-section-card ob-recent"><header><h3>✦ Actividad reciente</h3><span class="ob-section-count">'+recent.length+' cambios</span></header><div class="ob-activity-list">'+(recent.length?recent.map(o=>'<button class="ob-activity" data-open="'+o.i+'"><i></i><span><strong>'+esc(o.x.anime)+'</strong><small>'+esc(status[o.x.state]||'Actualizado')+'</small></span><em>›</em></button>').join(''):'<div class="ob-empty">Todavía no hay actividad.</div>')+'</div></section>');
+ const library=items(),availableGenres=genres().slice(0,6);
+ let choice=library.find(o=>o.i===discoverKey);
+ if(!choice&&library.length){choice=library[0];discoverKey=choice.i}
+ const x=choice?.x,cover=String(x?.cover||x?.coverImage||'').trim(),watched=Number(x?.watched)||0,total=Number(x?.total)||0;
+ const currentGenres=Array.isArray(x?.genres)?x.genres.slice(0,3).join(' · '):'';
+ const genreButtons=['all',...availableGenres].map(g=>'<button type="button" class="ob-discover-chip '+(discoverGenre===g?'is-active':'')+'" data-discover-genre="'+esc(g)+'">'+(g==='all'?'Todos':esc(g))+'</button>').join('');
+ const feature=x?'<section class="ob-discover-feature"><div class="ob-discover-art">'+(cover?'<img src="'+esc(cover)+'" alt="Portada de '+esc(x.anime)+'">':'<div class="ob-discover-no-cover">ONEBASE</div>')+'<span class="ob-discover-stamp">TU BIBLIOTECA</span></div><div class="ob-discover-copy"><div class="ob-discover-overline">ELECCIÓN DE HOY</div><h3>'+esc(x.anime)+'</h3><p class="ob-discover-meta">'+esc(currentGenres||status[x.state]||'En tu biblioteca')+'</p><p class="ob-discover-progress">'+esc(status[x.state]||'Sin estado')+(total?' · '+watched+' / '+total+' episodios':'')+'</p><div class="ob-discover-actions"><button type="button" class="ob-discover-open" data-discover-open="'+choice.i+'">Ver ficha</button><button type="button" class="ob-discover-roll" data-discover-roll>✦ Sorpréndeme</button></div></div></section>':'<section class="ob-discover-empty"><div class="ob-discover-empty-icon">✦</div><h3>Tu próxima serie empieza aquí</h3><p>Añade anime a tu biblioteca y deja que OneBase elija una opción para ti.</p><button type="button" class="ob-page-add" data-ob-add>＋ Añadir anime</button></section>';
+ return shell('DESCUBRIR','¿Qué vemos hoy?','Elige un género o deja que OneBase saque una sugerencia de tu biblioteca.',
+ '<section class="ob-discover-panel"><div class="ob-discover-heading"><div><span>UN ANIME, SIN DAR VUELTAS</span><h3>Déjate recomendar</h3></div><span class="ob-discover-count">'+library.length+' '+(library.length===1?'anime':'animes')+'</span></div><div class="ob-discover-filters" aria-label="Filtrar sugerencias por género">'+genreButtons+'</div>'+feature+'</section>');
+}
+function rollDiscovery(){
+ const pool=items().filter(o=>discoverGenre==='all'||(Array.isArray(o.x.genres)&&o.x.genres.some(g=>String(g).toLowerCase()===discoverGenre.toLowerCase())));
+ const alternatives=pool.filter(o=>o.i!==discoverKey),pick=alternatives[Math.floor(Math.random()*alternatives.length)]||pool[0];
+ if(pick)discoverKey=pick.i;
+ render();
 }
 function cardFlags(x){const a=[];if(x.state==='viendo')a.push('is-watching');if(x.state==='abandonado')a.push('is-abandoned');if(x.state==='pendiente')a.push('is-pending');if(x.favorite)a.push('is-favorite');if(Number(x.score)===10)a.push('is-perfect');return a.join(' ')}
 function mini(o,air){const x=o.x,c=x.cover||x.coverImage||'',txt=air?'EP '+(x.nextAiringEpisode||'—')+' · '+remain(x.nextAiringAt):(Number(x.watched)||0)+' / '+(Number(x.total)||0)+' episodios';return '<button class="ob-home-anime" data-open="'+o.i+'"><span class="ob-home-cover">'+(c?'<img loading="lazy" src="'+esc(c)+'" alt="">':'SIN PORTADA')+'</span><span><strong>'+esc(x.anime)+'</strong><small>'+esc(txt)+'</small></span><em>›</em></button>'}
@@ -452,12 +461,15 @@ function library(){
  '<div class="ob-library-tools"><input id="obLibSearch" value="'+esc(q)+'" placeholder="Buscar anime…" autocomplete="off"><details class="ob-library-filters"><summary>☷ Filtros</summary><div class="ob-library-filter-grid"><select id="obLibStatus"><option value="all">Todos los estados</option>'+opts+'</select><select id="obLibGenre"><option value="all">Todos los géneros</option>'+g.map(x=>'<option value="'+esc(x)+'" '+(genre===x?'selected':'')+'>'+esc(x)+'</option>').join('')+'</select><select id="obLibScore"><option value="all">Cualquier nota</option><option value="rated" '+(score==='rated'?'selected':'')+'>Con nota personal</option><option value="8" '+(score==='8'?'selected':'')+'>Nota ≥ 8</option><option value="9" '+(score==='9'?'selected':'')+'>Nota ≥ 9</option></select><select id="obLibProgress"><option value="all">Cualquier progreso</option><option value="none" '+(progress==='none'?'selected':'')+'>Sin empezar</option><option value="active" '+(progress==='active'?'selected':'')+'>En progreso</option><option value="complete" '+(progress==='complete'?'selected':'')+'>Completados</option><option value="new" '+(progress==='new'?'selected':'')+'>Con episodios nuevos</option><option value="airing" '+(progress==='airing'?'selected':'')+'>En emisión</option></select><select id="obLibSort"><option value="recent" '+(sort==='recent'?'selected':'')+'>Más recientes</option><option value="name" '+(sort==='name'?'selected':'')+'>Nombre A-Z</option><option value="progress" '+(sort==='progress'?'selected':'')+'>Más progreso</option><option value="score" '+(sort==='score'?'selected':'')+'>Mayor nota</option><option value="watched" '+(sort==='watched'?'selected':'')+'>Más capítulos</option><option value="new" '+(sort==='new'?'selected':'')+'>Nuevos episodios</option></select><button id="obLibFav" class="'+(fav?'active':'')+'">☆ Favoritos</button></div></details></div><div class="ob-library-meta"><span>'+a.length+' de '+items().length+' animes</span><span>Haz clic en una portada para abrir la ficha</span></div><div class="ob-library-grid">'+cards+'</div>');
 }
 function episodes(){
- const up=items().filter(o=>Number(o.x.nextAiringAt)>0&&Number(o.x.nextAiringEpisode)>0&&Number(o.x.nextAiringAt)*1000>Date.now()-86400000).sort((a,b)=>Number(a.x.nextAiringAt)-Number(b.x.nextAiringAt));
- const pe=items().filter(o=>Math.max(0,(Number(o.x.total)||0)-(Number(o.x.watched)||0))>0).sort((a,b)=>((Number(b.x.total)||0)-(Number(b.x.watched)||0))-((Number(a.x.total)||0)-(Number(a.x.watched)||0)));
- const recent=items().filter(o=>Number(o.x.watched)>0).sort((a,b)=>(Number(b.x.updatedAt)||0)-(Number(a.x.updatedAt)||0)).slice(0,10);
- const row=(o,air=false)=>{const x=o.x,c=x.cover||x.coverImage||'',p=Math.max(0,(Number(x.total)||0)-(Number(x.watched)||0));return '<button class="ob-episode-row" data-epopen="'+o.i+'"><span class="ob-episode-cover">'+(c?'<img loading="lazy" src="'+esc(c)+'" alt="">':'')+'</span><span><strong>'+esc(x.anime)+'</strong><small>'+esc(air?'Próximo: episodio '+x.nextAiringEpisode+' · '+remain(x.nextAiringAt):p+' episodios pendientes')+'</small></span><em>'+esc(air?remain(x.nextAiringAt):'▦')+'</em></button>'};
- return shell('EPISODIOS','Seguimiento de episodios','Próximos lanzamientos, pendientes y progreso reciente.',
- '<div class="ob-home-columns"><section class="ob-section-card"><header><h3>◷ Próximos</h3><button data-go="library">Biblioteca</button></header><div class="ob-episode-list">'+(up.length?up.map(o=>row(o,true)).join(''):'<div class="ob-empty">No hay próximos episodios registrados.</div>')+'</div></section><section class="ob-section-card"><header><h3>📌 Pendientes</h3><span>'+pe.length+' animes</span></header><div class="ob-episode-list">'+(pe.length?pe.slice(0,15).map(o=>row(o)).join(''):'<div class="ob-empty">No tienes episodios pendientes.</div>')+'</div></section></div><section class="ob-section-card"><header><h3>✓ Vistos recientemente</h3></header><div class="ob-episode-list ob-episode-list-grid">'+(recent.length?recent.map(o=>row(o)).join(''):'<div class="ob-empty">Todavía no hay progreso reciente.</div>')+'</div></section>');
+ const active=items().filter(o=>o.x.state==='viendo').sort((a,b)=>(Number(b.x.updatedAt)||Number(b.x.watched)||0)-(Number(a.x.updatedAt)||Number(a.x.watched)||0));
+ const planned=items().filter(o=>o.x.state==='pendiente').sort((a,b)=>(Number(b.x.updatedAt)||0)-(Number(a.x.updatedAt)||0));
+ const upcoming=items().filter(o=>Number(o.x.nextAiringAt)>0&&Number(o.x.nextAiringEpisode)>0&&Number(o.x.nextAiringAt)*1000>Date.now()-86400000).sort((a,b)=>Number(a.x.nextAiringAt)-Number(b.x.nextAiringAt)).slice(0,3);
+ const queue=active.length?active.slice(1,6):planned.slice(1,6),featured=active[0]||planned[0];
+ const x=featured?.x,cover=String(x?.cover||x?.coverImage||'').trim(),watched=Number(x?.watched)||0,total=Number(x?.total)||0,next=watched+1;
+ const featuredCard=x?'<section class="ob-continue-feature"><div class="ob-continue-poster">'+(cover?'<img src="'+esc(cover)+'" alt="Portada de '+esc(x.anime)+'">':'<span>ONEBASE</span>')+'<span class="ob-continue-tag">'+(active.length?'EN CURSO':'POR EMPEZAR')+'</span></div><div class="ob-continue-copy"><div class="ob-continue-kicker">'+(active.length?'RETOMA DONDE LO DEJASTE':'TU PRÓXIMA SERIE')+'</div><h3>'+esc(x.anime)+'</h3><p>'+(total?watched+' de '+total+' episodios vistos':'Progreso listo para empezar')+'</p>'+(total?'<div class="ob-continue-progress"><span style="width:'+Math.min(100,watched/total*100)+'%"></span></div>':'')+'<button type="button" class="ob-continue-cta" data-epopen="'+featured.i+'">'+(active.length?'Continuar · episodio '+Math.min(next,total||next):'Empezar a seguir')+' <span>→</span></button></div></section>':'<section class="ob-continue-empty"><span>▶</span><h3>Tu próxima sesión empieza aquí</h3><p>Elige un anime de tu biblioteca y sigue su progreso capítulo a capítulo.</p><button type="button" class="ob-page-add" data-go="library">Ir a mi biblioteca</button></section>';
+ const row=o=>{const a=o.x,c=a.cover||a.coverImage||'',w=Number(a.watched)||0,t=Number(a.total)||0;return '<button type="button" class="ob-continue-row" data-epopen="'+o.i+'"><span class="ob-continue-row-cover">'+(c?'<img loading="lazy" src="'+esc(c)+'" alt="">':'')+'</span><span><strong>'+esc(a.anime)+'</strong><small>'+(a.state==='viendo'?(w?('Siguiente · episodio '+(w+1)):'Sin episodios vistos'):'Pendiente de empezar')+'</small></span><span class="ob-continue-row-progress">'+(t?Math.round(w/t*100)+'%':'›')+'</span></button>'};
+ return shell('EPISODIOS','Sigue por donde ibas','Una pantalla para elegir serie y continuar sin perderte entre estadísticas.',
+ '<section class="ob-continue-page"><div class="ob-continue-heading"><div><span>PLAY · TU SIGUIENTE CAPÍTULO</span><h3>Continuar viendo</h3></div><button type="button" data-go="library">Ver biblioteca <b>→</b></button></div>'+featuredCard+(queue.length?'<div class="ob-continue-queue"><div class="ob-continue-queue-title">TAMBIÉN EN TU LISTA</div>'+queue.map(row).join('')+'</div>':'')+(upcoming.length?'<div class="ob-continue-air"><span>PRÓXIMOS</span>'+upcoming.map(o=>'<button type="button" data-epopen="'+o.i+'"><b>'+esc(o.x.anime)+'</b><small>Ep. '+esc(o.x.nextAiringEpisode)+' · '+esc(remain(o.x.nextAiringAt))+'</small></button>').join('')+'</div>':'')+'</section>');
 }
 function loadLootHistory(){try{const v=JSON.parse(localStorage.getItem('onebase_lootbox_history_v1')||'[]');return new Set(Array.isArray(v)?v.map(Number).filter(Number.isFinite):[])}catch(_){return new Set()}}
 function saveLootHistory(){try{localStorage.setItem('onebase_lootbox_history_v1',JSON.stringify([...lootHistory].slice(-300)))}catch(_){}}
@@ -557,6 +569,9 @@ function bind(){
  app.querySelectorAll('[data-ob-add]').forEach(b=>b.onclick=()=>window.OneBaseAniListSearch?.open?.());
  app.querySelectorAll('[data-open]').forEach(b=>b.onclick=e=>{e.preventDefault();openInfo(Number(b.dataset.open))});
  app.querySelectorAll('[data-epopen]').forEach(b=>b.onclick=()=>window.OneBasePremium?.openEpisodes?.(Number(b.dataset.epopen)));
+ app.querySelectorAll('[data-discover-genre]').forEach(b=>b.onclick=()=>{discoverGenre=b.dataset.discoverGenre;rollDiscovery()});
+ app.querySelectorAll('[data-discover-roll]').forEach(b=>b.onclick=rollDiscovery);
+ app.querySelectorAll('[data-discover-open]').forEach(b=>b.onclick=()=>openInfo(Number(b.dataset.discoverOpen)));
  app.querySelectorAll('[data-loot-open]').forEach(b=>b.onclick=()=>{
   const i=Number(b.dataset.lootOpen);
   if(!Number.isInteger(i)||!lootRoll?.[i]||lootResolved.has(i)||lootOpenedIndex!==null||lootConsumed)return;
