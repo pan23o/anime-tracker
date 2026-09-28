@@ -611,8 +611,9 @@ function render(){
  }app.innerHTML=page==='home'?home():page==='library'?library():page==='episodes'?episodes():page==='stats'?statistics():page==='loot'?lootboxes():profilePage();$('#onebaseSidebar')?.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));bind();document.title='ONEBASE · '+({home:'Inicio',library:'Biblioteca',episodes:'Episodios',stats:'Estadísticas',profile:'Perfil',loot:'Lootboxes'}[page]||'');}
 function publishAPI(){window.OneBasePages={navigate,refresh:render,rollDiscovery,setDiscoveryGenre(value){window.__ONEBASE_DISCOVER_GENRE__=value||'all';rollDiscovery()},openDiscoveryPick(index){openInfo(Number(index))},openEpisodes(index){window.OneBasePremium?.openEpisodes?.(Number(index))}}}
 function delegatePageClick(e){
- const target=e.target?.closest?.('[data-go],[data-ob-add],[data-open],[data-epopen],[data-discover-genre],[data-discover-roll],[data-discover-open]');if(!target)return;
+ const target=e.target?.closest?.('[data-page],[data-go],[data-ob-add],[data-open],[data-epopen],[data-discover-genre],[data-discover-roll],[data-discover-open]');if(!target)return;
  e.preventDefault();e.stopImmediatePropagation();
+ if(target.matches('[data-page]')){navigate(target.dataset.page);return}
  if(target.matches('[data-discover-genre]')){window.__ONEBASE_DISCOVER_GENRE__=target.dataset.discoverGenre;rollDiscovery();return}
  if(target.matches('[data-discover-roll]')){rollDiscovery();return}
  if(target.matches('[data-discover-open]')){openInfo(Number(target.dataset.discoverOpen));return}
