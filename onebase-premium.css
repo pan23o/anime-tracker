@@ -742,3 +742,48 @@ body[data-theme] :is(input,select,textarea){
   color-scheme:inherit;
 }
 
+/* Match remaining legacy surfaces and feedback messages to the selected palette. */
+body[data-theme] .modalCard,
+body[data-theme] #settingsModal,
+body[data-theme] .settingsSection,
+body[data-theme] .trashItem,
+body[data-theme] .backupItem,
+body[data-theme] .cloud-user-menu,
+body[data-theme] .cloud-auth-card,
+body[data-theme] .accountSection,
+body[data-theme] .accountStat,
+body[data-theme] .accountCard,
+body[data-theme] .modeCard,
+body[data-theme] .modeOption,
+body[data-theme] .onebase-home-card{
+  color:var(--text)!important;
+  background:var(--panel)!important;
+  border-color:var(--line)!important;
+}
+body[data-theme] .toast,
+body[data-theme] .achievementToast{
+  color:var(--text)!important;
+  background:var(--panel2)!important;
+  border-color:var(--line2)!important;
+}
+body[data-theme] .sourceChoices button,
+body[data-theme] .modalActions button,
+body[data-theme] .themeActions .btn,
+body[data-theme] .cloud-user-menu button{
+  color:var(--text)!important;
+  background:var(--panel2)!important;
+  border-color:var(--line2)!important;
+}
+body[data-theme] .modalActions button:first-child,
+body[data-theme] .themeActions .btn:not(.ghost){
+  color:var(--bg)!important;
+  background:var(--accent)!important;
+  border-color:var(--accent)!important;
+}
+body[data-theme] .onebase-home-card .onebase-home-head,
+body[data-theme] .ob-section-card>header{
+  color:var(--text)!important;
+  border-color:var(--line)!important;
+  background:var(--panel2)!important;
+}
+
