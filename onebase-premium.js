@@ -9,7 +9,7 @@ const SUPABASE_URL='https://djfjqecahztogacliavh.supabase.co';
 const SUPABASE_KEY='sb_publishable_tm8Tid_HSYtu6cxXQ3ddKA_RWN15BSB';
 const PUBLIC_KEY='onebase_public_profile_v1';
 const STATUS={viendo:'Viendo',terminado:'Terminado',pendiente:'Pendiente',pausa:'En pausa',abandonado:'Abandonado'};
-let booted=false,originalRender=null,pendingInfoIndex=null,episodeIndex=null,episodePage=0,episodeTotalPages=1,airingTimer=0,publicTimer=0,discoverGenre='all',discoverKey=null;
+let booted=false,originalRender=null,pendingInfoIndex=null,episodeIndex=null,episodePage=0,episodeTotalPages=1,airingTimer=0,publicTimer=0,discoverGenre='all';
 let publicState=loadLocalPublic();
 let supa=null;
 
@@ -361,7 +361,7 @@ function bindEvents(){
 }
 function boot(){
   if(booted)return;booted=true;
-  const link=document.createElement('link');link.rel='stylesheet';link.href='/onebase-premium.css?v=5';document.head.appendChild(link);
+  const link=document.createElement('link');link.rel='stylesheet';link.href='/onebase-premium.css?v=6';document.head.appendChild(link);
   ensureHealthButton();ensureHealth();ensureEpisodeModal();ensurePublicSection();wrapRender();bindEvents();refresh();void loadPublicSettings();void syncPublicSnapshot();
   window.OneBasePremium={refresh,openHealth,openEpisodes,openInfo:openInfoIndex,runHealth,publicUrl};
 }
@@ -418,8 +418,8 @@ function shell(k,t,s,b){const action=(page==='home'||page==='library')?'<button 
 function card(label,value,sub){return '<article class="ob-stat-card"><span>'+esc(label)+'</span><b>'+esc(value)+'</b><small>'+esc(sub||'')+'</small></article>'}
 function home(){
  const library=items(),availableGenres=genres().slice(0,6);
- let choice=library.find(o=>o.i===discoverKey);
- if(!choice&&library.length){choice=library[0];discoverKey=choice.i}
+ let choice=library.find(o=>o.i===window.__ONEBASE_DISCOVER_KEY__);
+ if(!choice&&library.length){choice=library[0];window.__ONEBASE_DISCOVER_KEY__=choice.i}
  const x=choice?.x,cover=String(x?.cover||x?.coverImage||'').trim(),watched=Number(x?.watched)||0,total=Number(x?.total)||0;
  const currentGenres=Array.isArray(x?.genres)?x.genres.slice(0,3).join(' · '):'';
  const genreButtons=['all',...availableGenres].map(g=>'<button type="button" class="ob-discover-chip '+(discoverGenre===g?'is-active':'')+'" data-discover-genre="'+esc(g)+'">'+(g==='all'?'Todos':esc(g))+'</button>').join('');
@@ -429,8 +429,8 @@ function home(){
 }
 function rollDiscovery(){
  const pool=items().filter(o=>discoverGenre==='all'||(Array.isArray(o.x.genres)&&o.x.genres.some(g=>String(g).toLowerCase()===discoverGenre.toLowerCase())));
- const alternatives=pool.filter(o=>o.i!==discoverKey),pick=alternatives[Math.floor(Math.random()*alternatives.length)]||pool[0];
- if(pick)discoverKey=pick.i;
+ const alternatives=pool.filter(o=>o.i!==window.__ONEBASE_DISCOVER_KEY__),pick=alternatives[Math.floor(Math.random()*alternatives.length)]||pool[0];
+ if(pick)window.__ONEBASE_DISCOVER_KEY__=pick.i;
  render();
 }
 function cardFlags(x){const a=[];if(x.state==='viendo')a.push('is-watching');if(x.state==='abandonado')a.push('is-abandoned');if(x.state==='pendiente')a.push('is-pending');if(x.favorite)a.push('is-favorite');if(Number(x.score)===10)a.push('is-perfect');return a.join(' ')}
