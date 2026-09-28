@@ -93,10 +93,21 @@
         vars = {bg,bg2:bg,panel:bg,panel2:bg,line:detail,line2:detail,text:detail,muted:detail,dim:detail,soft:bg,accent:detail,danger:detail};
       } catch (_) {}
     }
-    Object.entries(vars).forEach(([key,val]) => document.documentElement.style.setProperty('--'+key,val));
-    if (document.body) {
-      document.body.dataset.theme = theme;
-      document.body.classList.toggle('onebase-light-theme', theme === 'high-white' || theme === 'manga' || (theme === 'custom' && /^#(?:[fF]{2}|[eE][eE]|[dD][dD])/.test(vars.bg || '')));
+    const root=document.documentElement,body=document.body;
+    Object.entries(vars).forEach(([key,val])=>root.style.setProperty('--'+key,val));
+    if(body){
+      body.dataset.theme=theme;
+      // Keep the original tracker, OneBase pages and every overlay on one palette.
+      const palette={
+        '--ob-bg':vars.bg,'--ob-bg2':vars.bg2,'--ob-panel':vars.panel,'--ob-panel2':vars.panel2,
+        '--ob-panel3':vars.soft,'--ob-line':vars.line,'--ob-line-soft':vars.line2,'--ob-text':vars.text,
+        '--ob-muted':vars.muted,'--ob-dim':vars.dim,'--ob-gold':vars.accent,'--ob-gold-light':vars.accent,
+        '--ob-gold-dark':vars.accent,'--obx-gold':vars.accent,'--obx-surface':vars.panel,
+        '--obx-surface-2':vars.panel2,'--obx-border':vars.line2
+      };
+      Object.entries(palette).forEach(([key,val])=>body.style.setProperty(key,val));
+      const lightCustom=/^#(?:[fF]{2}|[eE][eE]|[dD][dD])/.test(vars.bg||'');
+      body.classList.toggle('onebase-light-theme',theme==='high-white'||theme==='manga'||(theme==='custom'&&lightCustom));
     }
     try { localStorage.setItem('anime_tracker_theme', theme); localStorage.setItem('onebase_theme_v1', theme); } catch (_) {}
     const original=findOriginalThemeSelect();
