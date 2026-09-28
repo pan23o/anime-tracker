@@ -184,7 +184,7 @@ function enhanceInfo(){
 }
 function ensureEpisodeModal(){
   if($('#onebaseEpisodesModal'))return;
-  const m=document.createElement('div');m.id='onebaseEpisodesModal';m.className='onebase-episodes-modal';m.innerHTML='<div class="onebase-episodes-card" role="dialog" aria-modal="true" aria-labelledby="onebaseEpisodesTitle"><div class="onebase-episodes-head"><div><div class="onebase-episodes-kicker">ONEBASE · EPISODIOS</div><h2 class="onebase-episodes-title" id="onebaseEpisodesTitle">Episodios</h2><p class="onebase-episodes-sub" id="onebaseEpisodesSub"></p></div><button type="button" class="onebase-episodes-close" aria-label="Cerrar">×</button></div><div class="onebase-episodes-progress" id="onebaseEpisodesProgress"></div><div class="onebase-episodes-toolbar"><input id="onebaseEpisodeJump" type="number" min="1" step="1" placeholder="Episodio"><button type="button" data-ep-action="jump">Ir</button><button type="button" data-ep-action="latest">Marcar último visto</button><button type="button" data-ep-action="first">Marcar 0</button></div><div class="onebase-episode-grid" id="onebaseEpisodeGrid"></div><div class="onebase-episode-actions"><button type="button" class="primary" data-ep-action="source">Buscar este episodio</button><button type="button" data-ep-action="close">Cerrar</button></div></div>';
+  const m=document.createElement('div');m.id='onebaseEpisodesModal';m.className='onebase-episodes-modal';m.innerHTML='<div class="onebase-episodes-card" role="dialog" aria-modal="true" aria-labelledby="onebaseEpisodesTitle" aria-describedby="onebaseEpisodesHelp"><div class="onebase-episodes-head"><div><div class="onebase-episodes-kicker">TU PROGRESO</div><h2 class="onebase-episodes-title" id="onebaseEpisodesTitle">Episodios</h2><p class="onebase-episodes-sub" id="onebaseEpisodesSub"></p></div><button type="button" class="onebase-episodes-close" aria-label="Cerrar">×</button></div><div class="onebase-episodes-progress" id="onebaseEpisodesProgress"></div><p class="onebase-episodes-help" id="onebaseEpisodesHelp">Elige un episodio para guardar tu progreso. Al marcar uno, también se marcarán como vistos todos los anteriores.</p><div class="onebase-episodes-toolbar"><label class="onebase-episode-jump"><span>Ir al episodio</span><input id="onebaseEpisodeJump" type="number" min="1" step="1" aria-label="Número de episodio" placeholder="N.º"></label><button type="button" data-ep-action="jump">Ir</button><span class="onebase-episode-toolbar-divider"></span><button type="button" data-ep-action="latest">Marcar todos vistos</button><button type="button" class="onebase-episode-reset" data-ep-action="first">Reiniciar progreso</button></div><div class="onebase-episode-legend" aria-label="Estados de episodio"><span><i class="is-watched"></i>Visto</span><span><i class="is-next"></i>Siguiente</span><span><i class="is-pending"></i>Pendiente</span></div><div class="onebase-episode-grid" id="onebaseEpisodeGrid"></div><div class="onebase-episode-pagination" id="onebaseEpisodePagination"></div><div class="onebase-episode-actions"><button type="button" class="primary" data-ep-action="source">Buscar dónde ver</button><button type="button" data-ep-action="close">Cerrar</button></div></div>';
   document.body.appendChild(m);
   m.querySelector('.onebase-episodes-close').addEventListener('click',closeEpisodes);
   m.addEventListener('click',e=>{if(e.target===m)closeEpisodes()});
@@ -201,15 +201,17 @@ function renderEpisodes(){
   const item=getData()[episodeIndex];if(!item)return;
   const total=Math.max(0,Number(item.total)||Number(item.knownTotal)||0),watched=Math.max(0,Number(item.watched)||0);
   $('#onebaseEpisodesTitle').textContent=item.anime||'Episodios';
-  $('#onebaseEpisodesSub').textContent=total?watched+' / '+total+' episodios vistos':'Este anime no tiene un total conocido.';
+  $('#onebaseEpisodesSub').textContent=total?watched+' de '+total+' episodios vistos':'Añade el total de episodios para activar el seguimiento.';
   const pct=total?Math.min(100,watched/total*100):0;
-  $('#onebaseEpisodesProgress').innerHTML='<div class="onebase-episodes-progress-top"><span>Progreso</span><b>'+Math.round(pct)+'%</b></div><div class="onebase-episodes-progress-bar"><span style="width:'+pct+'%"></span></div>';
-  const grid=$('#onebaseEpisodeGrid');if(!grid)return;
-  if(!total){grid.innerHTML='<div class="onebase-empty">Añade el número total de episodios para activar el listado.</div>';return}
+  $('#onebaseEpisodesProgress').innerHTML='<div class="onebase-episodes-progress-top"><span>Progreso guardado</span><b>'+Math.round(pct)+'%</b></div><div class="onebase-episodes-progress-bar"><span style="width:'+pct+'%"></span></div>';
+  const grid=$('#onebaseEpisodeGrid'),pagination=$('#onebaseEpisodePagination');if(!grid)return;
+  if(!total){grid.innerHTML='<div class="onebase-episode-empty">Abre “Personalizar mi ficha” y añade el número total de episodios para empezar.</div>';if(pagination)pagination.innerHTML='';return}
   episodeTotalPages=Math.max(1,Math.ceil(total/50));episodePage=Math.min(episodePage,episodeTotalPages-1);
   const start=episodePage*50+1,end=Math.min(total,start+49);
-  grid.innerHTML=Array.from({length:end-start+1},(_,n)=>{const ep=start+n,isWatched=ep<=watched;return '<button type="button" class="onebase-episode '+(isWatched?'is-watched ':'')+(ep===watched?'is-current':'')+'" data-ep="'+ep+'"><span class="onebase-episode-number">EP '+ep+'</span><span class="onebase-episode-state">'+(isWatched?'VISTO':ep===watched+1?'SIGUIENTE':'PENDIENTE')+'</span></button>'}).join('');
+  grid.innerHTML=Array.from({length:end-start+1},(_,n)=>{const ep=start+n,isWatched=ep<=watched,isNext=ep===watched+1,state=isWatched?(ep===watched&&watched>0?'ÚLTIMO VISTO':'VISTO'):isNext?'SIGUIENTE':'PENDIENTE';return '<button type="button" class="onebase-episode '+(isWatched?'is-watched ':'')+(isNext?'is-next ':'')+(ep===watched&&watched>0?'is-current':'')+'" data-ep="'+ep+'" aria-label="Episodio '+ep+': '+state+'"><span class="onebase-episode-number">Episodio '+ep+'</span><span class="onebase-episode-state">'+state+'</span></button>'}).join('');
   grid.querySelectorAll('[data-ep]').forEach(b=>b.addEventListener('click',()=>setWatchedEpisode(Number(b.dataset.ep))));
+  if(pagination){pagination.innerHTML=episodeTotalPages>1?'<button type="button" data-episode-page="prev" '+(episodePage===0?'disabled':'')+'>‹ Anteriores</button><span>Episodios '+start+'–'+end+' de '+total+'</span><button type="button" data-episode-page="next" '+(episodePage>=episodeTotalPages-1?'disabled':'')+'>Siguientes ›</button>':'';pagination.querySelectorAll('[data-episode-page]').forEach(b=>b.addEventListener('click',()=>{episodePage+=b.dataset.episodePage==='next'?1:-1;renderEpisodes()}))}
+  const source=$('#onebaseEpisodesModal [data-ep-action="source"]');if(source)source.textContent='Buscar dónde ver · episodio '+(watched||1);
 }
 function setWatchedEpisode(ep){
   const item=getData()[episodeIndex];if(!item)return;
@@ -235,7 +237,7 @@ function episodeAction(action){
   }
   if(action==='latest'){const t=Number(item.total)||Number(item.knownTotal)||0;if(t)setWatchedEpisode(t);return}
   if(action==='first'){setWatchedEpisode(0);return}
-  if(action==='jump'){const v=Math.max(1,Number($('#onebaseEpisodeJump')?.value)||1);const t=Number(item.total)||Number(item.knownTotal)||0;if(t)episodePage=Math.floor(Math.min(v,t)-1/1/50);episodePage=Math.floor((Math.min(v,t)-1)/50);renderEpisodes()}
+  if(action==='jump'){const field=$('#onebaseEpisodeJump'),t=Number(item.total)||Number(item.knownTotal)||0;if(!t)return;const v=Math.min(t,Math.max(1,Math.floor(Number(field?.value)||1)));episodePage=Math.floor((v-1)/50);renderEpisodes();const target=$('#onebaseEpisodeGrid [data-ep="'+v+'"]');target?.focus();target?.scrollIntoView({block:'nearest'})}
 }
 function captureInfoClick(e){
   const b=e.target?.closest?.('.infoBtn');if(!b)return;
