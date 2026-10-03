@@ -10,7 +10,7 @@ const files = [
   'index.html','profile-enhancer.css','profile-enhancer.js','onebase-brand.css','onebase-brand.js',
   'onebase-experience-v1.css','onebase-experience-v1.js',
   'onebase-status-effects.js','onebase-eye-v2.js','onebase-auto-complete.js','onebase-instant-save.js',
-  'onebase-episode-notifications.js','onebase-notification-setup.js','onebase-settings.js',
+  'onebase-episode-notifications.js','onebase-episode-center.js','onebase-notification-setup.js','onebase-settings.js',
   'onebase-settings-scrollbar.js','onebase-profile-cleanup.js','onebase-level-sync.js',
   'onebase-custom-webs-v3.js','onebase-source-search-v2.js','onebase-anilist-search.js',
   'onebase-anime-add-cleanup.js','onebase-premium.css','onebase-premium.js','onebase-safe-boot.js','onebase-loot-v2.css','onebase-loot-v2.js','favicon.ico','favicon.png','favicon.svg','onebase-sw.js'
@@ -50,6 +50,7 @@ const runtimeScripts = [
   ['onebase-instant-save.js', 'v=5'],
   ['onebase-notification-setup.js', 'v=4'],
   ['onebase-episode-notifications.js', 'v=4'],
+  ['onebase-episode-center.js', 'v=1'],
   ['onebase-settings.js', 'v=11'],
   ['onebase-settings-scrollbar.js', 'v=2'],
   ['onebase-profile-cleanup.js', 'v=3'],
