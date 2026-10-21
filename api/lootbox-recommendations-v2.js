@@ -1,4 +1,40 @@
 const ANILIST_URL='https://graphql.anilist.co';
+const JIKAN_URL='https://api.jikan.moe/v4/top/anime';
+const JIKAN_TTL=15*60*1000;
+const jikanCache=new Map();
+
+async function requestJikan(page){
+  const cached=jikanCache.get(page);
+  if(cached&&cached.expiresAt>Date.now())return cached.results;
+  const controller=typeof AbortController!=='undefined'?new AbortController():null;
+  const timer=controller?setTimeout(()=>controller.abort(),7000):null;
+  try{
+    const response=await fetch(JIKAN_URL+'?page='+page+'&limit=25',{headers:{Accept:'application/json'},signal:controller?.signal});
+    const payload=await response.json().catch(()=>null);
+    if(!response.ok||!Array.isArray(payload?.data))throw new Error('Jikan no pudo cargar recomendaciones.');
+    const results=payload.data.map(item=>{
+      const malId=Number(item?.mal_id);
+      if(!Number.isInteger(malId)||malId<1||String(item?.rating||'').toLowerCase().includes('hentai'))return null;
+      const cover=item?.images?.webp?.large_image_url||item?.images?.jpg?.large_image_url||item?.images?.jpg?.image_url||'';
+      const genres=[...(Array.isArray(item?.genres)?item.genres:[]),...(Array.isArray(item?.themes)?item.themes:[])].map(x=>String(x?.name||'').trim()).filter(Boolean);
+      const title=String(item?.title_english||item?.title||item?.title_japanese||'Anime recomendado');
+      return {
+        id:-malId,provider:'jikan',externalId:malId,
+        title:{userPreferred:title,english:item?.title_english||'',romaji:item?.title||title},
+        description:String(item?.synopsis||''),genres,tags:[],
+        status:String(item?.status||''),episodes:Number(item?.episodes)||0,duration:0,
+        averageScore:Math.round((Number(item?.score)||0)*10),popularity:Number(item?.members)||0,
+        coverImage:{extraLarge:cover,large:cover,medium:cover},bannerImage:'',siteUrl:String(item?.url||'')
+      };
+    }).filter(Boolean);
+    if(!results.length)throw new Error('Jikan no encontró recomendaciones disponibles.');
+    jikanCache.set(page,{expiresAt:Date.now()+JIKAN_TTL,results});
+    return results;
+  }catch(error){
+    if(error?.name==='AbortError')throw new Error('La fuente alternativa tardó demasiado en responder.');
+    throw error;
+  }finally{if(timer)clearTimeout(timer)}
+}
 
 const QUERY=`
   query ($page:Int!, $perPage:Int!, $genres:[String!], $excludeIds:[Int!], $sort:[MediaSort!]) {
@@ -62,8 +98,14 @@ module.exports=async function handler(req,res){
     }
     return json(res,200,{ok:true,mode,results:unique});
   }catch(error){
-    const status=Number(error?.status)||502;
-    if(status===429)return res.status(429).setHeader('Retry-After',String(error?.retryAfter||15)).json({ok:false,error:error.message});
-    return json(res,status>=400&&status<600?status:502,{ok:false,error:error?.message||'No se pudo conectar con AniList.'});
+    console.warn('[ONEBASE] AniList recommendation failed; trying Jikan:',error?.message||error);
+    try{
+      const results=await requestJikan(page);
+      return json(res,200,{ok:true,mode,provider:'jikan',results});
+    }catch(fallbackError){
+      console.error('[ONEBASE] Lootbox recommendation sources failed:',fallbackError);
+      const message=String(fallbackError?.message||'Jikan no respondió.');
+      return json(res,502,{ok:false,error:'AniList y la fuente alternativa no están disponibles. '+message});
+    }
   }
 };

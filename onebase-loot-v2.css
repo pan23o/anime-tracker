@@ -560,3 +560,5 @@
 .onebase-loot-v2 .obc-choice.selected:not(.opened) .obc-choice-button{border-color:#f5cb75;box-shadow:0 0 30px #e9b96344}
 @media(max-width:1100px){.onebase-loot-v2 .obc-choice-chest{transform:translate(-50%,-50%) scale(.83)}}
 @media(max-width:620px){.onebase-loot-v2 .obc-choice-button{aspect-ratio:1/.96}.onebase-loot-v2 .obc-choice-chest{transform:translate(-50%,-50%) scale(.78)}}
+
+.lv2-source-note{margin:-8px 0 14px;padding:10px 12px;border:1px solid #30343a;border-radius:9px;background:#101216;color:#aeb4bf;font-size:10px;line-height:1.45}

@@ -795,3 +795,11 @@ body[data-theme] .ob-section-card>header{
 
 /* Audio visual cards open as one clickable surface and no longer need an extra status control. */
 .ob-media-card .ob-card-open{height:100%}.ob-media-card .ob-card-open:focus-visible{outline:2px solid #e7c276;outline-offset:3px}
+
+/* Keep the library fixed behind every open detail; only the detail panel scrolls. */
+#infoModal,#ob-screen-modal{overscroll-behavior:contain}
+#infoModal .modalCard{overscroll-behavior:contain}
+.onebase-info-hero{isolation:isolate;overflow:hidden}
+.onebase-info-hero-bg{z-index:-2;inset:-32px;width:calc(100% + 64px);height:calc(100% + 64px);object-position:center 35%;filter:blur(20px) brightness(.42) saturate(.88);transform:scale(1.16);pointer-events:none}
+.onebase-info-hero::after{z-index:-1;inset:0;background:linear-gradient(90deg,rgba(5,5,5,.88),rgba(5,5,5,.42)),linear-gradient(0deg,rgba(5,5,5,.72),rgba(5,5,5,.08))}
+.onebase-info-hero-content{position:relative;z-index:1}

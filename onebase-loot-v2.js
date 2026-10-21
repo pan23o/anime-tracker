@@ -75,9 +75,9 @@ function scoreCandidate(x,p,mode,targets){
   return gMatch*2.2+tMatch*3.2+themeMatch*3.8+pop*.55+quality/30+novelty;
 }
 function pick(candidates,p,mode,targets){
-  const hist=loadHistory(),owned=ids();
-  const unique=new Map(candidates.filter(x=>x&&Number(x.id)>0).map(x=>[Number(x.id),x]));
-  const pool=[...unique.values()].filter(x=>!owned.has(Number(x.id))&&!hist.has(Number(x.id)));
+  const hist=loadHistory(),owned=ids(),ownedTitles=new Set(list().map(x=>String(x.anime||'').trim().toLowerCase()).filter(Boolean));
+  const unique=new Map(candidates.filter(x=>x&&Number.isSafeInteger(Number(x.id))&&Number(x.id)!==0).map(x=>[Number(x.id),x]));
+  const pool=[...unique.values()].filter(x=>!owned.has(Number(x.id))&&!hist.has(Number(x.id))&&!ownedTitles.has(String(x.title?.userPreferred||x.title?.english||x.title?.romaji||'').trim().toLowerCase()));
   const ranked=pool.map(x=>({x,s:scoreCandidate(x,p,mode,targets)})).sort((a,b)=>b.s-a.s);
   const chosen=[];
   while(chosen.length<5&&ranked.length){
@@ -92,7 +92,7 @@ function pick(candidates,p,mode,targets){
     ranked.sort((a,b)=>b.s-a.s);
   }
   return chosen.map(x=>({
-    id:Number(x.id),
+    id:Number(x.id),provider:String(x.provider||'anilist'),externalId:Number(x.externalId)||0,
     title:x.title?.userPreferred||x.title?.english||x.title?.romaji||'Anime recomendado',
     cover:x.coverImage?.extraLarge||x.coverImage?.large||x.coverImage?.medium||'',
     banner:String(x.bannerImage||''),
@@ -149,6 +149,7 @@ function shell(){
     '<div class="lv2-modes">'+Object.entries(MODES).map(([k,v])=>'<button class="lv2-mode '+(mode===k?'active':'')+'" data-lv2-mode="'+k+'">'+v.label+'<small>'+v.sub+'</small></button>').join('')+'</div></div>'+
     '<div class="lv2-rollbar"><span>'+modeLabel()+' · '+(busy?'ANALIZANDO PERFIL…':selected!==null?'1 CAJA ELEGIDA · 4 BLOQUEADAS':'5 CAJAS DISPONIBLES')+'</span><button class="lv2-reroll" data-lv2-reroll '+(busy?'disabled':'')+'>↻ REROLL · NUEVA TIRADA</button></div>'+
     (loadError?'<div class="lv2-empty lv2-error" role="alert"><div><b>No se pudieron cargar las cajas</b><small>'+esc(loadError)+'</small><button type="button" data-lv2-reroll>Reintentar</button></div></div>':'')+
+    (roll?.some(x=>x.provider==='jikan')?'<div class="lv2-source-note" role="status">Fuente alternativa activa: recomendaciones de anime a través de Jikan.</div>':'')+
     (busy?'<div class="lv2-empty"><div><div class="lv2-spinner"></div><b>Construyendo tu tirada</b><small>Comparando géneros, temas, novedad y lo que ya tienes…</small></div></div>':cases)+
     (!roll&&!busy&&!loadError?'<div class="lv2-empty"><div><b>Preparando tus cajas…</b><small>La primera tirada se genera automáticamente.</small></div></div>':'')+
     (selected!==null&&roll?.[selected]&&!resolved.has(selected)?detail(roll[selected],selected):'')+
@@ -311,8 +312,11 @@ function save(i){
   if(owned){markHistory(x.id);resolved.add(i);return closeDropThen(()=>{renderLoot();window.toast?.('Ese anime ya estaba en tu biblioteca.');})}
   const d=window.__ONEBASE_DATA__;
   if(!Array.isArray(d)){window.toast?.('La biblioteca no está lista. Vuelve a intentarlo.');return;}
-  d.push({anime:x.title,watched:'0',total:x.episodes?String(x.episodes):'',duration:x.duration?String(x.duration):'',durationMin:x.duration||0,state:'pendiente',score:'',favorite:false,cover:x.cover,coverImage:x.cover,bannerImage:x.banner,description:x.description,genres:x.genres,tags:x.tags,apiStatus:x.status,anilistStatus:x.status,apiScore:x.score?x.score/10:0,aniId:x.id,anilistId:x.id,knownTotal:x.episodes?String(x.episodes):'',plannedEpisodes:x.episodes?String(x.episodes):'',newEpisodes:0,siteUrl:x.siteUrl,source:'onebase-lootbox-v2',addedAt:Date.now(),updatedAt:Date.now()});
-  try{if(typeof window.save==='function')window.save({skipBackup:true});else {localStorage.setItem('anime_tracker_v6',JSON.stringify(d));window.dispatchEvent(new Event('animetracker:saved'));}}catch(error){window.toast?.('No se pudo guardar: '+String(error?.message||error));return;}
+  const item={anime:x.title,watched:'0',total:x.episodes?String(x.episodes):'',duration:x.duration?String(x.duration):'',durationMin:x.duration||0,state:'pendiente',score:'',favorite:false,cover:x.cover,coverImage:x.cover,bannerImage:x.banner,description:x.description,genres:x.genres,tags:x.tags,apiStatus:x.status,anilistStatus:x.provider==='jikan'?'':x.status,apiScore:x.score?x.score/10:0,knownTotal:x.episodes?String(x.episodes):'',plannedEpisodes:x.episodes?String(x.episodes):'',newEpisodes:0,siteUrl:x.siteUrl,source:x.provider==='jikan'?'onebase-loot-v2-jikan':'onebase-loot-v2',addedAt:Date.now(),updatedAt:Date.now()};
+  if(x.provider==='jikan')item.sourceAnimeId=x.externalId;
+  else {item.aniId=x.id;item.anilistId=x.id;}
+  d.push(item);
+  try{if(typeof window.save==='function')window.save({skipBackup:true});else {localStorage.setItem('anime_tracker_v6',JSON.stringify(d));window.dispatchEvent(new Event('animetracker:saved'));}}catch(error){const index=d.lastIndexOf(item);if(index>=0)d.splice(index,1);window.toast?.('No se pudo guardar: '+String(error?.message||error));return;}
   markHistory(x.id);resolved.add(i);
   closeDropThen(()=>{renderLoot();window.toast?.('✓ Anime guardado como pendiente.')});
 }
