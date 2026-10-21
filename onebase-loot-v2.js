@@ -217,7 +217,7 @@ function opening(i){
   if(!document.getElementById('onebase-loot-cinema-style')){
     const style=document.createElement('style');style.id='onebase-loot-cinema-style';
     style.textContent=`
-#onebase-loot-cinema{position:fixed!important;inset:0!important;z-index:2147483640!important;display:block!important;overflow:auto!important;overscroll-behavior:contain;background:radial-gradient(ellipse at 50% 38%,rgba(82,58,25,.72) 0%,rgba(25,22,19,.96) 48%,#08090b 82%)!important;backdrop-filter:blur(8px)!important;-webkit-backdrop-filter:blur(8px)!important;color:#f8f2e9!important;font-family:system-ui,-apple-system,sans-serif!important;pointer-events:none!important}
+#onebase-loot-cinema{position:fixed!important;inset:0!important;z-index:2147483640!important;display:block!important;overflow:auto!important;overscroll-behavior:contain;background:radial-gradient(ellipse at 50% 38%,#3a2a14 0%,#1a1713 44%,#0b0b0e 82%)!important;backdrop-filter:blur(8px)!important;-webkit-backdrop-filter:blur(8px)!important;color:#f8f2e9!important;font-family:system-ui,-apple-system,sans-serif!important;pointer-events:none!important}
 #onebase-loot-cinema *{box-sizing:border-box}
 #onebase-loot-cinema .obc-stage{position:relative;width:min(1320px,97vw);height:min(800px,96dvh);min-height:560px;margin:auto;isolation:isolate}
 #onebase-loot-cinema .obc-top{position:absolute;top:5%;left:0;right:0;text-align:center;color:#f0c66d;font-size:12px;font-weight:900;letter-spacing:3px}
