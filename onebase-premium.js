@@ -644,7 +644,8 @@ function delegatePageClick(e){
 function installPageRuntime(){publishAPI();if(!window.__ONEBASE_PAGE_CLICK_BOUND__){window.__ONEBASE_PAGE_CLICK_BOUND__=true;document.addEventListener('click',delegatePageClick,true)}}
 installPageRuntime();
 function boot(){
- if(booted)return;booted=true;installPageRuntime();
+ if(booted)return;booted=true;
+ const brand=$('.brand h1');if(brand)brand.textContent='ONEBASE 2.0';installPageRuntime();
  try{setup()}catch(e){console.error('[ONEBASE] page setup failed',e)}
  const h=location.hash.slice(1);page=['home','library','episodes','stats','profile','loot'].includes(h)?h:'home';try{history.replaceState({onebasePage:page},'',location.pathname+'#'+page)}catch(_){}render();addEventListener('popstate',e=>{const p=e.state?.onebasePage||location.hash.slice(1)||'home';if(['home','library','episodes','stats','profile','loot'].includes(p)){page=p;render()}});['animetracker:saved','animetracker:restored','onebase:anime-added','onebase:screen-library-changed'].forEach(ev=>addEventListener(ev,()=>setTimeout(render,0)))
 }

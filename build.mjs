@@ -26,7 +26,7 @@ const indexPath = path.join(out, 'index.html');
 let html = fs.readFileSync(indexPath, 'utf8');
 
 html = html.replace(/\s*<link[^>]+rel=["'](?:shortcut )?icon["'][^>]*>/gi, '');
-html = html.replace(/<title>\s*AnimeTracker\s*<\/title>/i, '<title>ONEBASE</title>');
+html = html.replace(/<title>\s*AnimeTracker\s*<\/title>/i, '<title>ONEBASE 2.0</title>');
 
 const headAssets = `
 <script src="/onebase-safe-boot.js?v=1"></script>
@@ -61,8 +61,8 @@ const runtimeScripts = [
   ['onebase-source-search-v2.js', 'v=15'],
   ['onebase-anilist-search.js', 'v=9'],
   ['onebase-anime-add-cleanup.js', 'v=2'],
-  ['onebase-premium.js', 'v=42'],
-  ['onebase-loot-v2.js', 'v=23'],
+  ['onebase-premium.js', 'v=43'],
+  ['onebase-loot-v2.js', 'v=24'],
   ['onebase-integrations.js', 'v=1'],
   ['onebase-beast.js', 'v=1'],
   ['onebase-screen-library.js', 'v=9']
