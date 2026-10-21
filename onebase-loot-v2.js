@@ -26,12 +26,14 @@ const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 const text=v=>String(v??'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
 const list=()=>Array.isArray(window.__ONEBASE_DATA__)?window.__ONEBASE_DATA__.filter(x=>x&&String(x.anime||'').trim()):[];
+const screenItems=()=>window.OneBaseScreenLibrary?.items?.()||[];
 const ids=()=>new Set(list().map(x=>Number(x.aniId||x.anilistId)).filter(Number.isFinite).filter(x=>x>0));
 function loadHistory(){try{const v=JSON.parse(localStorage.getItem(HISTORY)||'[]');return new Set(Array.isArray(v)?v.map(Number).filter(Number.isFinite):[])}catch(_){return new Set()}}
 function saveHistory(s){try{localStorage.setItem(HISTORY,JSON.stringify([...s].slice(-1000)))}catch(_){}}
 function profile(){
   const gs=new Map(),ts=new Map(),seen=new Map(),themes=new Map();
-  list().forEach(x=>{
+  const tasteItems=[...list(),...screenItems().map(x=>({anime:x.title||x.name||'',score:x.score,favorite:x.favorite,state:x.state,genres:x.genres||[],description:x.overview||''}))];
+  tasteItems.forEach(x=>{
     const score=Number(x.score), quality=Number.isFinite(score)?Math.max(.25,score/10):.65;
     const interest=quality+(x.favorite?1.35:0)+(Number(x.watched)>0?0.45:0)+(x.state==='viendo'?0.35:0)+(x.state==='terminado'?0.6:0);
     const blob=String(x.anime||'')+' '+String(x.description||'')+' '+(Array.isArray(x.tags)?x.tags.map(t=>typeof t==='string'?t:t?.name||'').join(' '):'');
@@ -77,7 +79,7 @@ function scoreCandidate(x,p,mode,targets){
 function pick(candidates,p,mode,targets){
   const hist=loadHistory(),owned=ids(),ownedTitles=new Set(list().map(x=>String(x.anime||'').trim().toLowerCase()).filter(Boolean));
   const unique=new Map(candidates.filter(x=>x&&Number.isSafeInteger(Number(x.id))&&Number(x.id)!==0).map(x=>[Number(x.id),x]));
-  const pool=[...unique.values()].filter(x=>!owned.has(Number(x.id))&&!hist.has(Number(x.id))&&!ownedTitles.has(String(x.title?.userPreferred||x.title?.english||x.title?.romaji||'').trim().toLowerCase()));
+  const screen=screenItems(),screenTitles=new Set(screen.map(x=>String(x.title||x.name||'').trim().toLowerCase())),pool=[...unique.values()].filter(x=>!owned.has(Number(x.id))&&!hist.has(Number(x.id))&&!ownedTitles.has(String(x.title?.userPreferred||x.title?.english||x.title?.romaji||'').trim().toLowerCase())&&!(x.provider==='tmdb'&&screen.some(m=>m.type===x.mediaType&&Number(m.id)===Number(x.externalId)))&&!(x.provider==='tmdb'&&screenTitles.has(String(x.title?.userPreferred||'').trim().toLowerCase())));
   const ranked=pool.map(x=>({x,s:scoreCandidate(x,p,mode,targets)})).sort((a,b)=>b.s-a.s);
   const chosen=[];
   while(chosen.length<5&&ranked.length){
@@ -92,7 +94,7 @@ function pick(candidates,p,mode,targets){
     ranked.sort((a,b)=>b.s-a.s);
   }
   return chosen.map(x=>({
-    id:Number(x.id),provider:String(x.provider||'anilist'),externalId:Number(x.externalId)||0,
+    id:Number(x.id),provider:String(x.provider||'anilist'),externalId:Number(x.externalId)||0,mediaType:String(x.mediaType||''),posterPath:String(x.posterPath||''),releaseDate:String(x.releaseDate||''),
     title:x.title?.userPreferred||x.title?.english||x.title?.romaji||'Anime recomendado',
     cover:x.coverImage?.extraLarge||x.coverImage?.large||x.coverImage?.medium||'',
     banner:String(x.bannerImage||''),
@@ -103,6 +105,15 @@ function pick(candidates,p,mode,targets){
     status:String(x.status||''),score:Number(x.averageScore)||0,popularity:Number(x.popularity)||0,siteUrl:String(x.siteUrl||''),
     reason:reasonFor(x,p,mode==='opposite'?targets:null)
   }));
+}
+async function fetchTmdbMix(signal){
+  const requests=['movie','tv'].map(async type=>{
+    const r=await fetch('/api/onebase-health?service=tmdb&action=trending&type='+type,{headers:{accept:'application/json'},signal});
+    const payload=await r.json().catch(()=>null);if(!r.ok||!payload?.ok)throw new Error(payload?.error||'TMDB no disponible');
+    const labels={28:'Action',12:'Adventure',16:'Animation',35:'Comedy',80:'Crime',99:'Documentary',18:'Drama',10751:'Family',14:'Fantasy',36:'History',27:'Horror',10402:'Music',9648:'Mystery',10749:'Romance',878:'Sci-Fi',10770:'TV Movie',53:'Thriller',10752:'War',37:'Western',10759:'Action',10762:'Family',10763:'Documentary',10764:'Reality',10765:'Sci-Fi',10766:'Drama',10767:'Talk',10768:'War'};
+    return (payload.results||[]).map(x=>{const title=x.title||x.name||x.original_title||x.original_name||'Título sin nombre',ext=Number(x.id)||0;return {id:-(100000000+ext+(type==='tv'?50000000:0)),provider:'tmdb',externalId:ext,mediaType:type,title:{userPreferred:title},description:String(x.overview||''),genres:(x.genre_ids||[]).map(id=>labels[id]).filter(Boolean),tags:[],status:'',episodes:0,duration:0,averageScore:Math.round((Number(x.vote_average)||0)*10),popularity:Number(x.popularity)||0,coverImage:{extraLarge:x.poster_path?'https://image.tmdb.org/t/p/w500'+x.poster_path:'',large:x.poster_path?'https://image.tmdb.org/t/p/w500'+x.poster_path:''},bannerImage:x.backdrop_path?'https://image.tmdb.org/t/p/w1280'+x.backdrop_path:'',posterPath:x.poster_path||'',releaseDate:x.release_date||x.first_air_date||'',siteUrl:'https://www.themoviedb.org/'+type+'/'+ext};});
+  });
+  const results=await Promise.allSettled(requests);return results.filter(x=>x.status==='fulfilled').flatMap(x=>x.value);
 }
 async function fetchRoll(){
   const p=profile(),taste=top(p.genres,8),targets=mode==='opposite'?oppositeGenres(p):[];
@@ -115,11 +126,12 @@ async function fetchRoll(){
     const r=await fetch('/api/lootbox-recommendations-v2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:controller?.signal});
     const payload=await r.json().catch(()=>null);
     if(!r.ok||!payload?.ok)throw new Error(payload?.error||'No se pudieron preparar las cajas.');
-    let picked=pick(Array.isArray(payload.results)?payload.results:[],p,mode,targets);
+    let mixed=[];try{mixed=await fetchTmdbMix(controller?.signal)}catch(_){/* AniList and Kitsu remain available if TMDB is temporarily unavailable */}
+    let picked=pick([...(Array.isArray(payload.results)?payload.results:[]),...mixed],p,mode,targets);
     if(picked.length<5){
       const fallback=await fetch('/api/lootbox-recommendations-v2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...body,mode:'random',page:1}),signal:controller?.signal});
       const fp=await fallback.json().catch(()=>null);
-      if(fallback.ok&&fp?.ok)picked=pick([...(payload.results||[]),...(fp.results||[])],p,mode,targets);
+      if(fallback.ok&&fp?.ok)picked=pick([...(payload.results||[]),...(fp.results||[]),...mixed],p,mode,targets);
     }
     if(picked.length<5)throw new Error('No hay 5 animes nuevos disponibles. Prueba otro modo o genera otra tirada.');
     return picked;
@@ -145,7 +157,7 @@ function shell(){
   const disabled=busy||selected!==null;
   const cases=roll?'<div class="lv2-cases">'+roll.map((x,i)=>boxMarkup(x,i)).join('')+'</div>':'';
   return '<div class="onebase-loot-v2">'+
-    '<div class="lv2-top"><div><div class="lv2-kicker">ONEBASE · DESCUBRIMIENTOS</div><h3>Tu próximo anime está dentro.</h3><p>Elige una de las 5 cajas. Se abrirá por arriba y descubrirás un anime sorpresa. Después podrás guardarlo o descartarlo.</p></div>'+
+    '<div class="lv2-top"><div><div class="lv2-kicker">ONEBASE · DESCUBRIMIENTOS</div><h3>Tu próximo descubrimiento está dentro.</h3><p>Elige una de las 5 cajas. Se abrirá por arriba y descubrirás anime, una película o una serie sorpresa. Después podrás guardarlo o descartarlo.</p></div>'+
     '<div class="lv2-modes">'+Object.entries(MODES).map(([k,v])=>'<button class="lv2-mode '+(mode===k?'active':'')+'" data-lv2-mode="'+k+'">'+v.label+'<small>'+v.sub+'</small></button>').join('')+'</div></div>'+
     '<div class="lv2-rollbar"><span>'+modeLabel()+' · '+(busy?'ANALIZANDO PERFIL…':selected!==null?'1 CAJA ELEGIDA · 4 BLOQUEADAS':'5 CAJAS DISPONIBLES')+'</span><button class="lv2-reroll" data-lv2-reroll '+(busy?'disabled':'')+'>↻ REROLL · NUEVA TIRADA</button></div>'+
     (loadError?'<div class="lv2-empty lv2-error" role="alert"><div><b>No se pudieron cargar las cajas</b><small>'+esc(loadError)+'</small><button type="button" data-lv2-reroll>Reintentar</button></div></div>':'')+
@@ -308,6 +320,13 @@ function closeDropThen(fn){
 }
 function save(i){
   const x=roll?.[i];if(!x)return;
+  if(x.provider==='tmdb'){
+    let media=[];try{media=JSON.parse(localStorage.getItem('onebase_screen_library_v1')||'[]');if(!Array.isArray(media))media=[]}catch(_){media=[]}
+    if(media.some(m=>m.type===x.mediaType&&Number(m.id)===Number(x.externalId))){markHistory(x.id);resolved.add(i);return closeDropThen(()=>{renderLoot();window.toast?.('Ya estaba en tu biblioteca.');})}
+    const item={id:Number(x.externalId),type:x.mediaType,title:x.title,originalTitle:x.title,releaseDate:x.releaseDate,overview:x.description,posterPath:x.posterPath,backdropPath:'',genres:x.genres,voteAverage:Number(x.score)/10,score:'',favorite:false,seasonProgress:{},seasons:[],homepage:'',state:'pendiente',addedAt:Date.now(),updatedAt:Date.now()};
+    media.unshift(item);try{localStorage.setItem('onebase_screen_library_v1',JSON.stringify(media));window.dispatchEvent(new CustomEvent('onebase:screen-library-changed',{detail:{count:media.length}}))}catch(error){window.toast?.('No se pudo guardar: '+String(error?.message||error));return}
+    markHistory(x.id);resolved.add(i);return closeDropThen(()=>{renderLoot();window.toast?.('✓ Guardado en la biblioteca.');});
+  }
   const owned=list().some(o=>Number(o.aniId||o.anilistId)===x.id||String(o.anime||'').toLowerCase()===x.title.toLowerCase());
   if(owned){markHistory(x.id);resolved.add(i);return closeDropThen(()=>{renderLoot();window.toast?.('Ese anime ya estaba en tu biblioteca.');})}
   const d=window.__ONEBASE_DATA__;

@@ -25,6 +25,12 @@ async function tmdb(req, res) {
       url.searchParams.set('include_adult', 'false');
       url.searchParams.set('page', String(Math.min(Math.max(Number.parseInt(req.query?.page || '1', 10) || 1, 1), 5)));
       cache = 'public, s-maxage=300, stale-while-revalidate=900';
+    } else if (action === 'trending') {
+      const type = String(req.query?.type || '');
+      if (!['movie', 'tv'].includes(type)) return json(res, 400, { ok: false, error: 'Tipo de contenido no válido.' });
+      url = new URL(`${API}/trending/${type}/week`);
+      url.searchParams.set('language', 'es-ES');
+      cache = 'public, s-maxage=900, stale-while-revalidate=3600';
     } else if (action === 'detail') {
       const type = String(req.query?.type || ''), id = Number.parseInt(req.query?.id || '', 10);
       if (!['movie', 'tv'].includes(type) || !Number.isSafeInteger(id) || id < 1) return json(res, 400, { ok: false, error: 'Ficha no válida.' });
@@ -41,6 +47,7 @@ async function tmdb(req, res) {
     if (upstream.status === 429) return json(res, 429, { ok: false, error: 'TMDB está limitando temporalmente las consultas.' });
     if (!upstream.ok) return json(res, 502, { ok: false, error: 'TMDB no está disponible en este momento.' });
     if (action === 'detail') return json(res, 200, { ok: true, result: payload }, cache);
+    if (action === 'trending') return json(res, 200, { ok: true, type: String(req.query?.type || ''), results: (Array.isArray(payload?.results) ? payload.results : []).map(x => ({ ...x, media_type: String(req.query?.type || '') })) }, cache);
 
     const results = (Array.isArray(payload?.results) ? payload.results : []).filter(x => ['movie', 'tv'].includes(x?.media_type));
     return json(res, 200, { ok: true, page: payload?.page || 1, totalPages: Math.min(Number(payload?.total_pages) || 1, 5), results }, cache);
