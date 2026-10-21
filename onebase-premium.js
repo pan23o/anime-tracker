@@ -599,7 +599,7 @@ function openInfo(i){document.querySelector('.row[data-index="'+i+'"] .infoBtn')
 function bind(){
  const app=$('#onebasePageApp');if(!app)return;
  app.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>navigate(b.dataset.go));
- app.querySelectorAll('[data-ob-add]').forEach(b=>b.onclick=()=>window.OneBaseLibraryAdd?.open?.()||window.OneBaseAniListSearch?.open?.());
+ app.querySelectorAll('[data-ob-add]').forEach(b=>b.onclick=()=>{if(window.OneBaseLibraryAdd?.open)window.OneBaseLibraryAdd.open();else window.OneBaseAniListSearch?.open?.()});
  app.querySelectorAll('[data-open]').forEach(b=>b.onclick=e=>{e.preventDefault();openInfo(Number(b.dataset.open))});app.querySelectorAll('[data-library-kind]').forEach(b=>b.onclick=()=>{libraryKind=b.dataset.libraryKind;st='all';genre='all';score='all';progress='all';fav=false;render()});app.querySelectorAll('[data-media-open]').forEach(b=>b.onclick=()=>window.OneBaseScreenLibrary?.openItem?.(b.dataset.mediaType||b.dataset.mediaOpen,b.dataset.mediaId));app.querySelectorAll('[data-media-state]').forEach(s=>s.onchange=()=>window.OneBaseScreenLibrary?.setStatus?.(s.dataset.mediaType,s.dataset.mediaState,s.value));
  app.querySelectorAll('[data-epopen]').forEach(b=>b.onclick=()=>window.OneBasePremium?.openEpisodes?.(Number(b.dataset.epopen)));
  app.querySelectorAll('[data-discover-genre]').forEach(b=>b.onclick=()=>{window.__ONEBASE_DISCOVER_GENRE__=b.dataset.discoverGenre;rollDiscovery()});
