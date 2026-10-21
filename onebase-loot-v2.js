@@ -76,10 +76,38 @@ function scoreCandidate(x,p,mode,targets){
   }
   return gMatch*2.2+tMatch*3.2+themeMatch*3.8+pop*.55+quality/30+novelty;
 }
+function titleKey(value){
+  return String(value??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\b(?:19|20)\d{2}\b/g,' ').replace(/[^a-z0-9]+/g,' ').trim();
+}
+function titleKeys(values){
+  return [...new Set((Array.isArray(values)?values:[values]).map(titleKey).filter(Boolean))];
+}
+function candidateTitles(x){
+  return titleKeys([x.title?.userPreferred,x.title?.english,x.title?.romaji,x.originalTitle,x.original_title,x.original_name]);
+}
+function screenTitles(x){
+  return titleKeys([x.title,x.name,x.originalTitle,x.original_title,x.original_name]);
+}
 function pick(candidates,p,mode,targets){
-  const hist=loadHistory(),owned=ids(),ownedTitles=new Set(list().map(x=>String(x.anime||'').trim().toLowerCase()).filter(Boolean));
-  const unique=new Map(candidates.filter(x=>x&&Number.isSafeInteger(Number(x.id))&&Number(x.id)!==0).map(x=>[Number(x.id),x]));
-  const screen=screenItems(),screenTitles=new Set(screen.map(x=>String(x.title||x.name||'').trim().toLowerCase())),pool=[...unique.values()].filter(x=>!owned.has(Number(x.id))&&!hist.has(Number(x.id))&&!ownedTitles.has(String(x.title?.userPreferred||x.title?.english||x.title?.romaji||'').trim().toLowerCase())&&!(x.provider==='tmdb'&&screen.some(m=>m.type===x.mediaType&&Number(m.id)===Number(x.externalId)))&&!(x.provider==='tmdb'&&screenTitles.has(String(x.title?.userPreferred||'').trim().toLowerCase())));
+  const hist=loadHistory(),owned=ids();
+  const animeTitles=new Set(list().flatMap(x=>titleKeys([x.anime,x.title])));
+  const screen=screenItems();
+  const byId=new Map(candidates.filter(x=>x&&Number.isSafeInteger(Number(x.id))&&Number(x.id)!==0).map(x=>[Number(x.id),x]));
+  const pool=[],seenTitles=new Set();
+  for(const x of byId.values()){
+    const kind=x.provider==='tmdb'&&['movie','tv'].includes(x.mediaType)?x.mediaType:'anime';
+    const titles=candidateTitles(x),titleSet=new Set(titles);
+    const alreadyOwned=owned.has(Number(x.id))||hist.has(Number(x.id))||
+      (kind==='anime'&&titles.some(title=>animeTitles.has(title)))||
+      (kind!=='anime'&&screen.some(item=>item.type===kind&&(
+        Number(item.id)===Number(x.externalId)||screenTitles(item).some(title=>titleSet.has(title))
+      )));
+    if(alreadyOwned)continue;
+    const duplicateKey=kind+':';
+    if(titles.some(title=>seenTitles.has(duplicateKey+title)))continue;
+    titles.forEach(title=>seenTitles.add(duplicateKey+title));
+    pool.push(x);
+  }
   const ranked=pool.map(x=>({x,s:scoreCandidate(x,p,mode,targets)})).sort((a,b)=>b.s-a.s);
   const chosen=[];
   while(chosen.length<5&&ranked.length){
@@ -189,7 +217,7 @@ function opening(i){
   if(!document.getElementById('onebase-loot-cinema-style')){
     const style=document.createElement('style');style.id='onebase-loot-cinema-style';
     style.textContent=`
-#onebase-loot-cinema{position:fixed!important;inset:0!important;z-index:2147483640!important;display:block!important;overflow:auto!important;overscroll-behavior:contain;background:radial-gradient(ellipse at 50% 40%,color-mix(in srgb,var(--accent,#d6a84f) 12%,transparent),transparent 48%),var(--bg,#08090b)!important;color:#f8f2e9!important;font-family:system-ui,-apple-system,sans-serif!important;pointer-events:none!important}
+#onebase-loot-cinema{position:fixed!important;inset:0!important;z-index:2147483640!important;display:block!important;overflow:auto!important;overscroll-behavior:contain;background:radial-gradient(ellipse at 50% 38%,rgba(82,58,25,.72) 0%,rgba(25,22,19,.96) 48%,#08090b 82%)!important;backdrop-filter:blur(8px)!important;-webkit-backdrop-filter:blur(8px)!important;color:#f8f2e9!important;font-family:system-ui,-apple-system,sans-serif!important;pointer-events:none!important}
 #onebase-loot-cinema *{box-sizing:border-box}
 #onebase-loot-cinema .obc-stage{position:relative;width:min(1320px,97vw);height:min(800px,96dvh);min-height:560px;margin:auto;isolation:isolate}
 #onebase-loot-cinema .obc-top{position:absolute;top:5%;left:0;right:0;text-align:center;color:#f0c66d;font-size:12px;font-weight:900;letter-spacing:3px}
