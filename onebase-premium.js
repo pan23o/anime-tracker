@@ -626,6 +626,7 @@ function render(){
    window.addEventListener('onebase:loot-v2-ready',ready,{once:true});
    return;
  }app.innerHTML=page==='home'?home():page==='library'?library():page==='episodes'?episodes():page==='stats'?statistics():page==='loot'?lootboxes():profilePage();$('#onebaseSidebar')?.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));bind();document.title='ONEBASE 2.0 · '+({home:'Inicio',library:'Biblioteca',episodes:'Episodios',stats:'Estadísticas',profile:'Perfil',loot:'Lootboxes'}[page]||'');}
+function rollDiscovery(){if(page==='home')render()}
 function publishAPI(){window.OneBasePages={navigate,refresh:render,rollDiscovery,setDiscoveryGenre(value){window.__ONEBASE_DISCOVER_GENRE__=value||'all';rollDiscovery()},openDiscoveryPick(index){openInfo(Number(index))},openEpisodes(index){window.OneBasePremium?.openEpisodes?.(Number(index))}}}
 function delegatePageClick(e){
  const choice=e.target?.closest?.('#ob-library-add-chooser [data-add-kind]');if(choice){e.preventDefault();e.stopImmediatePropagation();const kind=choice.dataset.addKind;document.querySelector('#ob-library-add-chooser')?.classList.remove('open');if(kind==='anime')window.OneBaseAniListSearch?.open?.();else window.OneBaseScreenLibrary?.open?.({type:kind==='movie'?'movie':'tv'});return}
