@@ -110,7 +110,7 @@ async function fetchRoll(){
   const exclude=[...new Set([...hist,...owned])].filter(Number.isFinite).slice(-10000);
   const body={mode,genres:taste,targetGenres:targets,excludeIds:exclude.slice(-350),page:1+Math.floor(Math.random()*4)};
   const controller=typeof AbortController==='undefined'?null:new AbortController();
-  const timer=controller?setTimeout(()=>controller.abort(),9000):null;
+  const timer=controller?setTimeout(()=>controller.abort(),18000):null;
   try{
     const r=await fetch('/api/lootbox-recommendations-v2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:controller?.signal});
     const payload=await r.json().catch(()=>null);
@@ -124,7 +124,7 @@ async function fetchRoll(){
     if(picked.length<5)throw new Error('No hay 5 animes nuevos disponibles. Prueba otro modo o genera otra tirada.');
     return picked;
   }catch(error){
-    if(error?.name==='AbortError')throw new Error('AniList tardó demasiado en responder. Pulsa Reintentar.');
+    if(error?.name==='AbortError')throw new Error('Las fuentes de recomendaciones tardaron demasiado en responder. Pulsa Reintentar.');
     throw error;
   }finally{if(timer)clearTimeout(timer)}
 }
@@ -149,7 +149,7 @@ function shell(){
     '<div class="lv2-modes">'+Object.entries(MODES).map(([k,v])=>'<button class="lv2-mode '+(mode===k?'active':'')+'" data-lv2-mode="'+k+'">'+v.label+'<small>'+v.sub+'</small></button>').join('')+'</div></div>'+
     '<div class="lv2-rollbar"><span>'+modeLabel()+' · '+(busy?'ANALIZANDO PERFIL…':selected!==null?'1 CAJA ELEGIDA · 4 BLOQUEADAS':'5 CAJAS DISPONIBLES')+'</span><button class="lv2-reroll" data-lv2-reroll '+(busy?'disabled':'')+'>↻ REROLL · NUEVA TIRADA</button></div>'+
     (loadError?'<div class="lv2-empty lv2-error" role="alert"><div><b>No se pudieron cargar las cajas</b><small>'+esc(loadError)+'</small><button type="button" data-lv2-reroll>Reintentar</button></div></div>':'')+
-    (roll?.some(x=>x.provider==='jikan')?'<div class="lv2-source-note" role="status">Fuente alternativa activa: recomendaciones de anime a través de Jikan.</div>':'')+
+    (roll?.some(x=>x.provider==='kitsu')?'<div class="lv2-source-note" role="status">Fuente alternativa activa: recomendaciones del catálogo Kitsu.</div>':'')+
     (busy?'<div class="lv2-empty"><div><div class="lv2-spinner"></div><b>Construyendo tu tirada</b><small>Comparando géneros, temas, novedad y lo que ya tienes…</small></div></div>':cases)+
     (!roll&&!busy&&!loadError?'<div class="lv2-empty"><div><b>Preparando tus cajas…</b><small>La primera tirada se genera automáticamente.</small></div></div>':'')+
     (selected!==null&&roll?.[selected]&&!resolved.has(selected)?detail(roll[selected],selected):'')+
@@ -312,8 +312,8 @@ function save(i){
   if(owned){markHistory(x.id);resolved.add(i);return closeDropThen(()=>{renderLoot();window.toast?.('Ese anime ya estaba en tu biblioteca.');})}
   const d=window.__ONEBASE_DATA__;
   if(!Array.isArray(d)){window.toast?.('La biblioteca no está lista. Vuelve a intentarlo.');return;}
-  const item={anime:x.title,watched:'0',total:x.episodes?String(x.episodes):'',duration:x.duration?String(x.duration):'',durationMin:x.duration||0,state:'pendiente',score:'',favorite:false,cover:x.cover,coverImage:x.cover,bannerImage:x.banner,description:x.description,genres:x.genres,tags:x.tags,apiStatus:x.status,anilistStatus:x.provider==='jikan'?'':x.status,apiScore:x.score?x.score/10:0,knownTotal:x.episodes?String(x.episodes):'',plannedEpisodes:x.episodes?String(x.episodes):'',newEpisodes:0,siteUrl:x.siteUrl,source:x.provider==='jikan'?'onebase-loot-v2-jikan':'onebase-loot-v2',addedAt:Date.now(),updatedAt:Date.now()};
-  if(x.provider==='jikan')item.sourceAnimeId=x.externalId;
+  const item={anime:x.title,watched:'0',total:x.episodes?String(x.episodes):'',duration:x.duration?String(x.duration):'',durationMin:x.duration||0,state:'pendiente',score:'',favorite:false,cover:x.cover,coverImage:x.cover,bannerImage:x.banner,description:x.description,genres:x.genres,tags:x.tags,apiStatus:x.status,anilistStatus:x.provider==='kitsu'?'':x.status,apiScore:x.score?x.score/10:0,knownTotal:x.episodes?String(x.episodes):'',plannedEpisodes:x.episodes?String(x.episodes):'',newEpisodes:0,siteUrl:x.siteUrl,source:x.provider==='kitsu'?'onebase-loot-v2-kitsu':'onebase-loot-v2',addedAt:Date.now(),updatedAt:Date.now()};
+  if(x.provider==='kitsu')item.sourceAnimeId=x.externalId;
   else {item.aniId=x.id;item.anilistId=x.id;}
   d.push(item);
   try{if(typeof window.save==='function')window.save({skipBackup:true});else {localStorage.setItem('anime_tracker_v6',JSON.stringify(d));window.dispatchEvent(new Event('animetracker:saved'));}}catch(error){const index=d.lastIndexOf(item);if(index>=0)d.splice(index,1);window.toast?.('No se pudo guardar: '+String(error?.message||error));return;}

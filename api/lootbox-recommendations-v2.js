@@ -1,39 +1,28 @@
 const ANILIST_URL='https://graphql.anilist.co';
-const JIKAN_URL='https://api.jikan.moe/v4/top/anime';
-const JIKAN_TTL=15*60*1000;
-const jikanCache=new Map();
-
-async function requestJikan(page){
-  const cached=jikanCache.get(page);
-  if(cached&&cached.expiresAt>Date.now())return cached.results;
-  const controller=typeof AbortController!=='undefined'?new AbortController():null;
-  const timer=controller?setTimeout(()=>controller.abort(),7000):null;
-  try{
-    const response=await fetch(JIKAN_URL+'?page='+page+'&limit=25',{headers:{Accept:'application/json'},signal:controller?.signal});
-    const payload=await response.json().catch(()=>null);
-    if(!response.ok||!Array.isArray(payload?.data))throw new Error('Jikan no pudo cargar recomendaciones.');
-    const results=payload.data.map(item=>{
-      const malId=Number(item?.mal_id);
-      if(!Number.isInteger(malId)||malId<1||String(item?.rating||'').toLowerCase().includes('hentai'))return null;
-      const cover=item?.images?.webp?.large_image_url||item?.images?.jpg?.large_image_url||item?.images?.jpg?.image_url||'';
-      const genres=[...(Array.isArray(item?.genres)?item.genres:[]),...(Array.isArray(item?.themes)?item.themes:[])].map(x=>String(x?.name||'').trim()).filter(Boolean);
-      const title=String(item?.title_english||item?.title||item?.title_japanese||'Anime recomendado');
-      return {
-        id:-malId,provider:'jikan',externalId:malId,
-        title:{userPreferred:title,english:item?.title_english||'',romaji:item?.title||title},
-        description:String(item?.synopsis||''),genres,tags:[],
-        status:String(item?.status||''),episodes:Number(item?.episodes)||0,duration:0,
-        averageScore:Math.round((Number(item?.score)||0)*10),popularity:Number(item?.members)||0,
-        coverImage:{extraLarge:cover,large:cover,medium:cover},bannerImage:'',siteUrl:String(item?.url||'')
-      };
-    }).filter(Boolean);
-    if(!results.length)throw new Error('Jikan no encontró recomendaciones disponibles.');
-    jikanCache.set(page,{expiresAt:Date.now()+JIKAN_TTL,results});
-    return results;
-  }catch(error){
-    if(error?.name==='AbortError')throw new Error('La fuente alternativa tardó demasiado en responder.');
-    throw error;
-  }finally{if(timer)clearTimeout(timer)}
+const KITSU_URL='https://kitsu.io/api/edge/anime';
+const KITSU_TTL=15*60*1000;
+const kitsuCache=new Map();
+async function requestKitsu(page){
+ const cached=kitsuCache.get(page);if(cached&&cached.expiresAt>Date.now())return cached.results;
+ const controller=typeof AbortController!=='undefined'?new AbortController():null,timer=controller?setTimeout(()=>controller.abort(),6000):null;
+ try{
+  const url=new URL(KITSU_URL);url.searchParams.set('sort','-userCount');url.searchParams.set('page[limit]','20');url.searchParams.set('page[offset]',String((page-1)*20));url.searchParams.set('include','categories');
+  const response=await fetch(url,{headers:{Accept:'application/vnd.api+json, application/json'},signal:controller?.signal});
+  const payload=await response.json().catch(()=>null);
+  if(!response.ok||!Array.isArray(payload?.data))throw new Error('Kitsu no pudo cargar recomendaciones.');
+  const included=new Map((Array.isArray(payload.included)?payload.included:[]).filter(x=>x?.type==='categories').map(x=>[String(x.id),String(x.attributes?.title||'').trim()]));
+  const results=payload.data.map(item=>{
+   const id=Number(item?.id),a=item?.attributes||{};if(!Number.isSafeInteger(id)||id<1||String(a.ageRating||'').toUpperCase()==='R18')return null;
+   const cover=a.posterImage?.large||a.posterImage?.original||a.posterImage?.small||'';
+   const title=String(a.titles?.en||a.canonicalTitle||a.titles?.en_jp||a.titles?.ja_jp||'Anime recomendado');
+   const genres=(item?.relationships?.categories?.data||[]).map(x=>included.get(String(x.id))).filter(Boolean);
+   const score=Math.round(Number(a.averageRating)||0),slug=String(a.slug||'').replace(/[^a-zA-Z0-9-]/g,'');
+   return {id:-id,provider:'kitsu',externalId:id,title:{userPreferred:title,english:a.titles?.en||'',romaji:a.titles?.en_jp||a.canonicalTitle||title},description:String(a.synopsis||''),genres,tags:[],status:String(a.status||''),episodes:Number(a.episodeCount)||0,duration:Number(a.episodeLength)||0,averageScore:score,popularity:Number(a.userCount)||0,coverImage:{extraLarge:cover,large:cover,medium:cover},bannerImage:'',siteUrl:slug?'https://kitsu.app/anime/'+encodeURIComponent(slug):'https://kitsu.app/anime'};
+  }).filter(Boolean);
+  if(!results.length)throw new Error('Kitsu no encontró recomendaciones disponibles.');
+  kitsuCache.set(page,{expiresAt:Date.now()+KITSU_TTL,results});return results;
+ }catch(error){if(error?.name==='AbortError')throw new Error('El catálogo alternativo tardó demasiado en responder.');throw error}
+ finally{if(timer)clearTimeout(timer)}
 }
 
 const QUERY=`
@@ -73,7 +62,7 @@ module.exports=async function handler(req,res){
 
   async function request(variables){
     const controller=typeof AbortController!=='undefined'?new AbortController():null;
-    const timer=controller?setTimeout(()=>controller.abort(),8500):null;
+    const timer=controller?setTimeout(()=>controller.abort(),3000):null;
     try{
       const upstream=await fetch(ANILIST_URL,{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({query:QUERY,variables}),signal:controller?.signal});
       const retryAfter=upstream.headers.get('retry-after');
@@ -98,14 +87,14 @@ module.exports=async function handler(req,res){
     }
     return json(res,200,{ok:true,mode,results:unique});
   }catch(error){
-    console.warn('[ONEBASE] AniList recommendation failed; trying Jikan:',error?.message||error);
+    console.warn('[ONEBASE] AniList recommendation failed; trying Kitsu:',error?.message||error);
     try{
-      const results=await requestJikan(page);
-      return json(res,200,{ok:true,mode,provider:'jikan',results});
+      const results=await requestKitsu(page);
+      return json(res,200,{ok:true,mode,provider:'kitsu',results});
     }catch(fallbackError){
       console.error('[ONEBASE] Lootbox recommendation sources failed:',fallbackError);
       const message=String(fallbackError?.message||'Jikan no respondió.');
-      return json(res,502,{ok:false,error:'AniList y la fuente alternativa no están disponibles. '+message});
+      return json(res,502,{ok:false,error:'AniList y el catálogo alternativo no están disponibles. '+message});
     }
   }
 };
