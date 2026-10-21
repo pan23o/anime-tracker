@@ -217,7 +217,7 @@ function opening(i){
 #onebase-loot-cinema .obc-close{position:absolute;right:174px;top:16px;background:var(--panel2,#1d1b19);color:var(--text,#f0c675);border:1px solid var(--line2,#977340);border-radius:9px;padding:10px 14px;cursor:pointer;font-size:12px;z-index:20}
 #onebase-loot-cinema .obc-replay,#onebase-loot-cinema .obc-close{pointer-events:auto!important}
 #onebase-loot-cinema.obc-done .obc-panel{pointer-events:auto}
-@media(max-width:980px){#onebase-loot-cinema .obc-stage{height:auto;min-height:950px;width:100%}#onebase-loot-cinema .obc-box{top:260px;transform:translate(-50%,-50%) scale(.75)}#onebase-loot-cinema .obc-card{top:325px;width:145px;height:210px}#onebase-loot-cinema .obc-panel{top:605px;left:4%;width:92%}#onebase-loot-cinema .obc-card{width:175px;height:255px}#onebase-loot-cinema .obc-content{padding:26px 22px;min-height:320px}#onebase-loot-cinema .obc-desc{font-size:14px;max-height:210px}#onebase-loot-cinema .obc-actions{flex-direction:column}#onebase-loot-cinema .obc-actions button{width:100%}#onebase-loot-cinema .obc-caption{bottom:12px}#onebase-loot-cinema .obc-top{top:65px}#onebase-loot-cinema .obc-skip{top:16px;left:18px;right:auto}#onebase-loot-cinema .obc-close{top:16px;right:18px}#onebase-loot-cinema .obc-replay{top:104px;right:18px}}
+@media(max-width:1100px){#onebase-loot-cinema .obc-stage{height:auto;min-height:950px;width:100%}#onebase-loot-cinema .obc-box{top:260px;transform:translate(-50%,-50%) scale(.75)}#onebase-loot-cinema .obc-card{top:325px;width:145px;height:210px}#onebase-loot-cinema .obc-panel{top:605px;left:4%;width:92%}#onebase-loot-cinema .obc-card{width:175px;height:255px}#onebase-loot-cinema .obc-content{padding:26px 22px;min-height:320px}#onebase-loot-cinema .obc-desc{font-size:14px;max-height:210px}#onebase-loot-cinema .obc-actions{flex-direction:column}#onebase-loot-cinema .obc-actions button{width:100%}#onebase-loot-cinema .obc-caption{bottom:12px}#onebase-loot-cinema .obc-top{top:65px}#onebase-loot-cinema .obc-skip{top:16px;left:18px;right:auto}#onebase-loot-cinema .obc-close{top:16px;right:18px}#onebase-loot-cinema .obc-replay{top:104px;right:18px}}
 `;
     document.head.appendChild(style);
   }
@@ -233,7 +233,9 @@ function opening(i){
     '<p class="obc-desc">'+esc(x.description||'Sin descripción disponible.')+'</p>'+
     '<div class="obc-actions"><button type="button" class="obc-save">＋ GUARDAR ANIME</button><button type="button" class="obc-discard">DESCARTAR</button></div></div></div></div>'+
     '<div class="obc-caption" aria-live="polite">La caja está lista…</div></div>';
+  const previousOverflow={body:document.body.style.overflow,root:document.documentElement.style.overflow};
   document.body.appendChild(el);
+  document.body.style.overflow='hidden';document.documentElement.style.overflow='hidden';
   const q=s=>el.querySelector(s),chest=q('.obc-chest'),lid=q('.obc-lid'),box=q('.obc-box'),light=q('.obc-light'),card=q('.obc-card'),panel=q('.obc-panel'),caption=q('.obc-caption');
   let runId=0,animations=[];
   const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -253,6 +255,7 @@ function opening(i){
   const closeOpening=(refresh=true)=>{
     ++runId;animations.forEach(animation=>animation.cancel());animations=[];
     window.removeEventListener('keydown',onKeyDown);el.remove();
+    document.body.style.overflow=previousOverflow.body;document.documentElement.style.overflow=previousOverflow.root;
     if(activeCinematicClose===closeOpening)activeCinematicClose=null;
     selected=null;if(refresh&&inLoot())renderLoot();
   };
@@ -283,7 +286,7 @@ function opening(i){
     if(!(await Promise.all([move(card,[{opacity:0,transform:'translate(-50%,110px) scale(.5)'},{opacity:1,transform:'translate(-50%,-50%) scale(1)'}],1250,id),move(box,[{opacity:1},{opacity:0}],1050,id)])).every(Boolean))return;
     await wait(650);if(runId!==id)return;
     caption.textContent='La tarjeta se desplaza…';
-    const mobile=innerWidth<760;
+    const mobile=innerWidth<1100;
     if(!await move(card,[{transform:'translate(-50%,-50%)'},{transform:mobile?'translate(-50%,-50%) scale(.85)':'translate(calc(-50% - 365px),-50%)'}],1500,id))return;
     caption.textContent='Abriendo los detalles…';
     if(!await move(panel,[{opacity:0,clipPath:'inset(0 100% 0 0)'},{opacity:1,clipPath:'inset(0 0 0 0)'}],1700,id))return;
@@ -310,7 +313,7 @@ function opening(i){
     lid.style.transform='translateY(-105px) rotateX(-80deg)';
     box.style.opacity='0';
     card.style.opacity='1';
-    card.style.transform=innerWidth<760?'translate(-50%,-50%) scale(.85)':'translate(calc(-50% - 365px),-50%)';
+    card.style.transform=innerWidth<1100?'translate(-50%,-50%) scale(.85)':'translate(calc(-50% - 365px),-50%)';
     panel.style.opacity='1';
     panel.style.clipPath='inset(0 0 0 0)';
     finish();
