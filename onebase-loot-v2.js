@@ -20,7 +20,7 @@ const THEMES={
 
 let mode=localStorage.getItem(KEY)||'personalized';
 if(!MODES[mode])mode='personalized';
-let roll=null,busy=false,selected=null,resolved=new Set(),openingTimer=0,closeTimer=0,loadError='';
+let roll=null,busy=false,selected=null,resolved=new Set(),openingTimer=0,closeTimer=0,loadError='',activeCinematicClose=null;
 
 const $=s=>document.querySelector(s);
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
@@ -189,7 +189,7 @@ function opening(i){
   if(!document.getElementById('onebase-loot-cinema-style')){
     const style=document.createElement('style');style.id='onebase-loot-cinema-style';
     style.textContent=`
-#onebase-loot-cinema{position:fixed!important;inset:0!important;z-index:2147483640!important;display:block!important;overflow:auto!important;overscroll-behavior:contain;background:radial-gradient(ellipse at 50% 43%,#322411 0%,#111115 54%,#08080b 100%)!important;color:#f8f2e9!important;font-family:system-ui,-apple-system,sans-serif!important}
+#onebase-loot-cinema{position:fixed!important;inset:0!important;z-index:2147483640!important;display:block!important;overflow:auto!important;overscroll-behavior:contain;background:radial-gradient(ellipse at 50% 40%,color-mix(in srgb,var(--accent,#d6a84f) 12%,transparent),transparent 48%),var(--bg,#08090b)!important;color:#f8f2e9!important;font-family:system-ui,-apple-system,sans-serif!important;pointer-events:none!important}
 #onebase-loot-cinema *{box-sizing:border-box}
 #onebase-loot-cinema .obc-stage{position:relative;width:min(1320px,97vw);height:min(800px,96dvh);min-height:560px;margin:auto;isolation:isolate}
 #onebase-loot-cinema .obc-top{position:absolute;top:5%;left:0;right:0;text-align:center;color:#f0c66d;font-size:12px;font-weight:900;letter-spacing:3px}
@@ -214,14 +214,17 @@ function opening(i){
 #onebase-loot-cinema .obc-save{background:#eac36f;color:#1a150b;border:1px solid #ffdf92}
 #onebase-loot-cinema .obc-discard{background:#221d1d;color:#ffaaa6;border:1px solid #ad6661}
 #onebase-loot-cinema .obc-replay{position:absolute;right:18px;top:16px;background:#1d1b19;color:#f0c675;border:1px solid #977340;border-radius:9px;padding:10px 14px;cursor:pointer;font-size:12px;z-index:20}
-#onebase-loot-cinema.obc-done .obc-reward,#onebase-loot-cinema.obc-done .obc-panel{pointer-events:auto}
-@media(max-width:760px){#onebase-loot-cinema .obc-stage{height:auto;min-height:950px;width:100%}#onebase-loot-cinema .obc-box{top:260px;transform:translate(-50%,-50%) scale(.75)}#onebase-loot-cinema .obc-card{top:325px;width:145px;height:210px}#onebase-loot-cinema .obc-panel{top:605px;left:4%;width:92%}#onebase-loot-cinema .obc-card{width:175px;height:255px}#onebase-loot-cinema .obc-content{padding:26px 22px;min-height:320px}#onebase-loot-cinema .obc-desc{font-size:14px;max-height:210px}#onebase-loot-cinema .obc-actions{flex-direction:column}#onebase-loot-cinema .obc-actions button{width:100%}#onebase-loot-cinema .obc-caption{bottom:12px}#onebase-loot-cinema .obc-top{top:65px}}
+#onebase-loot-cinema .obc-close{position:absolute;right:174px;top:16px;background:var(--panel2,#1d1b19);color:var(--text,#f0c675);border:1px solid var(--line2,#977340);border-radius:9px;padding:10px 14px;cursor:pointer;font-size:12px;z-index:20}
+#onebase-loot-cinema .obc-replay,#onebase-loot-cinema .obc-close{pointer-events:auto!important}
+#onebase-loot-cinema.obc-done .obc-panel{pointer-events:auto}
+@media(max-width:980px){#onebase-loot-cinema .obc-stage{height:auto;min-height:950px;width:100%}#onebase-loot-cinema .obc-box{top:260px;transform:translate(-50%,-50%) scale(.75)}#onebase-loot-cinema .obc-card{top:325px;width:145px;height:210px}#onebase-loot-cinema .obc-panel{top:605px;left:4%;width:92%}#onebase-loot-cinema .obc-card{width:175px;height:255px}#onebase-loot-cinema .obc-content{padding:26px 22px;min-height:320px}#onebase-loot-cinema .obc-desc{font-size:14px;max-height:210px}#onebase-loot-cinema .obc-actions{flex-direction:column}#onebase-loot-cinema .obc-actions button{width:100%}#onebase-loot-cinema .obc-caption{bottom:12px}#onebase-loot-cinema .obc-top{top:65px}#onebase-loot-cinema .obc-skip{top:16px;left:18px;right:auto}#onebase-loot-cinema .obc-close{top:16px;right:18px}#onebase-loot-cinema .obc-replay{top:104px;right:18px}}
 `;
     document.head.appendChild(style);
   }
   const el=document.createElement('div');el.id='onebase-loot-cinema';
   el.innerHTML='<div class="obc-stage" role="dialog" aria-modal="true" aria-label="Abriendo lootbox">'+
     '<button class="obc-replay" type="button">↻ Repetir animación</button>'+
+    '<button class="obc-close" type="button" aria-label="Cerrar recompensa">Cerrar</button>'+
     '<div class="obc-top">ONEBASE · RECOMPENSA MISTERIOSA</div>'+
     '<div class="obc-box"><div class="obc-light"></div><div class="obc-chest"><div class="obc-lid">ONEBASE</div><div class="obc-inside"></div><div class="obc-base">◈</div></div></div>'+
     '<div class="obc-reward"><div class="obc-card">'+(x.cover?'<img src="'+esc(x.cover)+'" alt="Portada de '+esc(x.title)+'">':'◈')+'</div>'+
@@ -247,6 +250,14 @@ function opening(i){
     return true;
   };
   const finish=()=>{el.classList.add('obc-done');caption.textContent='¡Has descubierto un anime!';};
+  const closeOpening=(refresh=true)=>{
+    ++runId;animations.forEach(animation=>animation.cancel());animations=[];
+    window.removeEventListener('keydown',onKeyDown);el.remove();
+    if(activeCinematicClose===closeOpening)activeCinematicClose=null;
+    selected=null;if(refresh&&inLoot())renderLoot();
+  };
+  const onKeyDown=e=>{if(e.key==='Escape')closeOpening()};
+  activeCinematicClose=closeOpening;window.addEventListener('keydown',onKeyDown);
   const reset=()=>{
     animations.forEach(a=>a.cancel());animations=[];
     el.classList.remove('obc-done');
@@ -279,14 +290,15 @@ function opening(i){
     finish();
   }
   q('.obc-replay').onclick=()=>void play();
-  q('.obc-save').onclick=()=>{if(!el.classList.contains('obc-done'))return;el.remove();save(i)};
-  q('.obc-discard').onclick=()=>{if(!el.classList.contains('obc-done'))return;el.remove();skip(i)};
+  q('.obc-close').onclick=()=>closeOpening();
+  q('.obc-save').onclick=()=>{if(!el.classList.contains('obc-done'))return;closeOpening(false);save(i)};
+  q('.obc-discard').onclick=()=>{if(!el.classList.contains('obc-done'))return;closeOpening(false);skip(i)};
   // Opening a box is an explicit request to see the reveal. Run exactly the
   // same proven timeline as the Replay button on the first opening.
   // Keep a skip control for users who prefer not to watch the sequence.
   const skipButton=document.createElement('button');
   skipButton.type='button';
-  skipButton.className='obc-replay';
+  skipButton.className='obc-replay obc-skip';
   skipButton.style.right='auto';
   skipButton.style.left='18px';
   skipButton.textContent='Saltar animación';
@@ -386,6 +398,6 @@ addEventListener('popstate',()=>setTimeout(enter,60));
 addEventListener('hashchange',()=>setTimeout(enter,60));
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',enter,{once:true});else setTimeout(enter,150);
 
-window.OneBaseLootV2={reroll,render:renderLoot};
+window.OneBaseLootV2={reroll,render:renderLoot,close(){activeCinematicClose?.()}};
 window.dispatchEvent(new CustomEvent('onebase:loot-v2-ready'));
 })();
