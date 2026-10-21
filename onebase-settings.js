@@ -53,6 +53,28 @@
       .ob-settings-extra{border:1px solid #403529;border-radius:16px;background:#191714;overflow:hidden}.ob-settings-extra summary{cursor:pointer;display:flex;justify-content:space-between;gap:10px;padding:19px 20px;font-size:14px;font-weight:850;color:#f1ce8c;list-style:none}.ob-settings-extra summary::-webkit-details-marker{display:none}.ob-settings-extra summary span{font-size:11px;color:#aaa;font-weight:500}.ob-settings-extra[open] summary{border-bottom:1px solid #403529}
       body.onebase-light-theme .ob-settings-window{background:#fff!important;color:#111!important;border-color:#222!important}body.onebase-light-theme .ob-settings-section,body.onebase-light-theme .ob-settings-extra{background:#fff!important;border-color:#222!important}body.onebase-light-theme .ob-settings-section-head strong,body.onebase-light-theme .ob-settings-extra summary{color:#111!important}
       @media(max-width:600px){.ob-settings-body{padding:10px}.ob-settings-head{padding:15px}.ob-setting-row{padding:13px}.ob-settings-window{max-height:94vh}}
+      /* Keep each settings panel in its own row and let the body scroll as one column. */
+      #onebaseSettingsOverlay{box-sizing:border-box;padding:16px}
+      .ob-settings-window{height:min(820px,calc(100dvh - 32px));max-height:calc(100dvh - 32px);min-height:0;box-sizing:border-box}
+      .ob-settings-body{display:flex!important;flex:1 1 auto;flex-direction:column;align-items:stretch;gap:14px;min-width:0;min-height:0;overflow-y:auto;overflow-x:hidden;box-sizing:border-box}
+      .ob-settings-body>*{position:relative;flex:0 0 auto;width:100%;min-width:0;margin:0;box-sizing:border-box}
+      .ob-settings-section,.ob-settings-extra{position:relative;min-width:0;box-sizing:border-box}
+      .ob-settings-extra>div{display:grid;grid-template-columns:minmax(0,1fr)}
+      .ob-settings-section-head,.ob-setting-row{position:relative;min-width:0;box-sizing:border-box}
+      #obcw3section .obcw3entry{align-items:center;flex-wrap:wrap}
+      #obcw3section .obcw3entry>div{min-width:0;flex:1 1 180px}
+      #obcw3section .obcw3list{grid-template-columns:minmax(0,1fr)}
+      #obcw3section .obcw3item{min-width:0}
+      @media(max-width:600px){
+        #onebaseSettingsOverlay{padding:8px}
+        .ob-settings-window{width:100%;height:calc(100dvh - 16px);max-height:calc(100dvh - 16px)}
+        .ob-settings-head{padding:15px}
+        .ob-settings-body{padding:10px;gap:10px}
+        .ob-settings-section-head{padding:14px}
+        .ob-setting-row{padding:13px;gap:10px}
+        #obcw3section .obcw3entry{padding:12px}
+        #obcw3section .obcw3add{max-width:100%}
+      }
     `;
     document.head.appendChild(style);
   }
