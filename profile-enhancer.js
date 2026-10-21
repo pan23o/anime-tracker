@@ -8,10 +8,12 @@
   const SUPABASE_URL = 'https://djfjqecahztogacliavh.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_tm8Tid_HSYtu6cxXQ3ddKA_RWN15BSB';
   const LIB = 'anime_tracker_v6';
+  const SCREEN_LIB = 'onebase_screen_library_v1';
   const META = 'anime_tracker_persistence_v2';
   const PROFILE = 'anime_tracker_profile_v1';
   const STORAGE_BUCKET = 'anime-libraries';
   const FILE_NAME = 'library.txt';
+  const SCREEN_FILE_NAME = 'screen-library.txt';
 
   const $ = id => document.getElementById(id);
   const now = () => Date.now();
@@ -108,6 +110,60 @@
     } catch (e) { console.error('[AnimeTracker] account TXT upload failed:', e); return false; }
   }
 
+  function localScreenLibrary() {
+    const value = parse(localStorage.getItem(SCREEN_LIB) || '[]', []);
+    return Array.isArray(value) ? value.filter(x => x && Number.isSafeInteger(Number(x.id)) && ['movie', 'tv'].includes(x.type)) : [];
+  }
+  function setLocalScreenLibrary(list) {
+    const cleanList = Array.isArray(list) ? list.filter(x => x && Number.isSafeInteger(Number(x.id)) && ['movie', 'tv'].includes(x.type)) : [];
+    try { localStorage.setItem(SCREEN_LIB, JSON.stringify(cleanList)); } catch (e) { console.warn('[AnimeTracker] audiovisual library write failed', e); }
+    window.dispatchEvent(new CustomEvent('onebase:screen-library-restored', { detail: { count: cleanList.length } }));
+  }
+  async function uploadScreenLibrary() {
+    if (!user) return false;
+    try {
+      const body = new Blob([JSON.stringify(localScreenLibrary())], { type: 'application/json;charset=utf-8' });
+      const { error } = await client.storage.from(STORAGE_BUCKET).upload(`${user.id}/${SCREEN_FILE_NAME}`, body, { upsert: true, contentType: 'application/json;charset=utf-8', cacheControl: '0' });
+      if (error) throw error;
+      return true;
+    } catch (e) { console.warn('[AnimeTracker] audiovisual library upload failed:', e); return false; }
+  }
+  async function restoreScreenLibrary() {
+    if (!user) return false;
+    try {
+      const { data: file, error } = await client.storage.from(STORAGE_BUCKET).download(`${user.id}/${SCREEN_FILE_NAME}`);
+      if (error) { if (/not found|object not found|404/i.test(error.message || '')) throw new Error('SCREEN_LIBRARY_NOT_FOUND'); throw error; }
+      const remote = parse(await file.text(), []);
+      if (!Array.isArray(remote)) return false;
+      const local = localScreenLibrary(), merged = new Map();
+      for (const item of [...remote, ...local]) {
+        const key = `${item.type}:${item.id}`, old = merged.get(key);
+        if (!old || (Number(item.updatedAt) || 0) >= (Number(old.updatedAt) || 0)) merged.set(key, item);
+      }
+      setLocalScreenLibrary([...merged.values()]);
+      if (JSON.stringify([...merged.values()]) !== JSON.stringify(remote)) void uploadScreenLibrary();
+      return true;
+    } catch (e) {
+      try {
+        const { data, error } = await client.from('tracker_state').select('state').eq('user_id', user.id).maybeSingle();
+        if (!error) {
+          const remote = parse(data?.state?.[SCREEN_LIB] || '[]', []);
+          if (Array.isArray(remote)) {
+            const merged = new Map();
+            for (const item of [...remote, ...localScreenLibrary()]) {
+              const key = `${item.type}:${item.id}`, old = merged.get(key);
+              if (!old || (Number(item.updatedAt) || 0) >= (Number(old.updatedAt) || 0)) merged.set(key, item);
+            }
+            setLocalScreenLibrary([...merged.values()]);
+            void uploadScreenLibrary();
+            return true;
+          }
+        }
+      } catch {}
+      console.warn('[AnimeTracker] audiovisual library restore failed:', e); return false;
+    }
+  }
+
   async function saveEmergencyMirror(list) {
     const key = user ? `account:${user.id}` : 'guest', record = { key, updatedAt: now(), library: clean(list) };
     try { localStorage.setItem(`anime_tracker_vault_mirror_v1:${key}`, JSON.stringify(record)); } catch {}
@@ -131,9 +187,9 @@
     try {
       const { data: remote, error: readError } = await client.from('tracker_state').select('state,revision,checksum,device_id,saved_at,updated_at').eq('user_id', user.id).maybeSingle();
       if (readError) throw readError;
-      const base = remote?.state && typeof remote.state === 'object' ? remote.state : {}, serialized = JSON.stringify(clean(list));
-      if (String(base[LIB] || '') === serialized) return true;
-      const m = ensureMeta(), revision = Math.max(Number(remote?.revision) || 0, Number(m.revision) || 0) + 1, stamp = now(), state = { ...base, [LIB]: serialized };
+      const base = remote?.state && typeof remote.state === 'object' ? remote.state : {}, serialized = JSON.stringify(clean(list)), screenSerialized = JSON.stringify(localScreenLibrary());
+      if (String(base[LIB] || '') === serialized && String(base[SCREEN_LIB] || '[]') === screenSerialized) return true;
+      const m = ensureMeta(), revision = Math.max(Number(remote?.revision) || 0, Number(m.revision) || 0) + 1, stamp = now(), state = { ...base, [LIB]: serialized, [SCREEN_LIB]: screenSerialized };
       const { error } = await client.from('tracker_state').upsert({ user_id: user.id, state, revision, checksum: `${serialized.length}:${revision}`, device_id: m.deviceId, saved_at: new Date(stamp).toISOString(), updated_at: new Date(stamp).toISOString() }, { onConflict: 'user_id' });
       if (error) throw error;
       setMeta({ ...m, owner: `account:${user.id}`, revision, savedAt: stamp }); return true;
@@ -152,6 +208,8 @@
       // successful progress update look like it was lost.
       const tableSaved = await saveCloudTable(current);
       const fileSaved = await uploadAccountFile(current);
+      const screenSaved = await uploadScreenLibrary();
+      if (!screenSaved) console.warn('[AnimeTracker] audiovisual library file sync unavailable; tracker state fallback was attempted.');
       await saveEmergencyMirror(current);
 
       const ok = tableSaved || fileSaved;
@@ -183,6 +241,7 @@
 
   async function restoreAccountLibrary() {
     if (!user) return false;
+    await restoreScreenLibrary();
 
     // Restore from both cloud copies. The old implementation preferred the TXT
     // file whenever it existed, which could resurrect an older chapter counter
@@ -402,7 +461,7 @@
   async function resetPassword() { const email = String($('cloudEmail')?.value || '').trim(); if (!email) return authMessage('Escribe tu correo para recuperar la contraseña.'); authMessage('Enviando correo…'); try { const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo: authRedirectUrl() }); if (error) throw error; authMessage('✓ Revisa tu correo.'); } catch (e) { authMessage(e?.message || 'No se pudo enviar el correo.'); } }
   async function syncProfile() { if (!user) return; try { const local = profileLocal(), { data: cloud, error } = await client.from('profiles').select('username,avatar_data,created_at').eq('id', user.id).maybeSingle(); if (error) throw error; if (cloud) { const p = normalizeProfile({ name: cloud.username || 'Usuario', avatar: cloud.avatar_data || '', createdAt: Date.parse(cloud.created_at || '') || local.createdAt || now() }); localStorage.setItem(PROFILE, JSON.stringify(p)); updateProfileDom(p); } else { const p = normalizeProfile(local); localStorage.setItem(PROFILE, JSON.stringify(p)); updateProfileDom(p); await client.from('profiles').upsert({ id: user.id, username: p.name, avatar_data: p.avatar }, { onConflict: 'id' }); } } catch (e) { console.warn('[AnimeTracker] profile sync failed:', e); } }
   function scheduleProfileSync() { if (!user) return; clearTimeout(profileTimer); profileTimer = setTimeout(async () => { try { const p = normalizeProfile(profileLocal()); await client.from('profiles').upsert({ id: user.id, username: p.name, avatar_data: p.avatar, updated_at: new Date().toISOString() }, { onConflict: 'id' }); } catch (e) { console.warn('[AnimeTracker] profile save failed:', e); } }, 500); }
-  async function logout(event) { event?.preventDefault?.(); const button = $('cloudLogoutBtn'); if (button) { button.disabled = true; button.classList.add('cloud-logout-busy'); button.textContent = 'Cerrando sesión…'; } try { const oldUser = user, current = localList(); if (oldUser) { await uploadAccountFile(current); await saveEmergencyMirror(current); await saveCloudTable(current); } user = null; setMeta({ ...ensureMeta(), owner: '' }); await saveEmergencyMirror(current); await client.auth.signOut(); $('cloudUserMenu')?.classList.remove('show'); updateAccountUi(); toast('✓ Sesión cerrada'); } catch (e) { console.error('[AnimeTracker] logout', e); toast('No se pudo cerrar la sesión.'); } finally { if (button) { button.disabled = false; button.classList.remove('cloud-logout-busy'); button.textContent = 'Cerrar sesión'; } } }
+  async function logout(event) { event?.preventDefault?.(); const button = $('cloudLogoutBtn'); if (button) { button.disabled = true; button.classList.add('cloud-logout-busy'); button.textContent = 'Cerrando sesión…'; } try { const oldUser = user, current = localList(); if (oldUser) { await uploadAccountFile(current); await uploadScreenLibrary(); await saveEmergencyMirror(current); await saveCloudTable(current); } user = null; setMeta({ ...ensureMeta(), owner: '' }); await saveEmergencyMirror(current); await client.auth.signOut(); $('cloudUserMenu')?.classList.remove('show'); updateAccountUi(); toast('✓ Sesión cerrada'); } catch (e) { console.error('[AnimeTracker] logout', e); toast('No se pudo cerrar la sesión.'); } finally { if (button) { button.disabled = false; button.classList.remove('cloud-logout-busy'); button.textContent = 'Cerrar sesión'; } } }
 
   async function bootstrap() { if (bootPromise) return bootPromise; bootPromise = (async () => { const found = await getUser(); if (!found) { user = null; ensureMeta(); updateAccountUi(); return; } user = found; updateAccountUi(); await new Promise(resolve => setTimeout(resolve, 150)); await restoreAccountLibrary(); await saveEmergencyMirror(localList()); await syncProfile(); lastFingerprint = fingerprint(localList()); updateAccountUi(); })(); try { return await bootPromise; } finally { bootPromise = null; } }
 
@@ -420,6 +479,7 @@
       const profileRaw = localStorage.getItem(PROFILE) || ''; if (profileRaw) scheduleProfileSync();
     }, 250);
     window.addEventListener('animetracker:saved', scheduleLibrarySave);
+    window.addEventListener('onebase:screen-library-changed', () => { if (user) { clearTimeout(saveTimer); saveTimer = setTimeout(async () => { await uploadScreenLibrary(); await saveCloudTable(localList()); }, 500); } });
     window.addEventListener('animetracker:progress-changed', () => { void saveProgressNow(); });
     try { if (typeof window.render === 'function' && !window.render.__animeTrackerWrapped) { const originalRender = window.render; const wrappedRender = function (...args) { const result = originalRender.apply(this, args); scheduleLibrarySave(); return result; }; wrappedRender.__animeTrackerWrapped = true; wrappedRender.__animeTrackerOriginal = originalRender; window.render = wrappedRender; } } catch {}
     window.addEventListener('beforeunload', () => { try { saveEmergencyMirror(localList()); } catch {} });
