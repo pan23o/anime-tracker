@@ -403,6 +403,7 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&
 const data=()=>Array.isArray(window.__ONEBASE_DATA__)?window.__ONEBASE_DATA__:[];
 const prof=()=>{try{return JSON.parse(localStorage.getItem('anime_tracker_profile_v1')||'{}')||{}}catch(_){return{}}};
 const status={viendo:'Viendo',terminado:'Terminado',pendiente:'Pendiente',pausa:'En pausa',abandonado:'Abandonado'};
+const cardFlags=x=>{const byState={viendo:'is-watching',terminado:'is-completed',pendiente:'is-pending',pausa:'is-paused',abandonado:'is-abandoned'};return [byState[String(x?.state||'pendiente')]||'is-pending',x?.favorite?'is-favorite':'',Number(x?.score)===10?'is-perfect':''].filter(Boolean).join(' ')};
 let page='home',q='',st='all',genre='all',sort='recent',score='all',progress='all',fav=false,libraryKind='all',booted=false;
 let lootRoll=null,lootBusy=false,lootResolved=new Set(),lootHistory=loadLootHistory();
 const items=()=>data().map((x,i)=>({x,i})).filter(o=>o.x&&String(o.x.anime||'').trim());
