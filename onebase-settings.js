@@ -193,7 +193,7 @@
     input.addEventListener('change',async()=>{if(custom){await custom(input);return;}saveState({[key]:input.checked});});
   }
 
-  function open(){buildOverlay();const overlay=document.getElementById('onebaseSettingsOverlay');const s=state();for(const [id,key] of [['onebaseSettingConfirmDelete','confirmDelete'],['onebaseSettingAutoBackup','autoBackup'],['onebaseSettingAchievementPopups','achievementPopups'],['onebaseSettingEpisodeNotifications','episodeNotifications']]){const el=overlay.querySelector('#'+id);if(el)el.checked=Boolean(s[key]);}const theme=overlay.querySelector('#onebaseSettingsTheme');if(theme)theme.value=s.theme||localStorage.getItem('anime_tracker_theme')||'ink';overlay.classList.add('open');document.body.style.overflow='hidden';}
+  function open(){buildOverlay();const overlay=document.getElementById('onebaseSettingsOverlay');const s=state();for(const [id,key] of [['onebaseSettingConfirmDelete','confirmDelete'],['onebaseSettingAutoBackup','autoBackup'],['onebaseSettingAchievementPopups','achievementPopups'],['onebaseSettingEpisodeNotifications','episodeNotifications']]){const el=overlay.querySelector('#'+id);if(el)el.checked=Boolean(s[key]);}const theme=overlay.querySelector('#onebaseSettingsTheme');if(theme)theme.value=s.theme||localStorage.getItem('anime_tracker_theme')||'ink';overlay.classList.add('open');document.body.style.overflow='hidden';window.dispatchEvent(new CustomEvent('onebase:settings-open'));}
   function close(){document.getElementById('onebaseSettingsOverlay')?.classList.remove('open');document.body.style.overflow='';}
 
   function addButton(){
