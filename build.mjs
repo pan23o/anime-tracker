@@ -65,7 +65,7 @@ const runtimeScripts = [
   ['onebase-loot-v2.js', 'v=21'],
   ['onebase-integrations.js', 'v=1'],
   ['onebase-beast.js', 'v=1'],
-  ['onebase-screen-library.js', 'v=6']
+  ['onebase-screen-library.js', 'v=7']
 ];
 
 // The source index can already contain older copies of these scripts. Remove them
