@@ -394,7 +394,7 @@ function setup(){
   if(b.matches('[data-discover-open]')){e.preventDefault();openInfo(Number(b.dataset.discoverOpen));return}
   if(b.matches('[data-epopen]')){e.preventDefault();window.OneBasePremium?.openEpisodes?.(Number(b.dataset.epopen));return}
   if(b.matches('[data-go]')){e.preventDefault();navigate(b.dataset.go);return}
-  if(b.matches('[data-ob-add]')){e.preventDefault();window.OneBaseAniListSearch?.open?.();return}
+  if(b.matches('[data-ob-add]')){e.preventDefault();if(window.OneBaseLibraryAdd?.open)window.OneBaseLibraryAdd.open();else document.querySelector('#ob-library-add-chooser')?.classList.add('open');return}
   if(b.matches('[data-open]')){e.preventDefault();openInfo(Number(b.dataset.open))}
  });
  const side=document.createElement('aside');side.id='onebaseSidebar';side.className='onebase-sidebar';
@@ -641,7 +641,7 @@ function delegatePageClick(e){
  if(target.matches('[data-discover-open]')){openInfo(Number(target.dataset.discoverOpen));return}
  if(target.matches('[data-epopen]')){window.OneBasePremium?.openEpisodes?.(Number(target.dataset.epopen));return}
  if(target.matches('[data-go]')){navigate(target.dataset.go);return}
- if(target.matches('[data-ob-add]')){window.OneBaseAniListSearch?.open?.();return}
+ if(target.matches('[data-ob-add]')){if(window.OneBaseLibraryAdd?.open)window.OneBaseLibraryAdd.open();else document.querySelector('#ob-library-add-chooser')?.classList.add('open');return}
  if(target.matches('[data-open]'))openInfo(Number(target.dataset.open))
 }
 function installPageRuntime(){publishAPI();if(!window.__ONEBASE_PAGE_CLICK_BOUND__){window.__ONEBASE_PAGE_CLICK_BOUND__=true;document.addEventListener('click',delegatePageClick,true)}}
