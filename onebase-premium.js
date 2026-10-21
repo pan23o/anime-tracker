@@ -448,6 +448,7 @@ function setup(){
  document.body.classList.add('onebase-pages-mode');
 }
 function navigate(p,push=true){
+ if(p!=='loot')window.OneBaseLootV2?.close?.();
  if(p==='health'){window.OneBasePremium?.openHealth?.();return}
  if(p==='settings'){if(window.OneBaseSettings?.open){window.OneBaseSettings.open();}else{document.getElementById('settingsBtn')?.click();}return}
  if(!['home','library','episodes','stats','profile','loot'].includes(p))p='home';
@@ -649,7 +650,7 @@ function boot(){
  if(booted)return;booted=true;
  const brand=$('.brand h1');if(brand)brand.textContent='ONEBASE 2.0';installPageRuntime();
  try{setup()}catch(e){console.error('[ONEBASE] page setup failed',e)}
- const h=location.hash.slice(1);page=['home','library','episodes','stats','profile','loot'].includes(h)?h:'home';try{history.replaceState({onebasePage:page},'',location.pathname+'#'+page)}catch(_){}render();addEventListener('popstate',e=>{const p=e.state?.onebasePage||location.hash.slice(1)||'home';if(['home','library','episodes','stats','profile','loot'].includes(p)){page=p;render()}});['animetracker:saved','animetracker:restored','onebase:anime-added','onebase:screen-library-changed'].forEach(ev=>addEventListener(ev,()=>setTimeout(render,0)))
+ const h=location.hash.slice(1);page=['home','library','episodes','stats','profile','loot'].includes(h)?h:'home';try{history.replaceState({onebasePage:page},'',location.pathname+'#'+page)}catch(_){}render();const syncRoute=p=>{if(!['home','library','episodes','stats','profile','loot'].includes(p))return;if(p!=='loot')window.OneBaseLootV2?.close?.();page=p;render()};addEventListener('popstate',e=>syncRoute(e.state?.onebasePage||location.hash.slice(1)||'home'));addEventListener('hashchange',()=>syncRoute(location.hash.slice(1)||'home'));['animetracker:saved','animetracker:restored','onebase:anime-added','onebase:screen-library-changed'].forEach(ev=>addEventListener(ev,()=>setTimeout(render,0)))
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else setTimeout(boot,0);
 })();
