@@ -807,3 +807,45 @@ body[data-theme] .ob-section-card>header{
 /* Override the legacy hero image selector so the portrait cover actually blurs. */
 #infoModal .onebase-info-hero img.onebase-info-hero-bg,
 #ob-screen-modal .onebase-info-hero img.onebase-info-hero-bg{filter:blur(20px) brightness(.42) saturate(.88);transform:scale(1.16)}
+
+/* Próximos estrenos */
+.ob-release-page{padding:clamp(16px,2.5vw,28px);border:1px solid rgba(220,177,99,.2);border-radius:24px;background:radial-gradient(ellipse at 5% 0,rgba(214,168,79,.1),transparent 38%),linear-gradient(145deg,#171615,#101010 68%,#14120f);box-shadow:0 24px 70px rgba(0,0,0,.28)}
+.ob-release-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px}
+.ob-release-tab{display:inline-flex;align-items:center;gap:8px;padding:9px 13px;border:1px solid #34312c;border-radius:999px;background:#171615;color:#aaa;font-size:10px;font-weight:850;cursor:pointer;transition:.18s ease}
+.ob-release-tab:hover{border-color:#93733c;color:#eee}
+.ob-release-tab.active{border-color:#e1b967;background:rgba(225,185,103,.12);color:#f2cc7e;box-shadow:0 0 18px rgba(225,185,103,.08)}
+.ob-release-tab span{display:grid;place-items:center;min-width:18px;height:18px;padding:0 4px;border-radius:99px;background:#27231c;color:#ddd;font-size:9px}
+.ob-release-heading{display:flex;align-items:end;justify-content:space-between;gap:12px;margin:0 0 14px}
+.ob-release-heading>div>span{color:#dcb563;font-size:9px;font-weight:900;letter-spacing:1.8px}
+.ob-release-heading h3{margin:5px 0 0;color:#f2eee5;font-size:20px}
+.ob-release-heading>span{color:#aaa;font-size:10px}
+.ob-release-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.ob-release-card{min-width:0;overflow:hidden;border:1px solid #302e2a;border-radius:16px;background:linear-gradient(135deg,#1a1917,#121212);transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+.ob-release-card:hover{transform:translateY(-2px);border-color:#755d36;box-shadow:0 12px 32px #0006}
+.ob-release-open{width:100%;min-width:0;display:grid;grid-template-columns:62px minmax(0,1fr) auto;align-items:center;gap:13px;padding:11px;border:0;background:transparent;color:inherit;text-align:left;cursor:pointer}
+.ob-release-cover{width:62px;aspect-ratio:2/3;display:grid;place-items:center;overflow:hidden;border-radius:10px;background:#252321;color:#777;font-size:8px;font-weight:900}
+.ob-release-cover img{width:100%;height:100%;object-fit:cover}
+.ob-release-copy{min-width:0;display:grid;gap:5px}
+.ob-release-meta{display:flex;gap:6px;flex-wrap:wrap}
+.ob-release-meta span{padding:3px 7px;border:1px solid #38342c;border-radius:99px;background:#211e18;color:#d7bd8b;font-size:8px;font-weight:850}
+.ob-release-copy strong{overflow:hidden;color:#f3f0e8;font-size:12px;text-overflow:ellipsis;white-space:nowrap}
+.ob-release-copy small{color:#999;font-size:9px}
+.ob-release-countdown{color:#8bd8ff;font-size:11px;font-weight:900;letter-spacing:.1px;font-variant-numeric:tabular-nums}
+.ob-release-countdown.is-waiting{color:#c99cff}
+.ob-release-arrow{color:#dcb563;font-size:18px}
+.ob-release-card.is-waiting{border-color:rgba(181,111,255,.38)}
+.ob-release-card.is-waiting .ob-release-meta span:first-child{border-color:rgba(181,111,255,.45);background:rgba(181,111,255,.12);color:#d5a3ff}
+.ob-release-card.is-completed .ob-release-meta span:first-child{border-color:rgba(100,165,255,.4);background:rgba(100,165,255,.1);color:#9bc6ff}
+.ob-release-card.is-watching .ob-release-meta span:first-child{border-color:rgba(35,217,107,.38);background:rgba(35,217,107,.1);color:#73ffae}
+.ob-release-grid>.ob-empty-large{grid-column:1/-1}
+.ob-release-page .ob-empty-large{padding:32px 18px}
+.ob-release-page .ob-empty-large h3{margin:12px 0 5px}
+.ob-release-page .ob-empty-large p{max-width:480px}
+.ob-anime-card.is-completed:not(.is-perfect) .ob-card-open{border-color:rgba(91,153,255,.82);box-shadow:0 0 0 1px rgba(91,153,255,.3),0 0 25px rgba(91,153,255,.2),0 14px 38px rgba(0,0,0,.24)}
+.ob-anime-card.is-completed:not(.is-perfect) .ob-card-cover::after{background:linear-gradient(90deg,#3476e8,#86b5ff)}
+.ob-anime-card.is-completed:not(.is-perfect) .ob-card-meta span:first-child{color:#9bc6ff;border-color:rgba(91,153,255,.48);background:rgba(91,153,255,.12)}
+.ob-anime-card.is-waiting .ob-card-open{border-color:rgba(181,111,255,.78);box-shadow:0 0 0 1px rgba(181,111,255,.28),0 0 25px rgba(181,111,255,.18),0 14px 38px rgba(0,0,0,.24)}
+.ob-anime-card.is-waiting .ob-card-cover::after{background:linear-gradient(90deg,#8f4fd2,#d39cff)}
+.ob-anime-card.is-waiting .ob-card-meta span:first-child{color:#d5a3ff;border-color:rgba(181,111,255,.46);background:rgba(181,111,255,.12)}
+@media(max-width:720px){.ob-release-grid{grid-template-columns:1fr}.ob-release-page{padding:15px;border-radius:18px}}
+@media(max-width:420px){.ob-release-open{grid-template-columns:52px minmax(0,1fr) auto;gap:9px;padding:9px}.ob-release-cover{width:52px}.ob-release-copy strong{font-size:11px}.ob-release-countdown{font-size:10px}}

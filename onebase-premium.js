@@ -8,7 +8,7 @@
 const SUPABASE_URL='https://djfjqecahztogacliavh.supabase.co';
 const SUPABASE_KEY='sb_publishable_tm8Tid_HSYtu6cxXQ3ddKA_RWN15BSB';
 const PUBLIC_KEY='onebase_public_profile_v1';
-const STATUS={viendo:'Viendo',terminado:'Terminado',pendiente:'Pendiente',pausa:'En pausa',abandonado:'Abandonado'};
+const STATUS={viendo:'Viendo',terminado:'Terminado',pendiente:'Pendiente',pausa:'En pausa',abandonado:'Abandonado',espera:'En espera'};
 let booted=false,originalRender=null,pendingInfoIndex=null,episodeIndex=null,episodePage=0,episodeTotalPages=1,airingTimer=0,publicTimer=0;window.__ONEBASE_DISCOVER_GENRE__=window.__ONEBASE_DISCOVER_GENRE__||'all';
 let publicState=loadLocalPublic();
 let supa=null;
@@ -390,7 +390,7 @@ function bindEvents(){
 }
 function boot(){
   if(booted)return;booted=true;
-  const link=document.createElement('link');link.rel='stylesheet';link.href='/onebase-premium.css?v=15';document.head.appendChild(link);
+  const link=document.createElement('link');link.rel='stylesheet';link.href='/onebase-premium.css?v=16';document.head.appendChild(link);
   ensureHealthButton();ensureHealth();ensureEpisodeModal();ensurePublicSection();wrapRender();bindEvents();refresh();void loadPublicSettings();void syncPublicSnapshot();
   window.OneBasePremium={refresh,openHealth,openEpisodes,openInfo:openInfoIndex,runHealth,publicUrl};
 }
@@ -404,9 +404,10 @@ const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 const data=()=>Array.isArray(window.__ONEBASE_DATA__)?window.__ONEBASE_DATA__:[];
 const prof=()=>{try{return JSON.parse(localStorage.getItem('anime_tracker_profile_v1')||'{}')||{}}catch(_){return{}}};
-const status={viendo:'Viendo',terminado:'Terminado',pendiente:'Pendiente',pausa:'En pausa',abandonado:'Abandonado'};
-const cardFlags=x=>{const byState={viendo:'is-watching',terminado:'is-completed',pendiente:'is-pending',pausa:'is-paused',abandonado:'is-abandoned'};return [byState[String(x?.state||'pendiente')]||'is-pending',x?.favorite?'is-favorite':'',Number(x?.score)===10?'is-perfect':''].filter(Boolean).join(' ')};
-let page='home',q='',st='all',genre='all',sort='recent',score='all',progress='all',fav=false,libraryKind='all',booted=false;
+const status={viendo:'Viendo',terminado:'Terminado',pendiente:'Pendiente',pausa:'En pausa',abandonado:'Abandonado',espera:'En espera'};
+const cardFlags=x=>{const byState={viendo:'is-watching',terminado:'is-completed',pendiente:'is-pending',pausa:'is-paused',abandonado:'is-abandoned',espera:'is-waiting'};return [byState[String(x?.state||'pendiente')]||'is-pending',x?.favorite?'is-favorite':'',Number(x?.score)===10?'is-perfect':''].filter(Boolean).join(' ')};
+let page='home',q='',st='all',genre='all',sort='recent',score='all',progress='all',fav=false,libraryKind='all',releaseKind='movies',booted=false,releaseTimer=0;
+const releaseDetails=new Map(),releaseLookups=new Map();
 let lootRoll=null,lootBusy=false,lootResolved=new Set(),lootHistory=loadLootHistory();
 const items=()=>data().map((x,i)=>({x,i})).filter(o=>o.x&&String(o.x.anime||'').trim());
 const screenItems=()=>window.OneBaseScreenLibrary?.items?.()||[];
@@ -430,7 +431,7 @@ function setup(){
   if(b.matches('[data-open]')){e.preventDefault();openInfo(Number(b.dataset.open))}
  });
  const side=document.createElement('aside');side.id='onebaseSidebar';side.className='onebase-sidebar';
- side.innerHTML='<div class="onebase-sidebar-brand"><span>◉</span><b>ONEBASE 2.0</b></div><nav><button data-page="home"><i>⌂</i><span>Inicio</span></button><button data-page="library"><i>▦</i><span>Biblioteca</span></button><button data-page="episodes"><i>▶</i><span>Episodios</span></button><button data-page="stats"><i>◈</i><span>Estadísticas</span></button><button data-page="profile"><i>♙</i><span>Perfil</span></button><button data-page="loot"><i>◇</i><span>Lootboxes</span></button></nav><div class="onebase-sidebar-bottom"><button data-page="health"><i>🛡</i><span>Health</span></button><button data-page="settings"><i>⚙</i><span>Ajustes</span></button><button type="button" id="onebaseToolsToggle" aria-controls="onebaseToolsMenu" aria-expanded="false"><i>•••</i><span>Más</span></button></div>';
+ side.innerHTML='<div class="onebase-sidebar-brand"><span>◉</span><b>ONEBASE 2.0</b></div><nav><button data-page="home"><i>⌂</i><span>Inicio</span></button><button data-page="library"><i>▦</i><span>Biblioteca</span></button><button data-page="episodes"><i>◷</i><span>Estrenos</span></button><button data-page="stats"><i>◈</i><span>Estadísticas</span></button><button data-page="profile"><i>♙</i><span>Perfil</span></button><button data-page="loot"><i>◇</i><span>Lootboxes</span></button></nav><div class="onebase-sidebar-bottom"><button data-page="health"><i>🛡</i><span>Health</span></button><button data-page="settings"><i>⚙</i><span>Ajustes</span></button><button type="button" id="onebaseToolsToggle" aria-controls="onebaseToolsMenu" aria-expanded="false"><i>•••</i><span>Más</span></button></div>';
  side.addEventListener('click',e=>{const b=e.target?.closest?.('[data-page]');if(b)navigate(b.dataset.page)});
  document.body.appendChild(side);
  const tools=document.createElement('div');tools.id='onebaseToolsMenu';tools.className='onebase-tools-menu';tools.hidden=true;
@@ -490,24 +491,95 @@ function library(){
  '<div class="ob-library-tabs">'+kinds+'</div><div class="ob-library-tools"><input id="obLibSearch" value="'+esc(q)+'" placeholder="Buscar en la biblioteca…" autocomplete="off"><details class="ob-library-filters" open><summary>☷ Filtros</summary><div class="ob-library-filter-grid"><select id="obLibStatus"><option value="all">Todos los estados</option>'+opts+'</select><select id="obLibGenre"><option value="all">Todos los géneros</option>'+genresFor.map(x=>'<option value="'+esc(x)+'" '+(genre===x?'selected':'')+'>'+esc(x)+'</option>').join('')+'</select><select id="obLibSort"><option value="recent" '+(sort==='recent'?'selected':'')+'>Más recientes</option><option value="name" '+(sort==='name'?'selected':'')+'>Nombre A-Z</option><option value="score" '+(sort==='score'?'selected':'')+'>Mayor nota</option></select>'+(animeOnly?'<select id="obLibScore"><option value="all">Cualquier nota</option><option value="rated" '+(score==='rated'?'selected':'')+'>Con nota personal</option><option value="8" '+(score==='8'?'selected':'')+'>Nota ≥ 8</option><option value="9" '+(score==='9'?'selected':'')+'>Nota ≥ 9</option></select><select id="obLibProgress"><option value="all">Cualquier progreso</option><option value="none" '+(progress==='none'?'selected':'')+'>Sin empezar</option><option value="active" '+(progress==='active'?'selected':'')+'>En progreso</option><option value="complete" '+(progress==='complete'?'selected':'')+'>Completados</option><option value="new" '+(progress==='new'?'selected':'')+'>Con episodios nuevos</option><option value="airing" '+(progress==='airing'?'selected':'')+'>En emisión</option></select>':'')+'<button id="obLibFav" class="'+(fav?'active':'')+'">☆ Favoritos</button></div></details></div><div class="ob-library-meta"><span>'+a.length+' de '+all.filter(matchesKind).length+' elementos</span><span>Tarjeta: abre la ficha · portada en la ficha: Wikipedia</span></div><div class="ob-library-grid">'+cards+'</div>');
 }
 
-function episodes(){
- const animeActive=items().filter(o=>o.x.state==='viendo'&&(!(Number(o.x.total)||Number(o.x.knownTotal))||(Number(o.x.watched)||0)<(Number(o.x.total)||Number(o.x.knownTotal)))).map(o=>({kind:'anime',key:o.i,x:o.x,watched:Number(o.x.watched)||0,total:Number(o.x.total)||Number(o.x.knownTotal)||0}));
- const seriesActive=screenItems().filter(x=>x.type==='tv'&&x.state==='viendo').map(x=>{const p=seriesProgress(x);return{kind:'series',key:x.id,x,watched:p.watched,total:p.total}}).filter(o=>!o.total||o.watched<o.total);
- const plannedAnime=items().filter(o=>o.x.state==='pendiente').map(o=>({kind:'anime',key:o.i,x:o.x,watched:Number(o.x.watched)||0,total:Number(o.x.total)||Number(o.x.knownTotal)||0}));
- const plannedSeries=screenItems().filter(x=>x.type==='tv'&&x.state==='pendiente').map(x=>{const p=seriesProgress(x);return{kind:'series',key:x.id,x,watched:p.watched,total:p.total}});
- const byRecent=(a,b)=>(Number(b.x.updatedAt)||Number(b.x.watched)||0)-(Number(a.x.updatedAt)||Number(a.x.watched)||0);
- const active=[...animeActive,...seriesActive].sort(byRecent),planned=[...plannedAnime,...plannedSeries].sort(byRecent);
- const upcoming=items().filter(o=>Number(o.x.nextAiringAt)>0&&Number(o.x.nextAiringEpisode)>0&&Number(o.x.nextAiringAt)*1000>Date.now()-86400000).sort((a,b)=>Number(a.x.nextAiringAt)-Number(b.x.nextAiringAt)).slice(0,3);
- const queue=active.length?active.slice(1,6):planned.slice(1,6),featured=active[0]||planned[0];
- const titleOf=o=>String(o?.x?.anime||o?.x?.title||o?.x?.name||'Sin título');
- const coverOf=o=>o?.kind==='anime'?String(o.x.cover||o.x.coverImage||'').trim():(o?.x?.posterPath?'https://image.tmdb.org/t/p/w500'+o.x.posterPath:'');
- const openAttrs=o=>o.kind==='anime'?'data-epopen="'+o.key+'"':'data-media-open="series" data-media-type="tv" data-media-id="'+esc(o.key)+'"';
- const x=featured?.x,watched=featured?.watched||0,total=featured?.total||0,next=watched+1;
- const featuredCard=featured?'<section class="ob-continue-feature"><div class="ob-continue-poster">'+(coverOf(featured)?'<img src="'+esc(coverOf(featured))+'" alt="Portada de '+esc(titleOf(featured))+'">':'<span>ONEBASE</span>')+'<span class="ob-continue-tag">'+(active.length?'EN CURSO':'POR EMPEZAR')+'</span></div><div class="ob-continue-copy"><div class="ob-continue-kicker">'+(active.length?'RETOMA DONDE LO DEJASTE':'TU PRÓXIMA SERIE')+'</div><h3>'+esc(titleOf(featured))+'</h3><p>'+(total?watched+' de '+total+' episodios vistos':'Progreso listo para empezar')+'</p>'+(total?'<div class="ob-continue-progress"><span style="width:'+Math.min(100,watched/total*100)+'%"></span></div>':'')+'<button type="button" class="ob-continue-cta" '+openAttrs(featured)+'>'+(active.length?'Continuar · episodio '+Math.min(next,total||next):'Empezar a seguir')+' <span>→</span></button></div></section>':'<section class="ob-continue-empty"><span>▶</span><h3>Tu próxima sesión empieza aquí</h3><p>Elige anime o serie y sigue su progreso capítulo a capítulo.</p><button type="button" class="ob-page-add" data-go="library">Ir a mi biblioteca</button></section>';
- const row=o=>{const w=o.watched,t=o.total,anime=o.kind==='anime';return '<button type="button" class="ob-continue-row" '+openAttrs(o)+'><span class="ob-continue-row-cover">'+(coverOf(o)?'<img loading="lazy" src="'+esc(coverOf(o))+'" alt="">':'')+'</span><span><strong>'+esc(titleOf(o))+'</strong><small>'+(o.x.state==='viendo'?(w?'Siguiente · episodio '+(w+1):'Sin episodios vistos'):'Pendiente de empezar')+(anime?' · Anime':' · Serie')+'</small></span><span class="ob-continue-row-progress">'+(t?Math.round(w/t*100)+'%':'›')+'</span></button>'};
- return shell('EPISODIOS','Sigue por donde ibas','Retoma el progreso de anime y series desde una sola lista.',
- '<section class="ob-continue-page"><div class="ob-continue-heading"><div><span>PLAY · TU SIGUIENTE CAPÍTULO</span><h3>Continuar viendo</h3></div><button type="button" data-go="library">Ver biblioteca <b>→</b></button></div>'+featuredCard+(queue.length?'<div class="ob-continue-queue"><div class="ob-continue-queue-title">TAMBIÉN EN TU LISTA</div>'+queue.map(row).join('')+'</div>':'')+(upcoming.length?'<div class="ob-continue-air"><span>PRÓXIMOS</span>'+upcoming.map(o=>'<button type="button" data-epopen="'+o.i+'"><b>'+esc(o.x.anime)+'</b><small>Ep. '+esc(o.x.nextAiringEpisode)+' · '+esc(remain(o.x.nextAiringAt))+'</small></button>').join('')+'</div>':'')+'</section>');
+function releaseTimestamp(value){
+ if(value===null||value===undefined||value==='')return 0;
+ if(typeof value==='number'||/^\\d{9,13}$/.test(String(value).trim())){
+  const n=Number(value);if(!Number.isFinite(n)||n<=0)return 0;
+  return n>100000000000? n : n*1000;
+ }
+ const raw=String(value).trim();if(!raw||/^\\d{4}$/.test(raw))return 0;
+ const dateOnly=raw.match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
+ if(dateOnly)return new Date(Number(dateOnly[1]),Number(dateOnly[2])-1,Number(dateOnly[3])).getTime();
+ const parsed=Date.parse(raw);return Number.isFinite(parsed)?parsed:0;
 }
+function releaseDateLabel(at){
+ if(!at)return '';
+ try{return new Intl.DateTimeFormat('es-ES',{day:'numeric',month:'long',year:'numeric'}).format(new Date(at))}catch(_){return ''}
+}
+function releaseEntries(kind){
+ const now=Date.now(),out=[];
+ if(kind==='anime'){
+  items().forEach(o=>{
+   const at=releaseTimestamp(o.x.nextAiringAt),waiting=o.x.state==='espera';
+   if(at>now||waiting)out.push({kind:'anime',id:o.i,title:o.x.anime,cover:String(o.x.cover||o.x.coverImage||''),state:o.x.state||'pendiente',at:at>now?at:0,label:Number(o.x.nextAiringEpisode)>0?'Episodio '+Number(o.x.nextAiringEpisode):'Próximo episodio',date:releaseDateLabel(at)});
+  });
+ }else{
+  screenItems().filter(x=>x.type===(kind==='series'?'tv':'movie')).forEach(x=>{
+   let label=kind==='movies'?'Estreno en cines':'Estreno de la serie',raw='';
+   if(kind==='movies')raw=x.releaseDate||x.release_date||x.premiereDate||'';
+   else{
+    const loaded=releaseDetails.get(String(x.id))||{};
+    const next=x.next_episode_to_air||x.nextEpisodeToAir||loaded.next_episode_to_air||loaded.nextEpisodeToAir||null;
+    raw=next?.air_date||x.nextEpisodeAirDate||'';
+    if(next){
+     const season=Number(next.season_number),episode=Number(next.episode_number);
+     label=(season>0?'Temporada '+season+' · ':'')+(episode>0?'Episodio '+episode:'Próximo episodio');
+    }else raw=raw||x.first_air_date||x.firstAirDate||x.releaseDate||'';
+   }
+   const at=releaseTimestamp(raw),waiting=x.state==='espera';
+   if(at>now||waiting)out.push({kind,id:x.id,title:x.title||x.name||'Sin título',cover:x.posterPath?'https://image.tmdb.org/t/p/w500'+x.posterPath:'',state:x.state||'pendiente',at:at>now?at:0,label,date:releaseDateLabel(at)});
+  });
+ }
+ return out.sort((a,b)=>(a.at||Number.MAX_SAFE_INTEGER)-(b.at||Number.MAX_SAFE_INTEGER)||a.title.localeCompare(b.title,'es'));
+}
+function loadReleaseDetail(item){
+ const key=String(item.id);if(releaseLookups.has(key))return releaseLookups.get(key);
+ const promise=fetch('/api/onebase-health?service=tmdb&action=detail&type=tv&id='+encodeURIComponent(item.id),{headers:{accept:'application/json'}})
+  .then(response=>response.json().then(payload=>response.ok&&payload?.ok?payload.result:null))
+  .catch(()=>null)
+  .then(result=>{releaseDetails.set(key,result||{});return result});
+ releaseLookups.set(key,promise);return promise;
+}
+function hydrateReleaseDetails(){
+ const candidates=screenItems().filter(x=>x.type==='tv'&&!x.next_episode_to_air&&!x.nextEpisodeToAir&&!x.nextEpisodeAirDate&&!(releaseTimestamp(x.first_air_date||x.firstAirDate)>Date.now())&&!releaseLookups.has(String(x.id)));
+ if(!candidates.length)return;
+ (async()=>{
+  for(let i=0;i<candidates.length;i+=4)await Promise.all(candidates.slice(i,i+4).map(loadReleaseDetail));
+  if(page==='episodes')render();
+ })();
+}
+function countdownText(at){
+ if(!at)return 'Fecha por anunciar';
+ const seconds=Math.max(0,Math.floor((at-Date.now())/1000));
+ if(!seconds)return 'Estreno inminente';
+ const days=Math.floor(seconds/86400),hours=Math.floor(seconds%86400/3600),minutes=Math.floor(seconds%3600/60),rest=seconds%60;
+ return days+' '+(days===1?'día':'días')+' · '+hours+' h · '+minutes+' min · '+rest+' s';
+}
+function updateReleaseCountdowns(){
+ document.querySelectorAll('#onebasePageApp [data-release-at]').forEach(el=>{el.textContent=countdownText(Number(el.dataset.releaseAt)||0)});
+}
+function startReleaseTimer(){
+ if(releaseTimer)return;
+ updateReleaseCountdowns();releaseTimer=setInterval(updateReleaseCountdowns,1000);
+}
+function releases(){
+ hydrateReleaseDetails();
+ const definitions=[['movies','Películas'],['series','Series'],['anime','Anime']];
+ const counts=Object.fromEntries(definitions.map(([key])=>[key,releaseEntries(key).length]));
+ const tabs=definitions.map(([key,label])=>'<button type="button" class="ob-release-tab '+(releaseKind===key?'active':'')+'" data-release-kind="'+key+'">'+label+' <span>'+counts[key]+'</span></button>').join('');
+ const entries=releaseEntries(releaseKind);
+ const cards=entries.map(item=>{
+  const attrs=item.kind==='anime'?'data-epopen="'+item.id+'"':'data-media-open="'+item.kind+'" data-media-type="'+(item.kind==='series'?'tv':'movie')+'" data-media-id="'+esc(item.id)+'"';
+  const stateLabel=status[item.state]||'En espera';
+  const count=item.at?'<div class="ob-release-countdown" data-release-at="'+item.at+'">'+esc(countdownText(item.at))+'</div>':'<div class="ob-release-countdown is-waiting">A la espera de fecha</div>';
+  return '<article class="ob-release-card '+(item.state==='espera'?'is-waiting':item.state==='terminado'?'is-completed':item.state==='viendo'?'is-watching':'')+'"><button type="button" class="ob-release-open" '+attrs+'><span class="ob-release-cover">'+(item.cover?'<img loading="lazy" src="'+esc(item.cover)+'" alt="">':'<span>ONEBASE</span>')+'</span><span class="ob-release-copy"><span class="ob-release-meta"><span>'+esc(stateLabel)+'</span><span>'+esc(item.kind==='anime'?'Anime':item.kind==='series'?'Serie':'Película')+'</span></span><strong>'+esc(item.title)+'</strong><small>'+esc(item.label)+(item.date?' · '+esc(item.date):'')+'</small>'+count+'</span><span class="ob-release-arrow">→</span></button></article>';
+ }).join('');
+ const empty='<div class="ob-empty ob-empty-large"><span>◷</span><h3>No hay estrenos próximos aquí</h3><p>Cuando haya una fecha de estreno o pongas un título <b>En espera</b>, aparecerá en esta lista.</p><button type="button" class="ob-page-add" data-go="library">Ir a mi biblioteca</button></div>';
+ const suffix=releaseKind==='movies'?'películas':releaseKind==='series'?'series':'anime';
+ return shell('ESTRENOS','Próximos estrenos','Cuenta atrás para películas, series y capítulos guardados en tu biblioteca.',
+  '<section class="ob-release-page"><div class="ob-release-tabs">'+tabs+'</div><div class="ob-release-heading"><div><span>EN TU BIBLIOTECA</span><h3>'+esc(definitions.find(x=>x[0]===releaseKind)?.[1]||'Estrenos')+'</h3></div><span>'+entries.length+' '+suffix+'</span></div><div class="ob-release-grid">'+(cards||empty)+'</div></section>');
+}
+
 function loadLootHistory(){try{const v=JSON.parse(localStorage.getItem('onebase_lootbox_history_v1')||'[]');return new Set(Array.isArray(v)?v.map(Number).filter(Number.isFinite):[])}catch(_){return new Set()}}
 function saveLootHistory(){try{localStorage.setItem('onebase_lootbox_history_v1',JSON.stringify([...lootHistory].slice(-300)))}catch(_){}}
 function lootTastes(){
@@ -607,7 +679,7 @@ function bind(){
  const app=$('#onebasePageApp');if(!app)return;
  app.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>navigate(b.dataset.go));
  app.querySelectorAll('[data-ob-add]').forEach(b=>b.onclick=()=>{if(window.OneBaseLibraryAdd?.open)window.OneBaseLibraryAdd.open();else window.OneBaseAniListSearch?.open?.()});
- app.querySelectorAll('[data-open]').forEach(b=>b.onclick=e=>{e.preventDefault();openInfo(Number(b.dataset.open))});app.querySelectorAll('[data-library-kind]').forEach(b=>b.onclick=()=>{libraryKind=b.dataset.libraryKind;st='all';genre='all';score='all';progress='all';fav=false;render()});app.querySelectorAll('[data-media-open]').forEach(b=>b.onclick=()=>window.OneBaseScreenLibrary?.openItem?.(b.dataset.mediaType||b.dataset.mediaOpen,b.dataset.mediaId));
+ app.querySelectorAll('[data-open]').forEach(b=>b.onclick=e=>{e.preventDefault();openInfo(Number(b.dataset.open))});app.querySelectorAll('[data-library-kind]').forEach(b=>b.onclick=()=>{libraryKind=b.dataset.libraryKind;st='all';genre='all';score='all';progress='all';fav=false;render()});app.querySelectorAll('[data-release-kind]').forEach(b=>b.onclick=()=>{releaseKind=b.dataset.releaseKind;render()});app.querySelectorAll('[data-media-open]').forEach(b=>b.onclick=()=>window.OneBaseScreenLibrary?.openItem?.(b.dataset.mediaType||b.dataset.mediaOpen,b.dataset.mediaId));
  app.querySelectorAll('[data-epopen]').forEach(b=>b.onclick=()=>window.OneBasePremium?.openEpisodes?.(Number(b.dataset.epopen)));
  app.querySelectorAll('[data-discover-genre]').forEach(b=>b.onclick=()=>{window.__ONEBASE_DISCOVER_GENRE__=b.dataset.discoverGenre;rollDiscovery()});
  app.querySelectorAll('[data-discover-roll]').forEach(b=>b.onclick=rollDiscovery);
@@ -627,6 +699,7 @@ function bind(){
 }
 function render(){
  setup();
+ if(page!=='episodes'&&releaseTimer){clearInterval(releaseTimer);releaseTimer=0}
  const app=$('#onebasePageApp');
  if(!app)return;
  if(page==='loot'){
@@ -637,7 +710,7 @@ function render(){
    const ready=()=>{window.OneBaseLootV2?.render?.();};
    window.addEventListener('onebase:loot-v2-ready',ready,{once:true});
    return;
- }app.innerHTML=page==='home'?home():page==='library'?library():page==='episodes'?episodes():page==='stats'?statistics():page==='loot'?lootboxes():profilePage();$('#onebaseSidebar')?.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));bind();document.title='ONEBASE 2.0 · '+({home:'Inicio',library:'Biblioteca',episodes:'Episodios',stats:'Estadísticas',profile:'Perfil',loot:'Lootboxes'}[page]||'');}
+ }app.innerHTML=page==='home'?home():page==='library'?library():page==='episodes'?releases():page==='stats'?statistics():page==='loot'?lootboxes():profilePage();$('#onebaseSidebar')?.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));bind();if(page==='episodes')startReleaseTimer();document.title='ONEBASE 2.0 · '+({home:'Inicio',library:'Biblioteca',episodes:'Estrenos',stats:'Estadísticas',profile:'Perfil',loot:'Lootboxes'}[page]||'');}
 function rollDiscovery(){if(page==='home')render()}
 function publishAPI(){window.OneBasePages={navigate,refresh:render,rollDiscovery,setDiscoveryGenre(value){window.__ONEBASE_DISCOVER_GENRE__=value||'all';rollDiscovery()},openDiscoveryPick(index){openInfo(Number(index))},openEpisodes(index){window.OneBasePremium?.openEpisodes?.(Number(index))}}}
 function delegatePageClick(e){

@@ -561,6 +561,7 @@ body[data-theme] .achievements::-webkit-scrollbar-track{background:var(--soft)}
       <option value="pendiente">Pendiente</option>
       <option value="pausa">En pausa</option>
       <option value="abandonado">Abandonado</option>
+      <option value="espera">En espera</option>
     </select>
     <select id="sortSelect" aria-label="Ordenar">
       <option value="added">Más recientes</option>
@@ -629,6 +630,7 @@ body[data-theme] .achievements::-webkit-scrollbar-track{background:var(--soft)}
               <option value="pendiente">Pendiente</option>
               <option value="pausa">En pausa</option>
               <option value="abandonado">Abandonado</option>
+              <option value="espera">En espera</option>
             </select>
           </div>
           <div class="field">
@@ -820,7 +822,7 @@ Object.defineProperty(window,"__ONEBASE_DATA__",{configurable:true,get:()=>data}
 
 const statusLabels = {
   viendo:"Viendo", terminado:"Terminado", pendiente:"Pendiente",
-  pausa:"En pausa", abandonado:"Abandonado"
+  pausa:"En pausa", abandonado:"Abandonado", espera:"En espera"
 };
 
 function normalizeItem(raw){
@@ -846,6 +848,7 @@ function normalizeItem(raw){
   item.airedEpisodes=String(item.airedEpisodes||"");
   item.plannedEpisodes=String(item.plannedEpisodes||"");
   item.newEpisodes=Number(item.newEpisodes)||0;
+  if(Number(item.total)>0 && Number(item.watched)>=Number(item.total)) item.state="terminado";
   item.addedAt=Number(item.addedAt)||Date.now();
   item.updatedAt=Number(item.updatedAt)||item.addedAt;
   return item;
@@ -1216,6 +1219,10 @@ function createRow(i){
           ? Math.max(0,Number(data[i].total)-seen)
           : 0;
       }
+    }
+    if(data[i].total){
+      if(Number(v)>=Number(data[i].total)) data[i].state="terminado";
+      else if(data[i].state==="terminado") data[i].state="viendo";
     }
     if(data[i].total && Number(v)>=Number(data[i].total)) data[i].newEpisodes=0;
     data[i].updatedAt=Date.now();
@@ -1710,6 +1717,7 @@ document.getElementById("infoSave").addEventListener("click",()=>{
   item.favorite=document.getElementById("infoFav").checked;
   item.updatedAt=Date.now();
   if(item.state==="terminado"&&item.total)item.watched=String(item.total);
+  if(Number(item.total)>0&&Number(item.watched)>=Number(item.total))item.state="terminado";
   save();render();closeInfoModal();toast("Ficha guardada");
 });
 document.getElementById("infoSources").addEventListener("click",()=>{
