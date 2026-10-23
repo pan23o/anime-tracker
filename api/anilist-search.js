@@ -43,7 +43,6 @@ module.exports = async function handler(req, res) {
       ...(Array.isArray(req.body?.ids) ? req.body.ids : []),
       ...entries.map(item => item?.id)
     ].map(Number).filter(id => Number.isInteger(id) && id > 0))].slice(0, 50);
-    const missing = entries.filter(item => !Number(item?.id) && String(item?.title || '').trim().length >= 2).slice(0, 20);
     const fields = `id idMal title { romaji english native userPreferred } synonyms status episodes nextAiringEpisode { airingAt episode }`;
     const results = new Map();
     try {
@@ -69,6 +68,8 @@ module.exports = async function handler(req, res) {
         for (const media of payload?.data?.Page?.media || []) results.set(Number(media.id), media);
       }
       const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+      // Fall back to a title match when a saved AniList ID is stale or incorrect.
+      const missing = entries.filter(item => String(item?.title || '').trim().length >= 2 && (!Number(item?.id) || !results.has(Number(item.id)))).slice(0, 20);
       for (const entry of missing) {
         const title = String(entry.title || '').trim();
         const upstream = await fetch(ANILIST_URL, {
