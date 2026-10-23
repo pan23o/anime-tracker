@@ -220,11 +220,36 @@ function ensureEpisodeModal(){
   m.querySelector('#onebaseEpisodeJump').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();episodeAction('jump')}});
   m.querySelectorAll('[data-ep-action]').forEach(b=>b.addEventListener('click',()=>episodeAction(b.dataset.epAction)));
 }
+const episodeMetadataRequests=new Map();
+function refreshEpisodeMetadata(item){
+  if(!item||!String(item.anime||'').trim())return Promise.resolve(false);
+  const id=Number(item.anilistId||item.aniId)||0,key=String(id||item.anime).toLowerCase();
+  const existing=episodeMetadataRequests.get(key);
+  if(existing&&Date.now()-existing.time<5*60*1000)return existing.promise;
+  const promise=fetch('/api/anilist-search',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({action:'airing',items:[{id,title:String(item.anime).trim()}]})})
+    .then(async response=>{const payload=await response.json().catch(()=>null);if(!response.ok||!payload?.ok)throw new Error(payload?.error||'AniList indisponible');return Array.isArray(payload.results)?payload.results:[]})
+    .then(results=>{
+      const normalize=value=>String(value||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+      const media=results.find(x=>Number(x.id)===id)||results.find(x=>[x.title?.userPreferred,x.title?.romaji,x.title?.english,x.title?.native,...(Array.isArray(x.synonyms)?x.synonyms:[])].filter(Boolean).some(t=>normalize(t)===normalize(item.anime)));
+      if(!media)return false;
+      const next=media.nextAiringEpisode||null,status=String(media.status||'').toUpperCase();
+      item.anilistId=Number(media.id);item.aniId=Number(media.id);item.apiStatus=status;item.anilistStatus=status;
+      item.nextAiringAt=Number(next?.airingAt)||0;item.nextAiringEpisode=Number(next?.episode)||0;
+      if(Number(media.episodes)>0){item.knownTotal=String(media.episodes);if(!(Number(item.total)>0))item.total=String(media.episodes)}
+      try{window.save?.({skipBackup:true})}catch(_){}
+      if($('#onebaseEpisodesModal')?.classList.contains('open')&&getData()[episodeIndex]===item)renderEpisodes();
+      return true;
+    })
+    .catch(error=>{console.warn('[ONEBASE] No se pudieron cargar episodios de AniList:',error);return false});
+  episodeMetadataRequests.set(key,{time:Date.now(),promise});
+  return promise;
+}
 function openEpisodes(i){
   if(!Number.isInteger(i)||!getData()[i])return;
   episodeIndex=i;episodePage=Math.max(0,Math.floor(Math.max(0,(Number(getData()[i].watched)||0)-1)/50));ensureEpisodeModal();
   safeTransition(()=>{$('#onebaseEpisodesModal').classList.add('open')});
   renderEpisodes();
+  void refreshEpisodeMetadata(getData()[i]);
   $('#onebaseEpisodesModal .onebase-episodes-close')?.focus();
 }
 function closeEpisodes(){safeTransition(()=>$('#onebaseEpisodesModal')?.classList.remove('open'))}
