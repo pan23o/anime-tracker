@@ -499,6 +499,7 @@ function refreshAniListReleases(force=false){
  const tracked=items().filter(o=>Number(o.x.anilistId||o.x.aniId)>0);
  if(!tracked.length){aniListReleaseLastRefresh=now;return Promise.resolve(false)}
  const ids=[...new Set(tracked.map(o=>Number(o.x.anilistId||o.x.aniId)).filter(Number.isInteger))];
+ aniListReleaseLastRefresh=now;
  aniListReleaseRefresh=fetch('/api/anilist-airing',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({ids})})
   .then(async response=>{const payload=await response.json().catch(()=>null);if(!response.ok||!payload?.ok)throw new Error(payload?.error||'AniList indisponible');return Array.isArray(payload.results)?payload.results:[]})
   .then(results=>{
