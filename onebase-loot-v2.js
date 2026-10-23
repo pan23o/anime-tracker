@@ -28,7 +28,7 @@ const text=v=>String(v??'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
 const list=()=>Array.isArray(window.__ONEBASE_DATA__)?window.__ONEBASE_DATA__.filter(x=>x&&String(x.anime||'').trim()):[];
 const screenItems=()=>window.OneBaseScreenLibrary?.items?.()||[];
 const ids=()=>new Set(list().map(x=>Number(x.aniId||x.anilistId)).filter(Number.isFinite).filter(x=>x>0));
-function loadHistory(){try{const v=JSON.parse(localStorage.getItem(HISTORY)||'[]');return new Set(Array.isArray(v)?v.map(Number).filter(Number.isFinite):[])}catch(_){return new Set()}}
+function loadHistory(){try{const current=JSON.parse(localStorage.getItem(HISTORY)||'[]'),legacy=JSON.parse(localStorage.getItem('onebase_lootbox_history_v1')||'[]'),all=new Set([...(Array.isArray(current)?current:[]),...(Array.isArray(legacy)?legacy:[])].map(Number).filter(Number.isFinite));if(all.size!==(Array.isArray(current)?current.length:0))saveHistory(all);return all}catch(_){return new Set()}}
 function saveHistory(s){try{localStorage.setItem(HISTORY,JSON.stringify([...s].slice(-1000)))}catch(_){}}
 function profile(){
   const gs=new Map(),ts=new Map(),seen=new Map(),themes=new Map();
@@ -429,6 +429,6 @@ addEventListener('popstate',()=>setTimeout(enter,60));
 addEventListener('hashchange',()=>setTimeout(enter,60));
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',enter,{once:true});else setTimeout(enter,150);
 
-window.OneBaseLootV2={reroll,render:renderLoot,close(){activeCinematicClose?.()}};
+window.OneBaseLootV2={reroll,render:renderLoot,reload(){const saved=localStorage.getItem(KEY)||'personalized';mode=MODES[saved]?saved:'personalized';if(inLoot()){roll=null;loadError='';void reroll()}},close(){activeCinematicClose?.()}};
 window.dispatchEvent(new CustomEvent('onebase:loot-v2-ready'));
 })();

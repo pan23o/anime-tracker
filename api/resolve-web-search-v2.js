@@ -2,19 +2,52 @@ const {URL}=require('node:url');
 const dns=require('node:dns').promises;
 const net=require('node:net');
 
+
+function isPrivateIPv4(address){
+  const parts=String(address||'').split('.').map(Number);if(parts.length!==4||parts.some(n=>!Number.isInteger(n)||n<0||n>255))return true;
+  const[a,b,c]=parts;
+  return a===0||a===10||a===127||a>=224||(a===100&&b>=64&&b<=127)||(a===169&&b===254)||(a===172&&b>=16&&b<=31)||(a===192&&(b===0||b===168))||(a===192&&b===0&&c===2)||(a===192&&b===88&&c===99)||(a===198&&(b===18||b===19||b===51&&c===100))||(a===203&&b===0&&c===113);
+}
 function isPrivateHostname(hostname){
-  const h=String(hostname||'').toLowerCase().replace(/^\[|\]$/g,'');
-  if(h==='localhost'||h.endsWith('.localhost')||h.endsWith('.local')||h==='0.0.0.0')return true;
-  if(net.isIP(h)===4){const[a,b]=h.split('.').map(Number);return a===10||a===127||(a===169&&b===254)||(a===172&&b>=16&&b<=31)||(a===192&&b===168)}
-  if(net.isIP(h)===6)return h==='::1'||h.startsWith('fc')||h.startsWith('fd')||h.startsWith('fe80:');
+  const h=String(hostname||'').toLowerCase().replace(/^\[|\]$/g,'').split('%')[0];
+  if(h==='localhost'||h.endsWith('.localhost')||h.endsWith('.local'))return true;
+  const ip=net.isIP(h);
+  if(ip===4)return isPrivateIPv4(h);
+  if(ip===6){
+    if(h==='::'||h==='::1'||h.startsWith('::ffff:')||h.startsWith('::ffff:0:'))return true;
+    if(h.startsWith('fc')||h.startsWith('fd')||/^fe[89ab]/.test(h)||h.startsWith('ff'))return true;
+    if(!/^[23]/.test(h)||h.startsWith('2001:db8:')||h.startsWith('2001:10:')||h.startsWith('2001:20:')||h.startsWith('2001:0:')||h.startsWith('2002:'))return true;
+    return false;
+  }
   return false;
 }
 async function assertSafeUrl(value){
   const u=new URL(value);
-  if(!/^https?:$/.test(u.protocol))throw new Error('Solo se permiten URLs HTTP o HTTPS.');
-  if(isPrivateHostname(u.hostname))throw new Error('No se puede acceder a una dirección privada.');
-  try{const a=await dns.lookup(u.hostname,{all:true});if(a.some(x=>isPrivateHostname(x.address)))throw new Error('La dirección apunta a una red privada.')}catch(e){if(e.message.includes('privada'))throw e}
+  if(!/^https?:$/.test(u.protocol)||u.username||u.password)throw new Error('Solo se permiten URLs HTTP o HTTPS sin credenciales.');
+  const hostname=u.hostname.replace(/^\[|\]$/g,'');
+  if(isPrivateHostname(hostname))throw new Error('No se puede acceder a una dirección privada.');
+  if(net.isIP(hostname))return u;
+  try{
+    const records=await dns.lookup(hostname,{all:true,verbatim:true});
+    if(!records.length||records.some(record=>isPrivateHostname(record.address)))throw new Error('La dirección apunta a una red privada.');
+  }catch(error){
+    if(/privad/i.test(String(error?.message||'')))throw error;
+    throw new Error('No se pudo validar el destino externo.');
+  }
   return u;
+}
+async function safeFetch(value,options={}){
+  let current=await assertSafeUrl(value);
+  for(let hop=0;hop<=5;hop++){
+    const response=await fetch(current,{...options,redirect:'manual'});
+    if(![301,302,303,307,308].includes(response.status))return{response,url:current};
+    const location=response.headers.get('location');
+    try{await response.body?.cancel()}catch(_){}
+    if(!location)throw new Error('Redirección sin destino.');
+    if(hop===5)throw new Error('Demasiadas redirecciones.');
+    current=await assertSafeUrl(new URL(location,current).toString());
+  }
+  throw new Error('No se pudo validar la redirección.');
 }
 function attr(tag,name){const re=new RegExp(`${name}\\s*=\\s*["']([^"']*)["']`,'i');return(tag.match(re)||[])[1]||''}
 function decodeHtml(v){return String(v||'').replace(/&amp;/gi,'&').replace(/&quot;/gi,'"').replace(/&#39;|&#x27;/gi,"'").replace(/&lt;/gi,'<').replace(/&gt;/gi,'>')}
@@ -31,11 +64,10 @@ function extractLinks(html,base){
   return out;
 }
 async function fetchHtml(url){
-  const u=await assertSafeUrl(url);
-  const r=await fetch(u,{redirect:'follow',headers:{'user-agent':'OneBase/2.1 staged anime search','accept':'text/html,application/xhtml+xml'},signal:AbortSignal.timeout(8000)});
+  const{response:r,url:final}=await safeFetch(url,{headers:{'user-agent':'OneBase/2.1 staged anime search','accept':'text/html,application/xhtml+xml'},signal:AbortSignal.timeout(8000)});
   if(!r.ok)throw new Error(`HTTP ${r.status}`);
   const type=r.headers.get('content-type')||'';if(!type.includes('text/html'))throw new Error('La respuesta no es HTML.');
-  const html=(await r.text()).slice(0,2200000);const final=await assertSafeUrl(r.url);return{url:final,html};
+  const html=(await r.text()).slice(0,2200000);return{url:final,html};
 }
 function detectLanguageSupport(html){
   const h=String(html||'').toLowerCase();

@@ -4,7 +4,22 @@ const KEY='onebase_custom_webs_v3',MAX=30;let sources=[],userKey='default';
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 const makeId=()=>{try{return crypto.randomUUID()}catch(_){return 'web_'+Date.now()+'_'+Math.random().toString(36).slice(2)}};
 function getUser(){try{const p=JSON.parse(localStorage.getItem('anime_tracker_profile_v1')||'{}');return String(p?.email||'').trim().toLowerCase()||'default'}catch(_){return'default'}}
-function load(){userKey=getUser();try{const db=JSON.parse(localStorage.getItem(KEY)||'{}');let list=Array.isArray(db[userKey])?db[userKey]:[];list=list.map(x=>({id:x.id||makeId(),name:String(x.name||'Web').trim(),homepage:String(x.homepage||x.url||x.template||'').trim(),createdAt:x.createdAt||Date.now()})).filter(x=>x.homepage);sources=list.slice(0,MAX);db[userKey]=sources;localStorage.setItem(KEY,JSON.stringify(db))}catch(_){sources=[]}}
+function readDb(key){try{const value=JSON.parse(localStorage.getItem(key)||'{}');return Array.isArray(value)?{default:value}:value&&typeof value==='object'?value:{}}catch(_){return{}}}
+function normalizeSource(x){if(!x||typeof x!=='object')return null;const raw=String(x.homepage||x.url||x.template||'').trim();if(!raw)return null;let homepage=raw;if(/[{}]|%7b/i.test(raw)){try{homepage=new URL(raw.replace(/\{query\}|%7Bquery%7D/ig,'OneBase').replace(/\{episode\}|%7Bepisode%7D/ig,'1')).origin}catch(_){return null}}if(!valid(homepage))return null;try{return{id:String(x.id||makeId()),name:String(x.name||'Web').trim().slice(0,60)||'Web',homepage:normalize(homepage),createdAt:x.createdAt||Date.now()}}catch(_){return null}}
+function load(){
+  userKey=getUser();const db=readDb(KEY);let list=Array.isArray(db[userKey])?db[userKey].slice():[];const marker='onebase_custom_webs_v3_migrated_'+userKey;
+  if(localStorage.getItem(marker)!=='1'){
+    for(const legacyKey of ['onebase_custom_webs_v2','onebase_custom_webs_v1']){
+      const old=readDb(legacyKey);let entries=Array.isArray(old[userKey])?old[userKey]:[];
+      if(!entries.length&&userKey!=='default')entries=Array.isArray(old.default)?old.default:[];
+      list.push(...entries);
+    }
+  }
+  if(userKey!=='default'&&!list.length&&Array.isArray(db.default))list=db.default.slice();
+  const unique=new Set();sources=[];
+  for(const raw of list){const item=normalizeSource(raw);if(!item)continue;const key=item.homepage.toLowerCase();if(unique.has(key)||sources.some(x=>x.name.toLowerCase()===item.name.toLowerCase()))continue;unique.add(key);sources.push(item);if(sources.length>=MAX)break}
+  db[userKey]=sources.slice();try{localStorage.setItem(KEY,JSON.stringify(db));localStorage.setItem(marker,'1')}catch(_){}
+}
 function save(){let db={};try{db=JSON.parse(localStorage.getItem(KEY)||'{}')}catch(_){}db[userKey]=sources.slice(0,MAX);try{localStorage.setItem(KEY,JSON.stringify(db))}catch(_){}window.dispatchEvent(new CustomEvent('onebase:custom-webs-changed',{detail:{sources:sources.slice()}}))}
 function valid(u){try{const x=new URL(String(u).trim());return/^https?:$/.test(x.protocol)&&!!x.hostname}catch(_){return false}}
 function normalize(u){const x=new URL(String(u).trim());x.hash='';return x.toString().replace(/\/$/,'')}
@@ -17,6 +32,6 @@ function openAdd(){modal();document.getElementById('obcw3name').value='';documen
 function animeTitle(){return String(document.getElementById('sourceAnime')?.textContent||document.getElementById('sourceAnime')?.value||'').trim()}
 async function openSource(x){const t=animeTitle(),modalEl=document.getElementById('sourceModal'),button=document.querySelector(`[data-custom-web="${CSS.escape(x.id)}"]`);if(!t){toast('No se ha podido identificar el anime.');return}const old=button?.textContent||x.name;if(button){button.textContent='Buscando…';button.disabled=true}try{const r=await fetch(`/api/resolve-web-search?url=${encodeURIComponent(x.homepage)}&query=${encodeURIComponent(t)}`,{headers:{accept:'application/json'}});const data=await r.json().catch(()=>({}));if(!r.ok||!data.ok||!data.url)throw new Error(data.error||'No se ha encontrado el buscador.');if(data.found===false||data.hasEpisodes===false){if(window.OneBaseSourceFailure)window.OneBaseSourceFailure(x,()=>openSource(x));else toast(`No se han encontrado coincidencias en ${x.name}.`);return}window.open(data.url,'_blank','noopener,noreferrer');modalEl?.classList.add('hidden')}catch(_){if(window.OneBaseSourceFailure)window.OneBaseSourceFailure(x,()=>openSource(x));else toast(`No se han encontrado coincidencias en ${x.name}.`)}finally{if(button){button.textContent=old;button.disabled=false}}}
 function injectSources(){const c=document.querySelector('#sourceModal .sourceChoices');if(!c)return;c.querySelectorAll('[data-custom-web]').forEach(x=>x.remove());sources.forEach(x=>{const b=document.createElement('button');b.type='button';b.dataset.customWeb=x.id;b.textContent=x.name;b.onclick=()=>openSource(x);c.appendChild(b)})}
-function boot(){css();load();modal();injectSources();document.addEventListener('click',e=>{if(e.target.closest?.('#onebaseSettingsButton'))setTimeout(renderSettings,50)},true);window.addEventListener('onebase:settings-open',()=>setTimeout(renderSettings,0));window.addEventListener('onebase:custom-webs-changed',()=>{load();renderSettings();injectSources()});window.addEventListener('storage',e=>{if(e.key===KEY){load();renderSettings();injectSources()}})}
+function boot(){css();load();modal();injectSources();document.addEventListener('click',e=>{if(e.target.closest?.('#onebaseSettingsButton'))setTimeout(renderSettings,50)},true);window.addEventListener('onebase:settings-open',()=>setTimeout(renderSettings,0));window.addEventListener('onebase:custom-webs-changed',()=>{load();renderSettings();injectSources()});window.addEventListener('onebase:profile-changed',()=>{load();renderSettings();injectSources()});window.addEventListener('storage',e=>{if(e.key===KEY){load();renderSettings();injectSources()}})}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();window.OneBaseCustomWebs={get:()=>sources.slice(),openAdd,reload:()=>{load();renderSettings();injectSources()}};
 })();

@@ -44,28 +44,28 @@ html = html.replace(/([\s\S]*)(<\/script>\s*<button class="cloud-account-btn")/i
 html = html.replace(/<\/head>/i, `${headAssets}\n</head>`);
 
 // Force the browser to fetch the corrected persistence engine.
-html = html.replace(/profile-enhancer\.js(?:\?[^"']*)?/g, 'profile-enhancer.js?v=10');
+html = html.replace(/profile-enhancer\.js(?:\?[^"']*)?/g, 'profile-enhancer.js?v=11');
 
 const runtimeScripts = [
   ['onebase-auto-complete.js', 'v=4'],
   ['onebase-instant-save.js', 'v=5'],
   ['onebase-notification-setup.js', 'v=4'],
   ['onebase-episode-notifications.js', 'v=4'],
-  ['onebase-settings.js', 'v=16'],
+  ['onebase-settings.js', 'v=17'],
   ['onebase-settings-scrollbar.js', 'v=3'],
   ['onebase-profile-cleanup.js', 'v=3'],
   ['onebase-level-sync.js', 'v=2'],
   ['onebase-eye-v2.js', 'v=4'],
   ['onebase-experience-v1.js', 'v=3'],
-  ['onebase-custom-webs-v3.js', 'v=12'],
+  ['onebase-custom-webs-v3.js', 'v=13'],
   ['onebase-source-search-v2.js', 'v=16'],
   ['onebase-anilist-search.js', 'v=9'],
   ['onebase-anime-add-cleanup.js', 'v=2'],
-  ['onebase-premium.js', 'v=46'],
-  ['onebase-loot-v2.js', 'v=28'],
+  ['onebase-premium.js', 'v=47'],
+  ['onebase-loot-v2.js', 'v=29'],
   ['onebase-integrations.js', 'v=1'],
   ['onebase-beast.js', 'v=1'],
-  ['onebase-screen-library.js', 'v=12']
+  ['onebase-screen-library.js', 'v=13']
 ];
 
 // The source index can already contain older copies of these scripts. Remove them

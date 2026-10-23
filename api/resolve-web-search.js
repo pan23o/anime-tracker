@@ -1,6 +1,51 @@
 const {URL}=require('node:url');const dns=require('node:dns').promises;const net=require('node:net');
-function isPrivateHostname(hostname){const h=String(hostname||'').toLowerCase().replace(/^\[|\]$/g,'');if(h==='localhost'||h.endsWith('.localhost')||h.endsWith('.local')||h==='0.0.0.0')return true;if(net.isIP(h)===4){const[a,b]=h.split('.').map(Number);return a===10||a===127||(a===169&&b===254)||(a===172&&b>=16&&b<=31)||(a===192&&b===168)}if(net.isIP(h)===6)return h==='::1'||h.startsWith('fc')||h.startsWith('fd')||h.startsWith('fe80:');return false}
-async function assertSafeUrl(value){const u=new URL(value);if(!/^https?:$/.test(u.protocol))throw new Error('Solo se permiten URLs HTTP o HTTPS.');if(isPrivateHostname(u.hostname))throw new Error('No se puede acceder a una dirección privada.');try{const a=await dns.lookup(u.hostname,{all:true});if(a.some(x=>isPrivateHostname(x.address)))throw new Error('La dirección apunta a una red privada.')}catch(e){if(e.message.includes('privada'))throw e}return u}
+
+function isPrivateIPv4(address){
+  const parts=String(address||'').split('.').map(Number);if(parts.length!==4||parts.some(n=>!Number.isInteger(n)||n<0||n>255))return true;
+  const[a,b,c]=parts;
+  return a===0||a===10||a===127||a>=224||(a===100&&b>=64&&b<=127)||(a===169&&b===254)||(a===172&&b>=16&&b<=31)||(a===192&&(b===0||b===168))||(a===192&&b===0&&c===2)||(a===192&&b===88&&c===99)||(a===198&&(b===18||b===19||b===51&&c===100))||(a===203&&b===0&&c===113);
+}
+function isPrivateHostname(hostname){
+  const h=String(hostname||'').toLowerCase().replace(/^\[|\]$/g,'').split('%')[0];
+  if(h==='localhost'||h.endsWith('.localhost')||h.endsWith('.local'))return true;
+  const ip=net.isIP(h);
+  if(ip===4)return isPrivateIPv4(h);
+  if(ip===6){
+    if(h==='::'||h==='::1'||h.startsWith('::ffff:')||h.startsWith('::ffff:0:'))return true;
+    if(h.startsWith('fc')||h.startsWith('fd')||/^fe[89ab]/.test(h)||h.startsWith('ff'))return true;
+    if(!/^[23]/.test(h)||h.startsWith('2001:db8:')||h.startsWith('2001:10:')||h.startsWith('2001:20:')||h.startsWith('2001:0:')||h.startsWith('2002:'))return true;
+    return false;
+  }
+  return false;
+}
+async function assertSafeUrl(value){
+  const u=new URL(value);
+  if(!/^https?:$/.test(u.protocol)||u.username||u.password)throw new Error('Solo se permiten URLs HTTP o HTTPS sin credenciales.');
+  const hostname=u.hostname.replace(/^\[|\]$/g,'');
+  if(isPrivateHostname(hostname))throw new Error('No se puede acceder a una dirección privada.');
+  if(net.isIP(hostname))return u;
+  try{
+    const records=await dns.lookup(hostname,{all:true,verbatim:true});
+    if(!records.length||records.some(record=>isPrivateHostname(record.address)))throw new Error('La dirección apunta a una red privada.');
+  }catch(error){
+    if(/privad/i.test(String(error?.message||'')))throw error;
+    throw new Error('No se pudo validar el destino externo.');
+  }
+  return u;
+}
+async function safeFetch(value,options={}){
+  let current=await assertSafeUrl(value);
+  for(let hop=0;hop<=5;hop++){
+    const response=await fetch(current,{...options,redirect:'manual'});
+    if(![301,302,303,307,308].includes(response.status))return{response,url:current};
+    const location=response.headers.get('location');
+    try{await response.body?.cancel()}catch(_){}
+    if(!location)throw new Error('Redirección sin destino.');
+    if(hop===5)throw new Error('Demasiadas redirecciones.');
+    current=await assertSafeUrl(new URL(location,current).toString());
+  }
+  throw new Error('No se pudo validar la redirección.');
+}
 function attr(tag,name){const re=new RegExp(`${name}\\s*=\\s*["']([^"']*)["']`,'i');return(tag.match(re)||[])[1]||''}function decodeHtml(v){return String(v||'').replace(/&amp;/gi,'&').replace(/&quot;/gi,'"').replace(/&#39;|&#x27;/gi,"'").replace(/&lt;/gi,'<').replace(/&gt;/gi,'>')}function absolute(base,v){try{return new URL(decodeHtml(v),base).toString()}catch(_){return null}}
 function scoreForm(form){const t=form.toLowerCase();let s=0;if(/(type=["']search["']|name=["'](?:q|query|search|keyword|title|anime)["'])/.test(t))s+=8;if(/(placeholder=["'][^"']*(?:buscar|search|anime)[^"']*["'])/.test(t))s+=6;if(/(buscar|search|busca)/.test(t))s+=3;if(/(login|signin|register|password|correo|email)/.test(t))s-=6;return s}
 function findSearchForm(html,base){const forms=html.match(/<form\b[\s\S]*?<\/form>/gi)||[];let best=null;for(const form of forms){const score=scoreForm(form);if(score<=0)continue;const open=form.match(/^<form\b[^>]*>/i)?.[0]||'';const action=absolute(base,attr(open,'action')||base);if(!action)continue;const method=(attr(open,'method')||'get').toLowerCase();const inputs=form.match(/<input\b[^>]*>/gi)||[];let field=null;for(const input of inputs){const type=(attr(input,'type')||'text').toLowerCase(),name=attr(input,'name'),ph=attr(input,'placeholder');if(type==='search'||/^(q|query|search|keyword|title|anime)$/i.test(name)||/buscar|search|anime/i.test(ph)){field=name||'q';break}}if(!field)field='q';const c={score,action,method,field};if(!best||c.score>best.score)best=c}return best}
@@ -9,5 +54,5 @@ function fallbackCandidates(home,q){const e=encodeURIComponent(q);return[new URL
 function defaultCandidate(home,q){const host=home.hostname.replace(/^www\./,'').toLowerCase();if(host==='subsplease.org')return new URL(`/shows/${slugify(q)}/`,home).toString();if(host==='nyaa.si'){const u=new URL('/',home);u.searchParams.set('f','0');u.searchParams.set('c','0_0');u.searchParams.set('q',q);return u.toString()}if(host==='ext.to')return new URL(`/browse/?q=${encodeURIComponent(q)}`,home).toString();return null}
 function normalizeText(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim()}
 function verify(html,q,host){const raw=html.replace(/<script[\s\S]*?<\/script>/gi,' ').replace(/<style[\s\S]*?<\/style>/gi,' '),text=normalizeText(raw),query=normalizeText(q),words=query.split(' ').filter(w=>w.length>=3),noResults=/(no results|no result|nothing found|no matches|0 results|sin resultados|no se encontraron|no se ha encontrado|no hay resultados)/i.test(text),matched=words.length===0||words.filter(w=>text.includes(w)).length>=Math.max(1,Math.ceil(words.length*.5));let hasEpisodes=/(\b(?:episode|episodes|ep\.?|episodio|episodios|capitulo|capítulo)\s*[:#-]?\s*\d{1,4}\b)|(\b\d{1,3}\s*(?:720p|1080p|2160p|x264|x265|hevc|web-dl|webdl|bluray)\b)/i.test(text);if(host==='subsplease.org'&&matched&&!noResults)hasEpisodes=true;return{found:!noResults&&matched,hasEpisodes:!noResults&&matched&&hasEpisodes}}
-async function inspect(url,q){try{const u=await assertSafeUrl(url),r=await fetch(u,{redirect:'follow',headers:{'user-agent':'OneBase/1.0 search resolver','accept':'text/html,application/xhtml+xml'},signal:AbortSignal.timeout(7000)});if(!r.ok)return{found:false,hasEpisodes:false};const type=r.headers.get('content-type')||'';if(!type.includes('text/html'))return{found:false,hasEpisodes:false};const html=(await r.text()).slice(0,1500000);const final=await assertSafeUrl(r.url);return verify(html,q,final.hostname.replace(/^www\./,'').toLowerCase())}catch(_){return null}}
-module.exports=async function handler(req,res){res.setHeader('Cache-Control','no-store');if(req.method!=='GET')return res.status(405).json({ok:false,error:'Método no permitido.'});const raw=String(req.query?.url||'').trim(),q=String(req.query?.query||'').trim();if(!raw||!q)return res.status(400).json({ok:false,error:'Faltan la URL de la web o el anime.'});if(q.length>200)return res.status(400).json({ok:false,error:'La búsqueda es demasiado larga.'});let home;try{home=await assertSafeUrl(raw)}catch(e){return res.status(400).json({ok:false,error:e.message})}try{const specific=defaultCandidate(home,q);let target=null,mode='fallback';if(specific){target=specific;mode='site-specific'}else{const response=await fetch(home,{redirect:'follow',headers:{'user-agent':'OneBase/1.0 search resolver','accept':'text/html,application/xhtml+xml'},signal:AbortSignal.timeout(7000)});if(!response.ok)throw new Error(`La web respondió con HTTP ${response.status}.`);const type=response.headers.get('content-type')||'';if(!type.includes('text/html'))throw new Error('La URL no parece ser una página web HTML.');const html=(await response.text()).slice(0,1500000),final=await assertSafeUrl(response.url),form=findSearchForm(html,final);if(form&&form.method!=='post'){target=new URL(form.action);target.searchParams.set(form.field,q);mode='detected-form'}else target=new URL(fallbackCandidates(final,q)[0])}const check=await inspect(target.toString(),q);return res.status(200).json({ok:true,url:target.toString(),mode,found:check?.found===true,hasEpisodes:check?.hasEpisodes===true,verification:check?'checked':'unavailable'})}catch(e){return res.status(502).json({ok:false,error:'No he podido analizar la web automáticamente.',detail:String(e.message||'')})}};
+async function inspect(url,q){try{const{response:r,url:final}=await safeFetch(url,{headers:{'user-agent':'OneBase/1.0 search resolver','accept':'text/html,application/xhtml+xml'},signal:AbortSignal.timeout(7000)});if(!r.ok)return{found:false,hasEpisodes:false};const type=r.headers.get('content-type')||'';if(!type.includes('text/html'))return{found:false,hasEpisodes:false};const html=(await r.text()).slice(0,1500000);return verify(html,q,final.hostname.replace(/^www\./,'').toLowerCase())}catch(_){return null}}
+module.exports=async function handler(req,res){res.setHeader('Cache-Control','no-store');if(req.method!=='GET')return res.status(405).json({ok:false,error:'Método no permitido.'});const raw=String(req.query?.url||'').trim(),q=String(req.query?.query||'').trim();if(!raw||!q)return res.status(400).json({ok:false,error:'Faltan la URL de la web o el anime.'});if(q.length>200)return res.status(400).json({ok:false,error:'La búsqueda es demasiado larga.'});let home;try{home=await assertSafeUrl(raw)}catch(e){return res.status(400).json({ok:false,error:e.message})}try{const specific=defaultCandidate(home,q);let target=null,mode='fallback';if(specific){target=specific;mode='site-specific'}else{const{response,url:final}=await safeFetch(home,{headers:{'user-agent':'OneBase/1.0 search resolver','accept':'text/html,application/xhtml+xml'},signal:AbortSignal.timeout(7000)});if(!response.ok)throw new Error(`La web respondió con HTTP ${response.status}.`);const type=response.headers.get('content-type')||'';if(!type.includes('text/html'))throw new Error('La URL no parece ser una página web HTML.');const html=(await response.text()).slice(0,1500000),form=findSearchForm(html,final);if(form&&form.method!=='post'){target=new URL(form.action);target.searchParams.set(form.field,q);mode='detected-form'}else target=new URL(fallbackCandidates(final,q)[0])}const check=await inspect(target.toString(),q);return res.status(200).json({ok:true,url:target.toString(),mode,found:check?.found===true,hasEpisodes:check?.hasEpisodes===true,verification:check?'checked':'unavailable'})}catch(e){return res.status(502).json({ok:false,error:'No he podido analizar la web automáticamente.',detail:String(e.message||'')})}};

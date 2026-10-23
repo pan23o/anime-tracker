@@ -1,8 +1,53 @@
 const {URL}=require('node:url');
 const dns=require('node:dns').promises;
 const net=require('node:net');
-function privateHost(h){h=String(h||'').toLowerCase().replace(/^\[|\]$/g,'');if(h==='localhost'||h.endsWith('.localhost')||h.endsWith('.local'))return true;if(net.isIP(h)===4){const[a,b]=h.split('.').map(Number);return a===10||a===127||(a===169&&b===254)||(a===172&&b>=16&&b<=31)||(a===192&&b===168)}if(net.isIP(h)===6)return h==='::1'||h.startsWith('fc')||h.startsWith('fd')||h.startsWith('fe80:');return false}
-async function safe(v){const u=new URL(v);if(!/^https?:$/.test(u.protocol)||privateHost(u.hostname))throw new Error('URL no permitida.');try{const a=await dns.lookup(u.hostname,{all:true});if(a.some(x=>privateHost(x.address)))throw new Error('Dirección privada.')}catch(e){if(/privad/i.test(e.message))throw e}return u}
+
+function isPrivateIPv4(address){
+  const parts=String(address||'').split('.').map(Number);if(parts.length!==4||parts.some(n=>!Number.isInteger(n)||n<0||n>255))return true;
+  const[a,b,c]=parts;
+  return a===0||a===10||a===127||a>=224||(a===100&&b>=64&&b<=127)||(a===169&&b===254)||(a===172&&b>=16&&b<=31)||(a===192&&(b===0||b===168))||(a===192&&b===0&&c===2)||(a===192&&b===88&&c===99)||(a===198&&(b===18||b===19||b===51&&c===100))||(a===203&&b===0&&c===113);
+}
+function privateHost(hostname){
+  const h=String(hostname||'').toLowerCase().replace(/^\[|\]$/g,'').split('%')[0];
+  if(h==='localhost'||h.endsWith('.localhost')||h.endsWith('.local'))return true;
+  const ip=net.isIP(h);
+  if(ip===4)return isPrivateIPv4(h);
+  if(ip===6){
+    if(h==='::'||h==='::1'||h.startsWith('::ffff:')||h.startsWith('::ffff:0:'))return true;
+    if(h.startsWith('fc')||h.startsWith('fd')||/^fe[89ab]/.test(h)||h.startsWith('ff'))return true;
+    if(!/^[23]/.test(h)||h.startsWith('2001:db8:')||h.startsWith('2001:10:')||h.startsWith('2001:20:')||h.startsWith('2001:0:')||h.startsWith('2002:'))return true;
+    return false;
+  }
+  return false;
+}
+async function safe(value){
+  const u=new URL(value);
+  if(!/^https?:$/.test(u.protocol)||u.username||u.password)throw new Error('Solo se permiten URLs HTTP o HTTPS sin credenciales.');
+  const hostname=u.hostname.replace(/^\[|\]$/g,'');
+  if(privateHost(hostname))throw new Error('No se puede acceder a una dirección privada.');
+  if(net.isIP(hostname))return u;
+  try{
+    const records=await dns.lookup(hostname,{all:true,verbatim:true});
+    if(!records.length||records.some(record=>privateHost(record.address)))throw new Error('La dirección apunta a una red privada.');
+  }catch(error){
+    if(/privad/i.test(String(error?.message||'')))throw error;
+    throw new Error('No se pudo validar el destino externo.');
+  }
+  return u;
+}
+async function fetchSafe(value,options={}){
+  let current=await safe(value);
+  for(let hop=0;hop<=5;hop++){
+    const response=await fetch(current,{...options,redirect:'manual'});
+    if(![301,302,303,307,308].includes(response.status))return{response,url:current};
+    const location=response.headers.get('location');
+    try{await response.body?.cancel()}catch(_){}
+    if(!location)throw new Error('Redirección sin destino.');
+    if(hop===5)throw new Error('Demasiadas redirecciones.');
+    current=await safe(new URL(location,current).toString());
+  }
+  throw new Error('No se pudo validar la redirección.');
+}
 function norm(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim()}
 function words(q){return norm(q).split(' ').filter(x=>x.length>=2)}
 function titleOk(text,q){const w=words(q),n=norm(text);return w.length===0||w.filter(x=>n.includes(x)).length>=Math.max(1,Math.ceil(w.length*.55))}
@@ -10,7 +55,7 @@ function spanish(text){return /(?:spanish|español|espanol|sub\s*esp|subtitulos?
 function multiSubs(text){return /(?:multi[\s-]*subs?|multi[\s-]*subtitles?|multi[\s-]*sub\b)/i.test(String(text||''))}
 function stripHtml(s){return norm(String(s||'').replace(/<script[\s\S]*?<\/script>/gi,' ').replace(/<style[\s\S]*?<\/style>/gi,' ').replace(/<[^>]+>/g,' '))}
 function links(html,base){const out=[],re=/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;let m;while((m=re.exec(html))){try{const u=new URL(m[1].replace(/&amp;/g,'&'),base);const text=stripHtml(m[2]);const start=Math.max(0,m.index-1800),end=Math.min(html.length,m.index+m[0].length+2600);out.push({url:u.toString(),text,context:stripHtml(html.slice(start,end))})}catch(_){}}return out}
-async function page(url){const u=await safe(url);const r=await fetch(u,{redirect:'follow',headers:{'user-agent':'OneBase/SpanishSearch/2.0','accept':'text/html,application/xhtml+xml'},signal:AbortSignal.timeout(8000)});if(!r.ok)throw new Error(`HTTP ${r.status}`);const type=r.headers.get('content-type')||'';if(!type.includes('text/html'))throw new Error('No HTML');return{url:await safe(r.url),html:(await r.text()).slice(0,2200000)}}
+async function page(url){const{response:r,url:final}=await fetchSafe(url,{headers:{'user-agent':'OneBase/SpanishSearch/2.0','accept':'text/html,application/xhtml+xml'},signal:AbortSignal.timeout(8000)});if(!r.ok)throw new Error(`HTTP ${r.status}`);const type=r.headers.get('content-type')||'';if(!type.includes('text/html'))throw new Error('No HTML');return{url:final,html:(await r.text()).slice(0,2200000)}}
 function episodeLabel(value){const raw=String(value||'').trim(),season=raw.match(/^s(\d+)e(\d+)$/i);if(season)return`s${Number(season[1])}e${String(Number(season[2])).padStart(2,'0')}`;return Number(raw)>0?`E${Number(raw)}`:''}
 function candidates(q,episode){const ep=episodeLabel(episode)?` ${episodeLabel(episode)}`:'';return[{term:`${q}${ep} Spanish`,kind:'spanish'},{term:`${q}${ep} Español`,kind:'spanish'},{term:`${q}${ep} [SPA]`,kind:'spanish'},{term:`${q}${ep} [ESP]`,kind:'spanish'},{term:`${q}${ep} Multi-Subs`,kind:'multi-subs'},{term:`${q}${ep} MultiSubs`,kind:'multi-subs'}]}
 function nyaaUrl(home,q){const u=new URL('/',home);u.searchParams.set('f','0');u.searchParams.set('c','0_0');u.searchParams.set('q',q);return u.toString()}

@@ -3,22 +3,34 @@
   'use strict';
 
   const KEY = 'onebase_settings_v2';
+  const LEGACY_KEY = 'anime_tracker_settings_v1';
   const DEFAULTS = { confirmDelete:true, autoBackup:true, achievementPopups:true, episodeNotifications:false };
 
   const state = () => {
     try {
       const saved = JSON.parse(localStorage.getItem(KEY) || '{}');
-      return { ...DEFAULTS, ...(saved && typeof saved === 'object' ? saved : {}) };
+      const legacy = JSON.parse(localStorage.getItem(LEGACY_KEY) || '{}');
+      return { ...DEFAULTS, ...(legacy && typeof legacy === 'object' ? legacy : {}), ...(saved && typeof saved === 'object' ? saved : {}) };
     } catch (_) { return { ...DEFAULTS }; }
   };
 
   function saveState(patch) {
     const next = { ...state(), ...patch };
-    try { localStorage.setItem(KEY, JSON.stringify(next)); } catch (_) { window.toast?.('No se pudieron guardar los ajustes en este navegador.'); }
+    try {
+      localStorage.setItem(KEY, JSON.stringify(next));
+      const legacy = JSON.parse(localStorage.getItem(LEGACY_KEY) || '{}');
+      for (const key of ['confirmDelete','autoBackup','achievementPopups']) legacy[key] = Boolean(next[key]);
+      localStorage.setItem(LEGACY_KEY, JSON.stringify(legacy));
+    } catch (_) { window.toast?.('No se pudieron guardar los ajustes en este navegador.'); }
     window.OneBaseSettings = window.OneBaseSettings || {};
     window.OneBaseSettings.state = next;
+    window.dispatchEvent(new CustomEvent('onebase:settings-changed', { detail: next }));
     return next;
   }
+
+  window.addEventListener('onebase:legacy-settings-changed', event => {
+    if (event.detail && typeof event.detail === 'object') saveState(event.detail);
+  });
 
   function css() {
     if (document.getElementById('onebase-settings-v2-css')) return;
@@ -261,24 +273,24 @@
     }
   }
 
+  function pruneLegacyPeriodicBackups(){
+    const keys=[];
+    for(let i=0;i<localStorage.length;i++){
+      const key=localStorage.key(i);
+      if(key&&/^onebase_backup_\d{4}-\d{2}-\d{2}-\d{2}-\d{2}$/.test(key))keys.push(key);
+    }
+    keys.sort().slice(0,Math.max(0,keys.length-5)).forEach(key=>localStorage.removeItem(key));
+  }
+
   function installProtection(){
     document.addEventListener('click',e=>{
       if(!state().confirmDelete)return;
-      const target=e.target.closest?.('.clearAnime,[data-action="delete-anime"],[data-delete-anime]'); if(!target)return;
+      const target=e.target.closest?.('[data-action="delete-anime"],[data-delete-anime]'); if(!target)return;
       if(target.dataset.onebaseConfirmed==='1'){delete target.dataset.onebaseConfirmed;return;}
       const ok=window.confirm('¿Seguro que quieres eliminar este anime?');
       if(!ok){e.preventDefault();e.stopImmediatePropagation();}else target.dataset.onebaseConfirmed='1';
     },true);
-    if(!window.OneBaseSettingsBackupTimer){
-      window.OneBaseSettingsBackupTimer=setInterval(()=>{
-        if(!state().autoBackup)return;
-        try{
-          const list=Array.isArray(window.__ONEBASE_DATA__)?window.__ONEBASE_DATA__:[];if(!list.length)return;
-          const key=`onebase_backup_${new Date().toISOString().slice(0,16).replace(/[:T]/g,'-')}`;
-          localStorage.setItem(key,JSON.stringify({createdAt:Date.now(),library:list}));
-        }catch(_){ }
-      },30*60*1000);
-    }
+    pruneLegacyPeriodicBackups();
   }
 
   window.OneBaseSettings={open,close,state,save:saveState};

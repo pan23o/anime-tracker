@@ -690,7 +690,7 @@ body[data-theme] .achievements::-webkit-scrollbar-track{background:var(--soft)}
   <div class="modalCard settingsCard" role="dialog" aria-modal="true">
     <button class="close" id="settingsClose" aria-label="Cerrar">×</button>
     <h2>Ajustes y datos</h2>
-    <p>Perfil local, copias de seguridad y protección de tu biblioteca. Todo se guarda únicamente en este navegador.</p>
+    <p>Tu biblioteca y preferencias se sincronizan al iniciar sesión. Las copias completas se guardan como archivo e incluyen anime, películas, series y webs favoritas.</p>
     <div class="settingsGrid">
       <section class="settingsSection">
         <h3>👤 Perfil local</h3>
@@ -728,7 +728,7 @@ body[data-theme] .achievements::-webkit-scrollbar-track{background:var(--soft)}
       </section>
       <section class="settingsSection">
         <h3>📦 Tus datos</h3>
-        <p>La exportación completa incluye biblioteca, papelera, perfil, logros, actividad, temas y configuración.</p>
+        <p>La exportación incluye anime, películas, series, progreso, webs favoritas, perfil, logros, ajustes y copias locales.</p>
         <div class="dataActions">
           <button class="btn" id="settingsExport" type="button">Exportar copia completa</button>
           <button class="btn" id="settingsImport" type="button">Importar</button>
@@ -792,6 +792,11 @@ function storeJson(key,value){
   try{localStorage.setItem(key,JSON.stringify(value));return true;}
   catch(e){console.warn("No se pudo guardar",key,e);toast("No hay espacio suficiente para guardar");return false;}
 }
+window.addEventListener("onebase:settings-changed",event=>{
+  const next=event.detail;if(!next||typeof next!=="object")return;
+  settings={...settings,confirmDelete:Boolean(next.confirmDelete),autoBackup:Boolean(next.autoBackup),achievementPopups:Boolean(next.achievementPopups),episodeNotifications:Boolean(next.episodeNotifications)};
+  storeJson(SETTINGS_STORAGE,settings);
+});
 
 
 const EMPTY = {
@@ -959,6 +964,13 @@ document.querySelectorAll("#sourceModal [data-source]").forEach(btn=>{
 });
 
 const CUSTOM_THEME = "anime_tracker_custom_theme";
+const SCREEN_LIBRARY_STORAGE = "onebase_screen_library_v1";
+const CUSTOM_WEBS_STORAGE = "onebase_custom_webs_v3";
+const SETTINGS_V2_STORAGE = "onebase_settings_v2";
+const LOOT_HISTORY_STORAGE = "onebase_lootbox_history_v2";
+const LOOT_HISTORY_LEGACY_STORAGE = "onebase_lootbox_history_v1";
+const LOOT_MODE_STORAGE = "onebase_loot_v2_mode";
+const PUBLIC_PROFILE_STORAGE = "onebase_public_profile_v1";
 const THEME_PRESETS = {
   "high-black": {bg:"#000000", bg2:"#000000", panel:"#000000", panel2:"#000000", line:"#ffffff", line2:"#ffffff", text:"#ffffff", muted:"#e5e5e5", dim:"#bdbdbd", soft:"#111111", accent:"#ffffff", danger:"#ffffff"},
   "high-white": {bg:"#ffffff", bg2:"#ffffff", panel:"#ffffff", panel2:"#ffffff", line:"#000000", line2:"#000000", text:"#000000", muted:"#1a1a1a", dim:"#444444", soft:"#eeeeee", accent:"#000000", danger:"#000000"},
@@ -1864,11 +1876,18 @@ function toast(msg){
   clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),2200);
 }
 
-/* v25 · estado completo, copias, papelera, perfil y configuración */
+/* v26 · biblioteca completa, progreso, webs, copias y configuración */
 function appSnapshot(){
   return {
-    schema:25,
+    schema:26,
     data:JSON.parse(JSON.stringify(data)),
+    screenLibrary:loadJson(SCREEN_LIBRARY_STORAGE,[]),
+    customWebs:loadJson(CUSTOM_WEBS_STORAGE,{}),
+    settingsV2:loadJson(SETTINGS_V2_STORAGE,{}),
+    lootboxHistory:loadJson(LOOT_HISTORY_STORAGE,[]),
+    lootboxLegacyHistory:loadJson(LOOT_HISTORY_LEGACY_STORAGE,[]),
+    lootboxMode:localStorage.getItem(LOOT_MODE_STORAGE)||"personalized",
+    publicProfile:loadJson(PUBLIC_PROFILE_STORAGE,{enabled:false,bio:""}),
     activity:loadJson(ACTIVITY_STORAGE,[]),
     unlockedAchievements:loadJson(ACHIEVEMENTS_STORAGE,[]),
     theme:localStorage.getItem(THEME)||"ink",
@@ -1895,14 +1914,37 @@ function restoreSnapshot(snap,{fromImport=false}={}){
   if(!incoming) throw new Error("Formato");
   data=incoming.map(normalizeItem);
   if(!Array.isArray(snap)){
-    storeJson(ACTIVITY_STORAGE,Array.isArray(snap.activity)?snap.activity:[]);
+    if(Array.isArray(snap.activity))storeJson(ACTIVITY_STORAGE,snap.activity);
     if(Array.isArray(snap.unlockedAchievements)) storeJson(ACHIEVEMENTS_STORAGE,snap.unlockedAchievements);
     if(snap.theme) localStorage.setItem(THEME,String(snap.theme));
     if(snap.customTheme) storeJson(CUSTOM_THEME,{...DEFAULT_CUSTOM_THEME,...snap.customTheme});
     if(snap.profile){profile={...DEFAULT_PROFILE,...snap.profile};storeJson(PROFILE_STORAGE,profile);}
-    if(snap.settings){settings={...DEFAULT_SETTINGS,...snap.settings};storeJson(SETTINGS_STORAGE,settings);}
-    trash=Array.isArray(snap.trash)?snap.trash:[];storeJson(TRASH_STORAGE,trash);
+    if(snap.settings){settings={...DEFAULT_SETTINGS,...snap.settings};storeJson(SETTINGS_STORAGE,settings);window.dispatchEvent(new CustomEvent("onebase:legacy-settings-changed",{detail:settings}));}
+    if(Object.prototype.hasOwnProperty.call(snap,"screenLibrary")){
+      const screen=Array.isArray(snap.screenLibrary)?snap.screenLibrary.filter(x=>x&&Number.isSafeInteger(Number(x.id))&&["movie","tv"].includes(x.type)):[];
+      storeJson(SCREEN_LIBRARY_STORAGE,screen);window.dispatchEvent(new CustomEvent("onebase:screen-library-restored",{detail:{count:screen.length}}));
+    }
+    if(Object.prototype.hasOwnProperty.call(snap,"customWebs")&&snap.customWebs&&typeof snap.customWebs==="object"){
+      storeJson(CUSTOM_WEBS_STORAGE,snap.customWebs);window.dispatchEvent(new CustomEvent("onebase:custom-webs-changed",{detail:{restored:true}}));
+    }
+    if(Object.prototype.hasOwnProperty.call(snap,"settingsV2")&&snap.settingsV2&&typeof snap.settingsV2==="object"){
+      const prefs={confirmDelete:true,autoBackup:true,achievementPopups:true,episodeNotifications:false,...snap.settingsV2};
+      storeJson(SETTINGS_V2_STORAGE,prefs);window.OneBaseSettings&&(window.OneBaseSettings.state=prefs);window.dispatchEvent(new CustomEvent("onebase:legacy-settings-changed",{detail:prefs}));
+    }
+    if(Object.prototype.hasOwnProperty.call(snap,"lootboxHistory")){
+      const history=Array.isArray(snap.lootboxHistory)?snap.lootboxHistory.map(Number).filter(Number.isFinite):[];
+      storeJson(LOOT_HISTORY_STORAGE,history);
+      const legacy=Array.isArray(snap.lootboxLegacyHistory)?snap.lootboxLegacyHistory.map(Number).filter(Number.isFinite):[];
+      storeJson(LOOT_HISTORY_LEGACY_STORAGE,[...new Set(legacy)]);
+    }
+    if(Object.prototype.hasOwnProperty.call(snap,"lootboxMode")){
+      const mode=["personalized","random","opposite"].includes(snap.lootboxMode)?snap.lootboxMode:"personalized";localStorage.setItem(LOOT_MODE_STORAGE,mode);
+    }
+    if(Object.prototype.hasOwnProperty.call(snap,"publicProfile")&&snap.publicProfile&&typeof snap.publicProfile==="object")storeJson(PUBLIC_PROFILE_STORAGE,{enabled:Boolean(snap.publicProfile.enabled),bio:String(snap.publicProfile.bio||"").slice(0,280)});
+    if(Array.isArray(snap.trash)){trash=snap.trash;storeJson(TRASH_STORAGE,trash);}
   }
+  window.OneBaseCustomWebs?.reload?.();
+  window.OneBaseLootV2?.reload?.();
   save({skipBackup:true});
   applyTheme(localStorage.getItem(THEME)||"ink",{persist:false});
   render();
@@ -1910,10 +1952,10 @@ function restoreSnapshot(snap,{fromImport=false}={}){
   if(fromImport) toast("Copia completa importada");
 }
 function exportComplete(){
-  const payload={app:"AnimeTracker",version:25,exportedAt:new Date().toISOString(),...appSnapshot(),backups};
+  const payload={app:"ONEBASE",version:26,exportedAt:new Date().toISOString(),...appSnapshot(),backups};
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
   const a=document.createElement("a"),url=URL.createObjectURL(blob);
-  a.href=url;a.download=`anime-tracker-v25-${localDateKey()}.json`;a.click();
+  a.href=url;a.download=`onebase-v26-${localDateKey()}.json`;a.click();
   setTimeout(()=>URL.revokeObjectURL(url),1000);toast("Copia completa exportada");
 }
 function pruneTrash(){
@@ -2001,7 +2043,7 @@ document.getElementById("profilePhotoInput").addEventListener("change",async e=>
 document.getElementById("profilePhotoRemove").addEventListener("click",()=>{profile={...profile,avatar:""};storeJson(PROFILE_STORAGE,profile);refreshProfileUI();toast("Foto de perfil eliminada");});
 ["settingConfirmDelete","settingAutoBackup","settingAchievementPopups"].forEach(id=>document.getElementById(id).addEventListener("change",()=>{
   settings={confirmDelete:document.getElementById("settingConfirmDelete").checked,autoBackup:document.getElementById("settingAutoBackup").checked,achievementPopups:document.getElementById("settingAchievementPopups").checked};
-  storeJson(SETTINGS_STORAGE,settings);toast("Ajustes guardados");
+  storeJson(SETTINGS_STORAGE,settings);window.dispatchEvent(new CustomEvent("onebase:legacy-settings-changed",{detail:settings}));toast("Ajustes guardados");
 }));
 document.getElementById("backupNow").addEventListener("click",()=>{createBackup("Manual",true);renderBackupList();toast("Copia local creada");});
 document.getElementById("emptyTrash").addEventListener("click",()=>{if(!trash.length)return;if(confirm("¿Vaciar la papelera definitivamente?")){trash=[];storeJson(TRASH_STORAGE,trash);renderTrash();toast("Papelera vaciada");}});
@@ -2009,8 +2051,10 @@ document.getElementById("resetAll").addEventListener("click",()=>{
   if(!confirm("¿Borrar TODOS los datos de AnimeTracker de este navegador?"))return;
   if(!confirm("Esta acción elimina biblioteca, papelera, copias, perfil, logros y ajustes. ¿Continuar?"))return;
   exportComplete();
-  [STORAGE,ACTIVITY_STORAGE,ACHIEVEMENTS_STORAGE,THEME,CUSTOM_THEME,PROFILE_STORAGE,SETTINGS_STORAGE,TRASH_STORAGE,BACKUPS_STORAGE,LAST_SAVE_STORAGE].forEach(k=>localStorage.removeItem(k));
-  data=[];trash=[];backups=[];profile={...DEFAULT_PROFILE,createdAt:Date.now()};settings={...DEFAULT_SETTINGS};applyTheme("ink");render();closeSettings();toast("Datos locales borrados");
+  [STORAGE,ACTIVITY_STORAGE,ACHIEVEMENTS_STORAGE,THEME,CUSTOM_THEME,PROFILE_STORAGE,SETTINGS_STORAGE,TRASH_STORAGE,BACKUPS_STORAGE,LAST_SAVE_STORAGE,SCREEN_LIBRARY_STORAGE,CUSTOM_WEBS_STORAGE,"onebase_custom_webs_v1","onebase_custom_webs_v2",SETTINGS_V2_STORAGE,LOOT_HISTORY_STORAGE,LOOT_HISTORY_LEGACY_STORAGE,LOOT_MODE_STORAGE,PUBLIC_PROFILE_STORAGE,"onebase_push_enabled_v1"].forEach(k=>localStorage.removeItem(k));
+  Array.from({length:localStorage.length},(_,i)=>localStorage.key(i)).filter(k=>k&&(k.startsWith("onebase_backup_")||k.startsWith("onebase_custom_webs_v3_migrated_"))).forEach(k=>localStorage.removeItem(k));
+  window.dispatchEvent(new CustomEvent("onebase:screen-library-restored",{detail:{count:0}}));
+  data=[];trash=[];backups=[];profile={...DEFAULT_PROFILE,createdAt:Date.now()};settings={...DEFAULT_SETTINGS};window.dispatchEvent(new CustomEvent("onebase:legacy-settings-changed",{detail:settings}));window.OneBaseCustomWebs?.reload?.();window.OneBaseLootV2?.reload?.();applyTheme("ink");render();closeSettings();toast("Datos locales borrados");
 });
 
 document.getElementById("exportBtn").addEventListener("click",exportComplete);
@@ -2023,7 +2067,8 @@ document.getElementById("importFile").addEventListener("change",async e=>{
     const obj=JSON.parse(await file.text());
     const incoming=Array.isArray(obj)?obj:obj.data;
     if(!Array.isArray(incoming))throw new Error("Formato");
-    if(!confirm(`¿Importar ${incoming.length} animes? Se hará una copia del estado actual antes de reemplazarlo.`)){e.target.value="";return;}
+    const importedScreens=Array.isArray(obj.screenLibrary)?obj.screenLibrary.length:0;
+    if(!confirm(`¿Importar ${incoming.length} animes y ${importedScreens} películas o series? Se hará una copia completa antes de reemplazarlo.`)){e.target.value="";return;}
     createBackup("Antes de importar",true);
     restoreSnapshot(obj,{fromImport:true});
     if(Array.isArray(obj.backups)){backups=obj.backups.slice(0,5);storeJson(BACKUPS_STORAGE,backups);}
