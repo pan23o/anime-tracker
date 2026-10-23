@@ -235,7 +235,7 @@ function refreshEpisodeMetadata(item){
       const next=media.nextAiringEpisode||null,status=String(media.status||'').toUpperCase();
       item.anilistId=Number(media.id);item.aniId=Number(media.id);item.apiStatus=status;item.anilistStatus=status;
       item.nextAiringAt=Number(next?.airingAt)||0;item.nextAiringEpisode=Number(next?.episode)||0;
-      if(Number(media.episodes)>0){item.knownTotal=String(media.episodes);if(!(Number(item.total)>0))item.total=String(media.episodes)}
+      if(Number(media.episodes)>0){const knownBefore=Number(item.knownTotal)||0,totalBefore=Number(item.total)||0,episodeTotal=Number(media.episodes);if(!totalBefore||(knownBefore>0&&totalBefore===knownBefore))item.total=String(episodeTotal);item.knownTotal=String(episodeTotal)}
       try{window.save?.({skipBackup:true})}catch(_){}
       if($('#onebaseEpisodesModal')?.classList.contains('open')&&getData()[episodeIndex]===item)renderEpisodes();
       return true;
@@ -544,8 +544,11 @@ function refreshAniListReleases(force=false){
     if(String(x.anilistStatus||'').toUpperCase()!==status){x.anilistStatus=status;changed=true}
     if(Number(x.nextAiringAt||0)!==airingAt){x.nextAiringAt=airingAt;changed=true}
     if(Number(x.nextAiringEpisode||0)!==episode){x.nextAiringEpisode=episode;changed=true}
-    if(media.episodes&&Number(x.total||x.knownTotal||0)<=0){x.total=String(media.episodes);changed=true}
-    if(media.episodes&&Number(x.knownTotal||0)<=0){x.knownTotal=String(media.episodes);changed=true}
+    if(Number(media.episodes)>0){
+     const knownBefore=Number(x.knownTotal)||0,totalBefore=Number(x.total)||0,episodeTotal=Number(media.episodes);
+     if(!totalBefore||(knownBefore>0&&totalBefore===knownBefore)){if(String(x.total)!==String(episodeTotal)){x.total=String(episodeTotal);changed=true}}
+     if(knownBefore!==episodeTotal){x.knownTotal=String(episodeTotal);changed=true}
+    }
    });
    aniListReleaseLastRefresh=Date.now();
    if(changed){try{window.save?.({skipBackup:true})}catch(_){}}
