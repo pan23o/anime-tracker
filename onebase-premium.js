@@ -496,39 +496,45 @@ function refreshAniListReleases(force=false){
  const now=Date.now();
  if(aniListReleaseRefresh)return aniListReleaseRefresh;
  if(!force&&now-aniListReleaseLastRefresh<5*60*1000)return Promise.resolve(false);
- const tracked=items().filter(o=>Number(o.x.anilistId||o.x.aniId)>0);
+ const tracked=items().filter(o=>String(o.x.anime||'').trim());
  if(!tracked.length){aniListReleaseLastRefresh=now;return Promise.resolve(false)}
- const ids=[...new Set(tracked.map(o=>Number(o.x.anilistId||o.x.aniId)).filter(Number.isInteger))];
+ const entries=tracked.map(({x})=>({id:Number(x.anilistId||x.aniId)||0,title:String(x.anime||'').trim()}));
  aniListReleaseLastRefresh=now;
- aniListReleaseRefresh=fetch('/api/anilist-search',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({action:'airing',ids})})
+ aniListReleaseRefresh=fetch('/api/anilist-search',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({action:'airing',items:entries})})
   .then(async response=>{const payload=await response.json().catch(()=>null);if(!response.ok||!payload?.ok)throw new Error(payload?.error||'AniList indisponible');return Array.isArray(payload.results)?payload.results:[]})
   .then(results=>{
    const byId=new Map(results.map(media=>[Number(media.id),media]));
+   const byTitle=new Map();
+   const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+   results.forEach(media=>[media.title?.userPreferred,media.title?.romaji,media.title?.english,media.title?.native,...(Array.isArray(media.synonyms)?media.synonyms:[])].filter(Boolean).forEach(title=>byTitle.set(normalize(title),media)));
    let changed=false;
    tracked.forEach(({x})=>{
-    const media=byId.get(Number(x.anilistId||x.aniId));if(!media)return;
+    const id=Number(x.anilistId||x.aniId)||0;
+    const media=(id&&byId.get(id))||byTitle.get(normalize(x.anime));
+    if(!media)return;
     const next=media.nextAiringEpisode||null,status=String(media.status||'').toUpperCase();
     const airingAt=Number(next?.airingAt)||0,episode=Number(next?.episode)||0;
+    if(Number(x.anilistId||x.aniId)!==Number(media.id)){x.anilistId=Number(media.id);x.aniId=Number(media.id);changed=true}
     if(String(x.apiStatus||'').toUpperCase()!==status){x.apiStatus=status;changed=true}
     if(String(x.anilistStatus||'').toUpperCase()!==status){x.anilistStatus=status;changed=true}
     if(Number(x.nextAiringAt||0)!==airingAt){x.nextAiringAt=airingAt;changed=true}
     if(Number(x.nextAiringEpisode||0)!==episode){x.nextAiringEpisode=episode;changed=true}
-    if(media.episodes&&(!Number(x.total)||Number(x.total)<=0)){x.total=String(media.episodes);changed=true}
-    if(media.episodes&&(!Number(x.knownTotal)||Number(x.knownTotal)<=0)){x.knownTotal=String(media.episodes);changed=true}
+    if(media.episodes&&Number(x.total||x.knownTotal||0)<=0){x.total=String(media.episodes);changed=true}
+    if(media.episodes&&Number(x.knownTotal||0)<=0){x.knownTotal=String(media.episodes);changed=true}
    });
    aniListReleaseLastRefresh=Date.now();
    if(changed){try{window.save?.({skipBackup:true})}catch(_){}}
    return changed;
   })
   .catch(error=>{console.warn('[ONEBASE] No se pudo actualizar AniList para estrenos:',error);return false})
-  .finally(()=>{aniListReleaseRefresh=null;if(page==='episodes')render()});
+  .finally(()=>{aniListReleaseRefresh=null;if(page==='episodes'||page==='releases')render()});
  return aniListReleaseRefresh;
 }
 function animeStatus(x){return String(x?.apiStatus||x?.anilistStatus||'').toUpperCase()}
 function animeHasPendingRelease(item,now=Date.now()){
  const status=animeStatus(item);
  if(status==='FINISHED'||status==='CANCELLED')return false;
- return Number(item?.nextAiringAt)*1000>now||status==='RELEASING'||status==='NOT_YET_RELEASED'||status==='HIATUS'||item?.state==='espera';
+ return Number(item?.nextAiringAt)>now/1000||status==='RELEASING'||status==='NOT_YET_RELEASED'||status==='HIATUS';
 }
 function releaseTimestamp(value){
  if(value===null||value===undefined||value==='')return 0;
@@ -550,14 +556,13 @@ function releaseEntries(kind){
  if(kind==='anime'){
   items().forEach(o=>{
    const x=o.x,status=animeStatus(x),at=releaseTimestamp(x.nextAiringAt),watched=Math.max(0,Math.floor(Number(x.watched)||0)),total=Math.max(0,Number(x.total)||Number(x.knownTotal)||0);
-   // Finalizados/cancelados no son estrenos pendientes, aunque el estado personal sea "En espera".
    if(status==='FINISHED'||status==='CANCELLED')return;
    const hasFutureDate=at>now;
-   const hasKnownUpcomingStatus=['RELEASING','NOT_YET_RELEASED','HIATUS'].includes(status);
-   const waiting=!hasFutureDate&&(x.state==='espera'||hasKnownUpcomingStatus);
+   const waiting=!hasFutureDate&&['RELEASING','NOT_YET_RELEASED','HIATUS'].includes(status);
    if(!hasFutureDate&&!waiting)return;
    const airingEpisode=Number(x.nextAiringEpisode)||0,nextEpisode=watched+1;
-   out.push({kind:'anime',id:o.i,title:x.anime,cover:String(x.cover||x.coverImage||''),state:x.state||'pendiente',at:hasFutureDate?at:0,label:airingEpisode>0?'Episodio '+airingEpisode:(nextEpisode>0?'Episodio '+nextEpisode:'Próximo episodio'),date:releaseDateLabel(hasFutureDate?at:0),watchEpisode:nextEpisode,watched,total,season:0});
+   const episodeLabel=airingEpisode>0?'Episodio '+airingEpisode:(nextEpisode>0?'Episodio '+nextEpisode:'Próximo episodio');
+   out.push({kind:'anime',id:o.i,title:x.anime,cover:String(x.cover||x.coverImage||''),state:x.state||'pendiente',at:hasFutureDate?at:0,label:episodeLabel,date:releaseDateLabel(hasFutureDate?at:0),watchEpisode:airingEpisode>0?airingEpisode:nextEpisode,watched,total,season:0});
   });
  }else{
   screenItems().filter(x=>x.type===(kind==='series'?'tv':'movie')).forEach(x=>{
@@ -635,7 +640,7 @@ function releases(){
   const attrs=item.kind==='anime'?'data-epopen="'+item.id+'"':'data-media-open="'+item.kind+'" data-media-type="'+(item.kind==='series'?'tv':'movie')+'" data-media-id="'+esc(item.id)+'"';
   const stateLabel=status[item.state]||'En espera';
   const count=item.at?'<div class="ob-release-countdown" data-release-at="'+item.at+'">'+esc(countdownText(item.at))+'</div>':'<div class="ob-release-countdown is-waiting">A la espera de fecha</div>';
-  const watchButton=item.watchEpisode>0&&(item.kind==='anime'||item.kind==='series')&&(item.watched>0||item.state==='viendo')?'<button type="button" class="ob-release-watch" data-release-watch data-release-watch-kind="'+item.kind+'" data-release-watch-id="'+esc(item.id)+'" data-release-title="'+esc(item.title)+'" data-release-episode="'+item.watchEpisode+'" data-release-watched="'+item.watched+'" data-release-total="'+item.total+'" data-release-season="'+item.season+'">▶ Ver capítulo '+item.watchEpisode+'</button>':'';
+  const watchButton=item.watchEpisode>0&&(item.kind==='anime'||item.kind==='series')?'<button type="button" class="ob-release-watch" data-release-watch data-release-watch-kind="'+item.kind+'" data-release-watch-id="'+esc(item.id)+'" data-release-title="'+esc(item.title)+'" data-release-episode="'+item.watchEpisode+'" data-release-watched="'+item.watched+'" data-release-total="'+item.total+'" data-release-season="'+item.season+'">▶ Ver capítulo '+item.watchEpisode+'</button>':'';
   return '<article class="ob-release-card '+(item.state==='espera'?'is-waiting':item.state==='terminado'?'is-completed':item.state==='viendo'?'is-watching':'')+'"><button type="button" class="ob-release-open" '+attrs+'><span class="ob-release-cover">'+(item.cover?'<img loading="lazy" src="'+esc(item.cover)+'" alt="">':'<span>ONEBASE</span>')+'</span><span class="ob-release-copy"><span class="ob-release-meta"><span>'+esc(stateLabel)+'</span><span>'+esc(item.kind==='anime'?'Anime':item.kind==='series'?'Serie':'Película')+'</span></span><strong>'+esc(item.title)+'</strong><small>'+esc(item.label)+(item.date?' · '+esc(item.date):'')+'</small>'+count+'</span><span class="ob-release-arrow">→</span></button>'+watchButton+'</article>';
  }).join('');
  const empty='<div class="ob-empty ob-empty-large"><span>◷</span><h3>No hay estrenos próximos aquí</h3><p>Cuando haya una fecha de estreno o pongas un título <b>En espera</b>, aparecerá en esta lista.</p><button type="button" class="ob-page-add" data-go="library">Ir a mi biblioteca</button></div>';
