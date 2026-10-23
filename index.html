@@ -848,7 +848,8 @@ function normalizeItem(raw){
   item.airedEpisodes=String(item.airedEpisodes||"");
   item.plannedEpisodes=String(item.plannedEpisodes||"");
   item.newEpisodes=Number(item.newEpisodes)||0;
-  if(Number(item.total)>0 && Number(item.watched)>=Number(item.total)) item.state="terminado";
+  const airing=String(item.apiStatus||"").toUpperCase()==="RELEASING" || Number(item.nextAiringAt)*1000>Date.now();
+  if(!airing && Number(item.total)>0 && Number(item.watched)>=Number(item.total)) item.state="terminado";
   item.addedAt=Number(item.addedAt)||Date.now();
   item.updatedAt=Number(item.updatedAt)||item.addedAt;
   return item;
@@ -1221,8 +1222,10 @@ function createRow(i){
       }
     }
     if(data[i].total){
-      if(Number(v)>=Number(data[i].total)) data[i].state="terminado";
-      else if(data[i].state==="terminado") data[i].state="viendo";
+      const airing=String(data[i].apiStatus||"").toUpperCase()==="RELEASING" || Number(data[i].nextAiringAt)*1000>Date.now();
+      if(Number(v)>=Number(data[i].total) && !airing) data[i].state="terminado";
+      else if(Number(v)>=Number(data[i].total) && airing && data[i].state==="terminado") data[i].state="viendo";
+      else if(Number(v)<Number(data[i].total) && data[i].state==="terminado") data[i].state="viendo";
     }
     if(data[i].total && Number(v)>=Number(data[i].total)) data[i].newEpisodes=0;
     data[i].updatedAt=Date.now();
@@ -1717,7 +1720,8 @@ document.getElementById("infoSave").addEventListener("click",()=>{
   item.favorite=document.getElementById("infoFav").checked;
   item.updatedAt=Date.now();
   if(item.state==="terminado"&&item.total)item.watched=String(item.total);
-  if(Number(item.total)>0&&Number(item.watched)>=Number(item.total))item.state="terminado";
+  const airing=String(item.apiStatus||"").toUpperCase()==="RELEASING" || Number(item.nextAiringAt)*1000>Date.now();
+  if(!airing && Number(item.total)>0&&Number(item.watched)>=Number(item.total))item.state="terminado";
   save();render();closeInfoModal();toast("Ficha guardada");
 });
 document.getElementById("infoSources").addEventListener("click",()=>{

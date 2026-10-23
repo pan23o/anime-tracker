@@ -47,7 +47,7 @@ html = html.replace(/<\/head>/i, `${headAssets}\n</head>`);
 html = html.replace(/profile-enhancer\.js(?:\?[^"']*)?/g, 'profile-enhancer.js?v=11');
 
 const runtimeScripts = [
-  ['onebase-auto-complete.js', 'v=4'],
+  ['onebase-auto-complete.js', 'v=5'],
   ['onebase-instant-save.js', 'v=5'],
   ['onebase-notification-setup.js', 'v=4'],
   ['onebase-episode-notifications.js', 'v=5'],
@@ -58,14 +58,14 @@ const runtimeScripts = [
   ['onebase-eye-v2.js', 'v=4'],
   ['onebase-experience-v1.js', 'v=3'],
   ['onebase-custom-webs-v3.js', 'v=13'],
-  ['onebase-source-search-v2.js', 'v=16'],
+  ['onebase-source-search-v2.js', 'v=17'],
   ['onebase-anilist-search.js', 'v=9'],
   ['onebase-anime-add-cleanup.js', 'v=2'],
-  ['onebase-premium.js', 'v=49'],
+  ['onebase-premium.js', 'v=50'],
   ['onebase-loot-v2.js', 'v=29'],
   ['onebase-integrations.js', 'v=1'],
   ['onebase-beast.js', 'v=1'],
-  ['onebase-screen-library.js', 'v=15']
+  ['onebase-screen-library.js', 'v=16']
 ];
 
 // The source index can already contain older copies of these scripts. Remove them

@@ -34,6 +34,10 @@
       // A completion can only be inferred when the maximum episode count is known.
       if (!Number.isFinite(total) || total <= 0) continue;
       if (!Number.isFinite(watched) || watched < total) continue;
+      const airing = String(item.apiStatus || '').toUpperCase() === 'RELEASING'
+        || Number(item.nextAiringAt) * 1000 > Date.now()
+        || item.state === 'espera';
+      if (airing) continue;
 
       if (item.watched !== String(total)) {
         item.watched = String(total);

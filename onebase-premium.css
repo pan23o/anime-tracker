@@ -849,3 +849,11 @@ body[data-theme] .ob-section-card>header{
 .ob-anime-card.is-waiting .ob-card-meta span:first-child{color:#d5a3ff;border-color:rgba(181,111,255,.46);background:rgba(181,111,255,.12)}
 @media(max-width:720px){.ob-release-grid{grid-template-columns:1fr}.ob-release-page{padding:15px;border-radius:18px}}
 @media(max-width:420px){.ob-release-open{grid-template-columns:52px minmax(0,1fr) auto;gap:9px;padding:9px}.ob-release-cover{width:52px}.ob-release-copy strong{font-size:11px}.ob-release-countdown{font-size:10px}}
+
+/* Completed cards and their cover frame use the same distinct blue status color. */
+.ob-anime-card.is-completed::before{border-color:#5b99ff!important;box-shadow:0 0 18px #5b99ff44!important}
+.ob-anime-card.is-completed .ob-card-open{border-color:rgba(91,153,255,.82)!important;box-shadow:0 0 0 1px rgba(91,153,255,.3),0 0 25px rgba(91,153,255,.18),0 14px 38px rgba(0,0,0,.24)!important}
+.ob-anime-card.is-completed .ob-card-cover::after{background:linear-gradient(90deg,#397ee8,#9bc6ff)!important}
+.ob-release-watch{display:block;width:calc(100% - 20px);margin:0 10px 10px;padding:11px 13px;border:1px solid rgba(91,153,255,.46);border-radius:11px;background:rgba(91,153,255,.12);color:#c9dcff;font:700 12px Inter,system-ui,sans-serif;text-align:center;cursor:pointer;transition:background .18s ease,border-color .18s ease,transform .18s ease}
+.ob-release-watch:hover{transform:translateY(-1px);border-color:#7daeff;background:rgba(91,153,255,.2)}
+.ob-release-watch:focus-visible{outline:2px solid #9bc6ff;outline-offset:2px}
