@@ -229,7 +229,7 @@ function refreshEpisodeMetadata(item){
   const promise=fetch('/api/anilist-search',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({action:'airing',items:[{id,title:String(item.anime).trim()}]})})
     .then(async response=>{const payload=await response.json().catch(()=>null);if(!response.ok||!payload?.ok)throw new Error(payload?.error||'AniList indisponible');return Array.isArray(payload.results)?payload.results:[]})
     .then(results=>{
-      const normalize=value=>String(value||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+      const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
       const media=results.find(x=>Number(x.id)===id)||results.find(x=>[x.title?.userPreferred,x.title?.romaji,x.title?.english,x.title?.native,...(Array.isArray(x.synonyms)?x.synonyms:[])].filter(Boolean).some(t=>normalize(t)===normalize(item.anime)));
       if(!media)return false;
       const next=media.nextAiringEpisode||null,status=String(media.status||'').toUpperCase();
