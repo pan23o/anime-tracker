@@ -491,7 +491,44 @@ function library(){
  '<div class="ob-library-tabs">'+kinds+'</div><div class="ob-library-tools"><input id="obLibSearch" value="'+esc(q)+'" placeholder="Buscar en la biblioteca…" autocomplete="off"><details class="ob-library-filters" open><summary>☷ Filtros</summary><div class="ob-library-filter-grid"><select id="obLibStatus"><option value="all">Todos los estados</option>'+opts+'</select><select id="obLibGenre"><option value="all">Todos los géneros</option>'+genresFor.map(x=>'<option value="'+esc(x)+'" '+(genre===x?'selected':'')+'>'+esc(x)+'</option>').join('')+'</select><select id="obLibSort"><option value="recent" '+(sort==='recent'?'selected':'')+'>Más recientes</option><option value="name" '+(sort==='name'?'selected':'')+'>Nombre A-Z</option><option value="score" '+(sort==='score'?'selected':'')+'>Mayor nota</option></select>'+(animeOnly?'<select id="obLibScore"><option value="all">Cualquier nota</option><option value="rated" '+(score==='rated'?'selected':'')+'>Con nota personal</option><option value="8" '+(score==='8'?'selected':'')+'>Nota ≥ 8</option><option value="9" '+(score==='9'?'selected':'')+'>Nota ≥ 9</option></select><select id="obLibProgress"><option value="all">Cualquier progreso</option><option value="none" '+(progress==='none'?'selected':'')+'>Sin empezar</option><option value="active" '+(progress==='active'?'selected':'')+'>En progreso</option><option value="complete" '+(progress==='complete'?'selected':'')+'>Completados</option><option value="new" '+(progress==='new'?'selected':'')+'>Con episodios nuevos</option><option value="airing" '+(progress==='airing'?'selected':'')+'>En emisión</option></select>':'')+'<button id="obLibFav" class="'+(fav?'active':'')+'">☆ Favoritos</button></div></details></div><div class="ob-library-meta"><span>'+a.length+' de '+all.filter(matchesKind).length+' elementos</span><span>Tarjeta: abre la ficha · portada en la ficha: Wikipedia</span></div><div class="ob-library-grid">'+cards+'</div>');
 }
 
-function animeHasPendingRelease(item,now=Date.now()){return String(item?.apiStatus||'').toUpperCase()==='RELEASING'||Number(item?.nextAiringAt)*1000>now||item?.state==='espera'}
+let aniListReleaseRefresh=null,aniListReleaseLastRefresh=0;
+function refreshAniListReleases(force=false){
+ const now=Date.now();
+ if(aniListReleaseRefresh)return aniListReleaseRefresh;
+ if(!force&&now-aniListReleaseLastRefresh<5*60*1000)return Promise.resolve(false);
+ const tracked=items().filter(o=>Number(o.x.anilistId||o.x.aniId)>0);
+ if(!tracked.length){aniListReleaseLastRefresh=now;return Promise.resolve(false)}
+ const ids=[...new Set(tracked.map(o=>Number(o.x.anilistId||o.x.aniId)).filter(Number.isInteger))];
+ aniListReleaseRefresh=fetch('/api/anilist-airing',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({ids})})
+  .then(async response=>{const payload=await response.json().catch(()=>null);if(!response.ok||!payload?.ok)throw new Error(payload?.error||'AniList indisponible');return Array.isArray(payload.results)?payload.results:[]})
+  .then(results=>{
+   const byId=new Map(results.map(media=>[Number(media.id),media]));
+   let changed=false;
+   tracked.forEach(({x})=>{
+    const media=byId.get(Number(x.anilistId||x.aniId));if(!media)return;
+    const next=media.nextAiringEpisode||null,status=String(media.status||'').toUpperCase();
+    const airingAt=Number(next?.airingAt)||0,episode=Number(next?.episode)||0;
+    if(String(x.apiStatus||'').toUpperCase()!==status){x.apiStatus=status;changed=true}
+    if(String(x.anilistStatus||'').toUpperCase()!==status){x.anilistStatus=status;changed=true}
+    if(Number(x.nextAiringAt||0)!==airingAt){x.nextAiringAt=airingAt;changed=true}
+    if(Number(x.nextAiringEpisode||0)!==episode){x.nextAiringEpisode=episode;changed=true}
+    if(media.episodes&&(!Number(x.total)||Number(x.total)<=0)){x.total=String(media.episodes);changed=true}
+    if(media.episodes&&(!Number(x.knownTotal)||Number(x.knownTotal)<=0)){x.knownTotal=String(media.episodes);changed=true}
+   });
+   aniListReleaseLastRefresh=Date.now();
+   if(changed){try{window.save?.({skipBackup:true})}catch(_){}}
+   return changed;
+  })
+  .catch(error=>{console.warn('[ONEBASE] No se pudo actualizar AniList para estrenos:',error);return false})
+  .finally(()=>{aniListReleaseRefresh=null;if(page==='episodes')render()});
+ return aniListReleaseRefresh;
+}
+function animeStatus(x){return String(x?.apiStatus||x?.anilistStatus||'').toUpperCase()}
+function animeHasPendingRelease(item,now=Date.now()){
+ const status=animeStatus(item);
+ if(status==='FINISHED'||status==='CANCELLED')return false;
+ return Number(item?.nextAiringAt)*1000>now||status==='RELEASING'||status==='NOT_YET_RELEASED'||status==='HIATUS'||item?.state==='espera';
+}
 function releaseTimestamp(value){
  if(value===null||value===undefined||value==='')return 0;
  if(typeof value==='number'||/^\\d{9,13}$/.test(String(value).trim())){
@@ -511,14 +548,15 @@ function releaseEntries(kind){
  const now=Date.now(),out=[];
  if(kind==='anime'){
   items().forEach(o=>{
-   const x=o.x,at=releaseTimestamp(x.nextAiringAt),watched=Math.max(0,Math.floor(Number(x.watched)||0)),total=Math.max(0,Number(x.total)||Number(x.knownTotal)||0),waiting=x.state==='espera';
-   const airing=String(x.apiStatus||'').toUpperCase()==='RELEASING'||at>now;
-   const following=(x.state==='viendo'||watched>0)&&(!total||watched<total);
-   const continuing=airing&&(x.state==='viendo'||watched>0);
-   if(at>now||waiting||following||continuing){
-    const nextEpisode=watched+1,airingEpisode=Number(x.nextAiringEpisode)||0;
-    out.push({kind:'anime',id:o.i,title:x.anime,cover:String(x.cover||x.coverImage||''),state:x.state||'pendiente',at:at>now?at:0,label:airingEpisode>0?'Episodio '+airingEpisode:(nextEpisode>0?'Episodio '+nextEpisode:'Próximo episodio'),date:releaseDateLabel(at),watchEpisode:nextEpisode,watched,total,season:0});
-   }
+   const x=o.x,status=animeStatus(x),at=releaseTimestamp(x.nextAiringAt),watched=Math.max(0,Math.floor(Number(x.watched)||0)),total=Math.max(0,Number(x.total)||Number(x.knownTotal)||0);
+   // Finalizados/cancelados no son estrenos pendientes, aunque el estado personal sea "En espera".
+   if(status==='FINISHED'||status==='CANCELLED')return;
+   const hasFutureDate=at>now;
+   const hasKnownUpcomingStatus=['RELEASING','NOT_YET_RELEASED','HIATUS'].includes(status);
+   const waiting=!hasFutureDate&&(x.state==='espera'||hasKnownUpcomingStatus);
+   if(!hasFutureDate&&!waiting)return;
+   const airingEpisode=Number(x.nextAiringEpisode)||0,nextEpisode=watched+1;
+   out.push({kind:'anime',id:o.i,title:x.anime,cover:String(x.cover||x.coverImage||''),state:x.state||'pendiente',at:hasFutureDate?at:0,label:airingEpisode>0?'Episodio '+airingEpisode:(nextEpisode>0?'Episodio '+nextEpisode:'Próximo episodio'),date:releaseDateLabel(hasFutureDate?at:0),watchEpisode:nextEpisode,watched,total,season:0});
   });
  }else{
   screenItems().filter(x=>x.type===(kind==='series'?'tv':'movie')).forEach(x=>{
@@ -587,6 +625,7 @@ function startReleaseTimer(){
 }
 function releases(){
  hydrateReleaseDetails();
+ void refreshAniListReleases();
  const definitions=[['movies','Películas'],['series','Series'],['anime','Anime']];
  const counts=Object.fromEntries(definitions.map(([key])=>[key,releaseEntries(key).length]));
  const tabs=definitions.map(([key,label])=>'<button type="button" class="ob-release-tab '+(releaseKind===key?'active':'')+'" data-release-kind="'+key+'">'+label+' <span>'+counts[key]+'</span></button>').join('');
