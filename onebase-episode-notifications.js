@@ -25,8 +25,10 @@
     } catch (_) {}
   }
   async function getClient() {
+    if (window.OneBaseSupabase) return window.OneBaseSupabase;
     if (!window.supabase?.createClient) return null;
-    return window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
+    window.OneBaseSupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
+    return window.OneBaseSupabase;
   }
   async function registerServiceWorker() {
     if (window.OneBaseNotifications?.register) return window.OneBaseNotifications.register();

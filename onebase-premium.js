@@ -52,8 +52,9 @@ const safeTransition=fn=>{
 function loadLocalPublic(){try{const v=JSON.parse(localStorage.getItem(PUBLIC_KEY)||'{}');return{enabled:Boolean(v.enabled),bio:String(v.bio||'').slice(0,280)}}catch(_){return{enabled:false,bio:''}}}
 function saveLocalPublic(){try{localStorage.setItem(PUBLIC_KEY,JSON.stringify(publicState))}catch(_){}}
 function supabaseClient(){
+  if(window.OneBaseSupabase){supa=window.OneBaseSupabase;return supa}
   if(supa)return supa;
-  try{if(window.supabase?.createClient)supa=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}})}catch(e){console.warn('[ONEBASE] premium Supabase client',e)}
+  try{if(window.supabase?.createClient){supa=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});window.OneBaseSupabase=supa}}catch(e){console.warn('[ONEBASE] premium Supabase client',e)}
   return supa;
 }
 async function currentUser(){

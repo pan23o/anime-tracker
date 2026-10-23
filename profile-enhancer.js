@@ -22,6 +22,7 @@
   const client = window.supabase?.createClient?.(SUPABASE_URL, SUPABASE_KEY, {
     auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
   });
+  if (client) window.OneBaseSupabase = client;
 
   if (!client) { console.error('[AnimeTracker] Supabase client unavailable'); return; }
 
