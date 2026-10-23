@@ -36,40 +36,69 @@ function json(res, status, body) {
 }
 
 module.exports = async function handler(req, res) {
-  // Share the existing AniList function to stay within Vercel Hobby's function limit.
+  // Reuse this endpoint for refreshing calendar metadata without adding another serverless function.
   if (req.method === 'POST' && req.body?.action === 'airing') {
-    const ids = [...new Set((Array.isArray(req.body?.ids) ? req.body.ids : [])
-      .map(Number).filter(id => Number.isInteger(id) && id > 0))].slice(0, 50);
-    if (!ids.length) return json(res, 200, { ok: true, results: [] });
+    const entries = Array.isArray(req.body?.items) ? req.body.items.slice(0, 50) : [];
+    const ids = [...new Set([
+      ...(Array.isArray(req.body?.ids) ? req.body.ids : []),
+      ...entries.map(item => item?.id)
+    ].map(Number).filter(id => Number.isInteger(id) && id > 0))].slice(0, 50);
+    const missing = entries.filter(item => !Number(item?.id) && String(item?.title || '').trim().length >= 2).slice(0, 20);
+    const fields = `id idMal title { romaji english native userPreferred } synonyms status episodes nextAiringEpisode { airingAt episode }`;
+    const results = new Map();
     try {
-      const upstream = await fetch(ANILIST_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({
-          query: `query ($ids: [Int]) {
-            Page(page: 1, perPage: 50) {
-              media(id_in: $ids, type: ANIME) {
-                id
-                status
-                episodes
-                nextAiringEpisode { airingAt episode }
-              }
-            }
-          }`,
-          variables: { ids }
-        })
-      });
-      const payload = await upstream.json().catch(() => null);
-      if (!upstream.ok || payload?.errors?.length) {
-        const limited = upstream.status === 429 || payload?.errors?.some(e => Number(e?.status) === 429);
-        if (limited) {
-          const retryAfter = upstream.headers.get('retry-after');
-          if (retryAfter) res.setHeader('Retry-After', retryAfter);
-          return json(res, 429, { ok: false, error: 'AniList está limitando temporalmente las consultas.' });
+      if (ids.length) {
+        const upstream = await fetch(ANILIST_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({
+            query: `query ($ids: [Int]) { Page(page: 1, perPage: 50) { media(id_in: $ids, type: ANIME) { ${fields} } } }`,
+            variables: { ids }
+          })
+        });
+        const payload = await upstream.json().catch(() => null);
+        if (!upstream.ok || payload?.errors?.length) {
+          const limited = upstream.status === 429 || payload?.errors?.some(e => Number(e?.status) === 429 || /too many requests/i.test(String(e?.message || '')));
+          if (limited) {
+            const retryAfter = upstream.headers.get('retry-after');
+            if (retryAfter) res.setHeader('Retry-After', retryAfter);
+            return json(res, 429, { ok: false, error: 'AniList está limitando temporalmente las consultas.' });
+          }
+          return json(res, 502, { ok: false, error: 'No se pudo actualizar el calendario de AniList.' });
         }
-        return json(res, 502, { ok: false, error: 'No se pudo actualizar el calendario de AniList.' });
+        for (const media of payload?.data?.Page?.media || []) results.set(Number(media.id), media);
       }
-      return json(res, 200, { ok: true, results: payload?.data?.Page?.media || [] });
+      const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+      for (const entry of missing) {
+        const title = String(entry.title || '').trim();
+        const upstream = await fetch(ANILIST_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({
+            query: `query ($search: String!) { Page(page: 1, perPage: 10) { media(search: $search, type: ANIME, isAdult: false, sort: [SEARCH_MATCH, POPULARITY_DESC]) { ${fields} } } }`,
+            variables: { search: title }
+          })
+        });
+        const payload = await upstream.json().catch(() => null);
+        if (!upstream.ok || payload?.errors?.length) {
+          const limited = upstream.status === 429 || payload?.errors?.some(e => Number(e?.status) === 429 || /too many requests/i.test(String(e?.message || '')));
+          if (limited) {
+            const retryAfter = upstream.headers.get('retry-after');
+            if (retryAfter) res.setHeader('Retry-After', retryAfter);
+            return json(res, 429, { ok: false, error: 'AniList está limitando temporalmente las consultas.' });
+          }
+          continue;
+        }
+        const candidates = payload?.data?.Page?.media || [];
+        const wanted = normalize(title);
+        const exact = candidates.find(media => [
+          media.title?.userPreferred, media.title?.romaji, media.title?.english, media.title?.native,
+          ...(Array.isArray(media.synonyms) ? media.synonyms : [])
+        ].some(value => normalize(value) === wanted));
+        const match = exact || (candidates.length === 1 ? candidates[0] : null);
+        if (match) results.set(Number(match.id), match);
+      }
+      return json(res, 200, { ok: true, results: [...results.values()] });
     } catch (error) {
       console.error('[ONEBASE] AniList airing refresh failed:', error);
       return json(res, 502, { ok: false, error: 'AniList no está disponible temporalmente.' });
