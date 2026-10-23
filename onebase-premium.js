@@ -500,7 +500,7 @@ function refreshAniListReleases(force=false){
  if(!tracked.length){aniListReleaseLastRefresh=now;return Promise.resolve(false)}
  const ids=[...new Set(tracked.map(o=>Number(o.x.anilistId||o.x.aniId)).filter(Number.isInteger))];
  aniListReleaseLastRefresh=now;
- aniListReleaseRefresh=fetch('/api/anilist-airing',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({ids})})
+ aniListReleaseRefresh=fetch('/api/anilist-search',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({action:'airing',ids})})
   .then(async response=>{const payload=await response.json().catch(()=>null);if(!response.ok||!payload?.ok)throw new Error(payload?.error||'AniList indisponible');return Array.isArray(payload.results)?payload.results:[]})
   .then(results=>{
    const byId=new Map(results.map(media=>[Number(media.id),media]));
