@@ -281,7 +281,7 @@ function renderEpisodes(){
 }
 function setWatchedEpisode(ep){
   const item=getData()[episodeIndex];if(!item)return;
-  const total=Number(item.total)||Number(item.knownTotal)||0;
+  const total=episodeCount(item);
   item.watched=String(total?Math.min(ep,total):Math.max(0,ep));
   item.newEpisodes=total?Math.max(0,total-Number(item.watched)):0;
   item.state=total&&Number(item.watched)>=total&&!animeHasPendingRelease(item)?'terminado':(item.state==='terminado'?'viendo':item.state||'viendo');
@@ -297,15 +297,15 @@ function episodeAction(action){
   if(action==='close'){closeEpisodes();return}
   if(action==='source'){
     const row=document.querySelector('.row[data-index="'+episodeIndex+'"]');
-    const total=Number(item.total)||Number(item.knownTotal)||0,watched=Number(item.watched)||0;
+    const total=episodeCount(item),watched=Number(item.watched)||0;
     if(total&&watched>=total&&!animeHasPendingRelease(item)){window.toast?.('Ya has visto todos los episodios disponibles.');return}
     const ep=watched+1;
     const modal=$('#sourceModal');if(modal)modal.dataset.sourceEpisode=String(ep);
     row?.querySelector('.animeLink')?.click();closeEpisodes();return;
   }
-  if(action==='latest'){const t=Number(item.total)||Number(item.knownTotal)||0;if(t)setWatchedEpisode(t);return}
+  if(action==='latest'){const t=episodeCount(item);if(t)setWatchedEpisode(t);return}
   if(action==='first'){setWatchedEpisode(0);return}
-  if(action==='jump'){const field=$('#onebaseEpisodeJump'),t=Number(item.total)||Number(item.knownTotal)||0;if(!t)return;const v=Math.min(t,Math.max(1,Math.floor(Number(field?.value)||1)));episodePage=Math.floor((v-1)/50);renderEpisodes();const target=$('#onebaseEpisodeGrid [data-ep="'+v+'"]');target?.focus();target?.scrollIntoView({block:'nearest'})}
+  if(action==='jump'){const field=$('#onebaseEpisodeJump'),t=episodeCount(item);if(!t)return;const v=Math.min(t,Math.max(1,Math.floor(Number(field?.value)||1)));episodePage=Math.floor((v-1)/50);renderEpisodes();const target=$('#onebaseEpisodeGrid [data-ep="'+v+'"]');target?.focus();target?.scrollIntoView({block:'nearest'})}
 }
 function captureInfoClick(e){
   const b=e.target?.closest?.('.infoBtn');if(!b)return;
