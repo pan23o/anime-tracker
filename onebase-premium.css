@@ -857,3 +857,10 @@ body[data-theme] .ob-section-card>header{
 .ob-release-watch{display:block;width:calc(100% - 20px);margin:0 10px 10px;padding:11px 13px;border:1px solid rgba(91,153,255,.46);border-radius:11px;background:rgba(91,153,255,.12);color:#c9dcff;font:700 12px Inter,system-ui,sans-serif;text-align:center;cursor:pointer;transition:background .18s ease,border-color .18s ease,transform .18s ease}
 .ob-release-watch:hover{transform:translateY(-1px);border-color:#7daeff;background:rgba(91,153,255,.2)}
 .ob-release-watch:focus-visible{outline:2px solid #9bc6ff;outline-offset:2px}
+
+/* Anime episode fallback controls */
+.onebase-episode-manual{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:9px;padding:14px;border:1px solid #39342a;border-radius:13px;background:#171613}
+.onebase-episode-manual label{width:100%;color:#d5c7ad;font-size:12px;font-weight:800}
+.onebase-episode-manual input{flex:1;min-width:110px;min-height:40px;padding:9px 11px;border:1px solid #49443a;border-radius:9px;background:#100f0d;color:#f2ede4}
+.onebase-episode-manual button{min-height:40px;padding:9px 12px;border:1px solid #8e713f;border-radius:9px;background:#282218;color:#f1dfbd;font-size:11px;font-weight:800;cursor:pointer}
+.onebase-episode-manual button:disabled{opacity:.5;cursor:wait}
