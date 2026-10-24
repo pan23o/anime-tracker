@@ -70,6 +70,20 @@ module.exports = async function handler(req, res) {
       const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
       // Verify saved IDs against the title. Older library records can contain a stale or mismatched ID.
       const titleOf = media => [media.title?.userPreferred,media.title?.romaji,media.title?.english,media.title?.native,...(Array.isArray(media.synonyms)?media.synonyms:[])].filter(Boolean);
+      const matches = new Map();
+      const associate = (entry, media) => {
+        const key = Number(entry?.key), id = Number(media?.id);
+        if (Number.isSafeInteger(key) && key >= 0 && Number.isSafeInteger(id) && id > 0) matches.set(key, id);
+      };
+      entries.forEach(entry => {
+        const id = Number(entry?.id) || 0, media = id ? results.get(id) : null;
+        if (!media) return;
+        const wanted = normalize(entry?.title);
+        if (!wanted || titleOf(media).some(value => {
+          const candidate = normalize(value);
+          return candidate === wanted || candidate.startsWith(wanted + ' ') || wanted.startsWith(candidate + ' ');
+        })) associate(entry, media);
+      });
       const missing = entries.filter(item => {
         const title=String(item?.title||'').trim(),id=Number(item?.id)||0,media=id?results.get(id):null;
         if(title.length<2)return false;
@@ -108,9 +122,10 @@ module.exports = async function handler(req, res) {
         if (match) {
           if(Number(entry.id)&&Number(entry.id)!==Number(match.id))results.delete(Number(entry.id));
           results.set(Number(match.id), match);
+          associate(entry, match);
         }
       }
-      return json(res, 200, { ok: true, results: [...results.values()] });
+      return json(res, 200, { ok: true, results: [...results.values()], matches: [...matches].map(([key,id]) => ({ key, id })) });
     } catch (error) {
       console.error('[ONEBASE] AniList airing refresh failed:', error);
       return json(res, 502, { ok: false, error: 'AniList no está disponible temporalmente.' });

@@ -533,19 +533,21 @@ function refreshAniListReleases(force=false){
  if(!force&&now-aniListReleaseLastRefresh<5*60*1000)return Promise.resolve(false);
  const tracked=items().filter(o=>String(o.x.anime||'').trim());
  if(!tracked.length){aniListReleaseLastRefresh=now;return Promise.resolve(false)}
- const entries=tracked.map(({x})=>({id:Number(x.anilistId||x.aniId)||0,title:String(x.anime||'').trim()}));
+ const entries=tracked.map(({x,i})=>({key:i,id:Number(x.anilistId||x.aniId)||0,title:String(x.anime||'').trim()}));
  aniListReleaseLastRefresh=now;
  aniListReleaseRefresh=fetch('/api/anilist-search',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({action:'airing',items:entries})})
-  .then(async response=>{const payload=await response.json().catch(()=>null);if(!response.ok||!payload?.ok)throw new Error(payload?.error||'AniList indisponible');return Array.isArray(payload.results)?payload.results:[]})
-  .then(results=>{
+  .then(async response=>{const payload=await response.json().catch(()=>null);if(!response.ok||!payload?.ok)throw new Error(payload?.error||'AniList indisponible');return payload})
+  .then(payload=>{
+   const results=Array.isArray(payload.results)?payload.results:[];
    const byId=new Map(results.map(media=>[Number(media.id),media]));
+   const byEntryKey=new Map((Array.isArray(payload.matches)?payload.matches:[]).map(match=>[Number(match.key),byId.get(Number(match.id))]).filter(([key,media])=>Number.isSafeInteger(key)&&media));
    const byTitle=new Map();
    const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
    results.forEach(media=>[media.title?.userPreferred,media.title?.romaji,media.title?.english,media.title?.native,...(Array.isArray(media.synonyms)?media.synonyms:[])].filter(Boolean).forEach(title=>byTitle.set(normalize(title),media)));
    let changed=false;
-   tracked.forEach(({x})=>{
+   tracked.forEach(({x,i})=>{
     const id=Number(x.anilistId||x.aniId)||0;
-    const media=(id&&byId.get(id))||byTitle.get(normalize(x.anime));
+    const media=byEntryKey.get(i)||(id&&byId.get(id))||byTitle.get(normalize(x.anime));
     if(!media)return;
     const next=media.nextAiringEpisode||null,status=String(media.status||'').toUpperCase();
     const airingAt=Number(next?.airingAt)||0,episode=Number(next?.episode)||0;
