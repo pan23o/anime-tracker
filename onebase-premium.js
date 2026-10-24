@@ -425,7 +425,7 @@ function bindEvents(){
 }
 function boot(){
   if(booted)return;booted=true;
-  const link=document.createElement('link');link.rel='stylesheet';link.href='/onebase-premium.css?v=17';document.head.appendChild(link);
+  const link=document.createElement('link');link.rel='stylesheet';link.href='/onebase-premium.css?v=18';document.head.appendChild(link);
   ensureHealthButton();ensureHealth();ensureEpisodeModal();ensurePublicSection();wrapRender();bindEvents();refresh();void loadPublicSettings();void syncPublicSnapshot();
   window.OneBasePremium={refresh,openHealth,openEpisodes,openInfo:openInfoIndex,runHealth,publicUrl};
 }
