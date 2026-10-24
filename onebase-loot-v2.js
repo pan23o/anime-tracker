@@ -217,7 +217,7 @@ function opening(i){
   if(!document.getElementById('onebase-loot-cinema-style')){
     const style=document.createElement('style');style.id='onebase-loot-cinema-style';
     style.textContent=`
-#onebase-loot-cinema{position:fixed!important;inset:0!important;z-index:2147483640!important;display:block!important;overflow:auto!important;overscroll-behavior:contain;background:radial-gradient(ellipse at 50% 38%,#3a2a14 0%,#1a1713 44%,#0b0b0e 82%)!important;backdrop-filter:blur(8px)!important;-webkit-backdrop-filter:blur(8px)!important;color:#f8f2e9!important;font-family:system-ui,-apple-system,sans-serif!important;pointer-events:none!important}
+#onebase-loot-cinema{position:fixed!important;inset:0!important;z-index:2147483640!important;display:block!important;overflow:auto!important;overscroll-behavior:contain;background:radial-gradient(ellipse at 50% 38%,#1c1d21 0%,#111216 48%,#08090b 100%)!important;backdrop-filter:blur(8px)!important;-webkit-backdrop-filter:blur(8px)!important;color:#f8f2e9!important;font-family:system-ui,-apple-system,sans-serif!important;pointer-events:none!important}
 #onebase-loot-cinema *{box-sizing:border-box}
 #onebase-loot-cinema .obc-stage{position:relative;width:min(1320px,97vw);height:min(800px,96dvh);min-height:560px;margin:auto;isolation:isolate}
 #onebase-loot-cinema .obc-top{position:absolute;top:5%;left:0;right:0;text-align:center;color:#f0c66d;font-size:12px;font-weight:900;letter-spacing:3px}
@@ -232,7 +232,7 @@ function opening(i){
 #onebase-loot-cinema .obc-card{position:absolute;left:50%;top:46%;width:270px;height:390px;transform:translate(-50%,110px) scale(.5);opacity:0;border:3px solid #f6cb75;border-radius:14px;overflow:hidden;background:#322618;box-shadow:0 0 38px #efbd5c88,0 22px 65px #000d;z-index:10}
 #onebase-loot-cinema .obc-card img{width:100%;height:100%;object-fit:cover;display:block}
 #onebase-loot-cinema .obc-panel{position:absolute;left:calc(50% - 190px);top:46%;width:min(850px,64vw);transform:translateY(-50%);opacity:0;clip-path:inset(0 100% 0 0);z-index:8;pointer-events:none}
-#onebase-loot-cinema .obc-content{padding:36px 42px 36px 42px;min-height:400px;border:1px solid #a87d3b;border-radius:19px;background:linear-gradient(130deg,#292117,#131317 70%);box-shadow:0 20px 65px #000b}
+#onebase-loot-cinema .obc-content{padding:36px 42px 36px 42px;min-height:400px;border:1px solid #5b513d;border-radius:19px;background:linear-gradient(130deg,#202126,#111216 70%);box-shadow:0 20px 65px #000b}
 #onebase-loot-cinema .obc-tag{color:#edc478;font-size:10px;font-weight:900;letter-spacing:1px}
 #onebase-loot-cinema .obc-title{font-size:clamp(25px,2.35vw,38px);line-height:1.16;margin:14px 0 12px;font-weight:950;color:#fff}
 #onebase-loot-cinema .obc-meta{font-size:14px;color:#d1b991}
