@@ -70,6 +70,13 @@ module.exports = async function handler(req, res) {
       const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
       // Verify saved IDs against the title. Older library records can contain a stale or mismatched ID.
       const titleOf = media => [media.title?.userPreferred,media.title?.romaji,media.title?.english,media.title?.native,...(Array.isArray(media.synonyms)?media.synonyms:[])].filter(Boolean);
+      const titleMatches = (title, media) => {
+        const wanted = normalize(title), compactWanted = wanted.replace(/\s/g, '');
+        return !wanted || titleOf(media).some(value => {
+          const candidate = normalize(value), compactCandidate = candidate.replace(/\s/g, '');
+          return candidate === wanted || compactCandidate === compactWanted || candidate.startsWith(wanted + ' ') || wanted.startsWith(candidate + ' ');
+        });
+      };
       const matches = new Map();
       const associate = (entry, media) => {
         const key = Number(entry?.key), id = Number(media?.id);
@@ -78,18 +85,13 @@ module.exports = async function handler(req, res) {
       entries.forEach(entry => {
         const id = Number(entry?.id) || 0, media = id ? results.get(id) : null;
         if (!media) return;
-        const wanted = normalize(entry?.title);
-        if (!wanted || titleOf(media).some(value => {
-          const candidate = normalize(value);
-          return candidate === wanted || candidate.startsWith(wanted + ' ') || wanted.startsWith(candidate + ' ');
-        })) associate(entry, media);
+        if (titleMatches(entry?.title, media)) associate(entry, media);
       });
       const missing = entries.filter(item => {
         const title=String(item?.title||'').trim(),id=Number(item?.id)||0,media=id?results.get(id):null;
         if(title.length<2)return false;
         if(!media)return true;
-        const wanted=normalize(title);
-        return !titleOf(media).some(value=>normalize(value)===wanted||normalize(value).startsWith(wanted+' ')||wanted.startsWith(normalize(value)+' '));
+        return !titleMatches(title, media);
       }).slice(0,20);
       for (const entry of missing) {
         const title = String(entry.title || '').trim();
@@ -113,7 +115,7 @@ module.exports = async function handler(req, res) {
         }
         const candidates = payload?.data?.Page?.media || [];
         const wanted = normalize(title);
-        const exact = candidates.find(media => titleOf(media).some(value => normalize(value) === wanted));
+        const exact = candidates.find(media => titleOf(media).some(value => normalize(value) === wanted || normalize(value).replace(/\s/g, '') === wanted.replace(/\s/g, '')));
         const partial = candidates.find(media => titleOf(media).some(value => {
           const candidate=normalize(value);
           return candidate.startsWith(wanted+' ')||wanted.startsWith(candidate+' ')||candidate.includes(wanted);
@@ -125,6 +127,13 @@ module.exports = async function handler(req, res) {
           associate(entry, match);
         }
       }
+      // If an AniList ID is valid but the library title uses a different alias, keep the ID link.
+      entries.forEach(entry => {
+        const key = Number(entry?.key), id = Number(entry?.id) || 0;
+        if (matches.has(key) || !Number.isSafeInteger(key) || key < 0) return;
+        const media = id ? results.get(id) : null;
+        if (media) associate(entry, media);
+      });
       return json(res, 200, { ok: true, results: [...results.values()], matches: [...matches].map(([key,id]) => ({ key, id })) });
     } catch (error) {
       console.error('[ONEBASE] AniList airing refresh failed:', error);
