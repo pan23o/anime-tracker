@@ -221,11 +221,11 @@ function ensureEpisodeModal(){
   m.querySelectorAll('[data-ep-action]').forEach(b=>b.addEventListener('click',()=>episodeAction(b.dataset.epAction)));
 }
 const episodeMetadataRequests=new Map();
-function refreshEpisodeMetadata(item){
+function refreshEpisodeMetadata(item,force=false){
   if(!item||!String(item.anime||'').trim())return Promise.resolve(false);
   const id=Number(item.anilistId||item.aniId)||0,key=String(id||item.anime).toLowerCase();
   const existing=episodeMetadataRequests.get(key);
-  if(existing&&Date.now()-existing.time<5*60*1000)return existing.promise;
+  if(!force&&existing&&Date.now()-existing.time<5*60*1000)return existing.promise;
   const promise=fetch('/api/anilist-search',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({action:'airing',items:[{id,title:String(item.anime).trim()}]})})
     .then(async response=>{const payload=await response.json().catch(()=>null);if(!response.ok||!payload?.ok)throw new Error(payload?.error||'AniList indisponible');return Array.isArray(payload.results)?payload.results:[]})
     .then(results=>{
@@ -253,21 +253,31 @@ function openEpisodes(i){
   $('#onebaseEpisodesModal .onebase-episodes-close')?.focus();
 }
 function closeEpisodes(){safeTransition(()=>$('#onebaseEpisodesModal')?.classList.remove('open'))}
+function episodeCount(item){
+  return Math.max(0,Number(item?.total)||Number(item?.knownTotal)||Number(item?.episodes)||Number(item?.episodeCount)||Number(item?.chapters)||0);
+}
 function renderEpisodes(){
   const item=getData()[episodeIndex];if(!item)return;
-  const total=Math.max(0,Number(item.total)||Number(item.knownTotal)||0),watched=Math.max(0,Number(item.watched)||0),upcoming=animeHasPendingRelease(item);
+  const total=episodeCount(item),watched=Math.max(0,Number(item.watched)||0),upcoming=animeHasPendingRelease(item);
   $('#onebaseEpisodesTitle').textContent=item.anime||'Episodios';
-  $('#onebaseEpisodesSub').textContent=total?watched+' de '+total+' episodios vistos':'Añade el total de episodios para activar el seguimiento.';
+  $('#onebaseEpisodesSub').textContent=total?watched+' de '+total+' episodios vistos':'Buscando el número de episodios en AniList…';
   const pct=total?Math.min(100,watched/total*100):0;
   $('#onebaseEpisodesProgress').innerHTML='<div class="onebase-episodes-progress-top"><span>Progreso guardado</span><b>'+Math.round(pct)+'%</b></div><div class="onebase-episodes-progress-bar"><span style="width:'+pct+'%"></span></div>';
   const grid=$('#onebaseEpisodeGrid'),pagination=$('#onebaseEpisodePagination');if(!grid)return;
-  if(!total){grid.innerHTML='<div class="onebase-episode-empty">Abre “Personalizar mi ficha” y añade el número total de episodios para empezar.</div>';if(pagination)pagination.innerHTML='';return}
+  if(!total){
+    grid.innerHTML='<div class="onebase-episode-empty">No se ha podido obtener el total automáticamente. Puedes volver a consultar AniList o introducir el total para generar la lista de episodios.</div><div class="onebase-episode-manual"><label for="onebaseEpisodeTotalInput">Total de episodios</label><input id="onebaseEpisodeTotalInput" type="number" min="1" max="2000" step="1" placeholder="Ej. 12"><button type="button" data-ep-action="retry">Volver a consultar AniList</button><button type="button" data-ep-action="set-total">Crear episodios</button></div>';
+    if(pagination)pagination.innerHTML='';
+    grid.querySelector('[data-ep-action="retry"]')?.addEventListener('click',async e=>{e.currentTarget.disabled=true;e.currentTarget.textContent='Consultando…';await refreshEpisodeMetadata(item,true);if(!episodeCount(item)){e.currentTarget.disabled=false;e.currentTarget.textContent='Volver a consultar AniList'}});
+    grid.querySelector('[data-ep-action="set-total"]')?.addEventListener('click',()=>{const input=$('#onebaseEpisodeTotalInput'),value=Math.floor(Number(input?.value)||0);if(value<1||value>2000){window.toast?.('Introduce un total entre 1 y 2000 episodios.');return}item.total=String(value);item.knownTotal=String(value);try{window.save?.({skipBackup:true})}catch(_){}renderEpisodes();window.toast?.('Lista de episodios creada.')});
+    const source=$('#onebaseEpisodesModal [data-ep-action="source"]');if(source){source.textContent='Buscar dónde ver';source.disabled=false}
+    return;
+  }
   episodeTotalPages=Math.max(1,Math.ceil(total/50));episodePage=Math.min(episodePage,episodeTotalPages-1);
   const start=episodePage*50+1,end=Math.min(total,start+49);
   grid.innerHTML=Array.from({length:end-start+1},(_,n)=>{const ep=start+n,isWatched=ep<=watched,isNext=ep===watched+1,state=isWatched?(ep===watched&&watched>0?'ÚLTIMO VISTO':'VISTO'):isNext?'SIGUIENTE':'PENDIENTE';return '<button type="button" class="onebase-episode '+(isWatched?'is-watched ':'')+(isNext?'is-next ':'')+(ep===watched&&watched>0?'is-current':'')+'" data-ep="'+ep+'" aria-label="Episodio '+ep+': '+state+'"><span class="onebase-episode-number">Episodio '+ep+'</span><span class="onebase-episode-state">'+state+'</span></button>'}).join('');
   grid.querySelectorAll('[data-ep]').forEach(b=>b.addEventListener('click',()=>setWatchedEpisode(Number(b.dataset.ep))));
   if(pagination){pagination.innerHTML=episodeTotalPages>1?'<button type="button" data-episode-page="prev" '+(episodePage===0?'disabled':'')+'>‹ Anteriores</button><span>Episodios '+start+'–'+end+' de '+total+'</span><button type="button" data-episode-page="next" '+(episodePage>=episodeTotalPages-1?'disabled':'')+'>Siguientes ›</button>':'';pagination.querySelectorAll('[data-episode-page]').forEach(b=>b.addEventListener('click',()=>{episodePage+=b.dataset.episodePage==='next'?1:-1;renderEpisodes()}))}
-  const source=$('#onebaseEpisodesModal [data-ep-action="source"]'),nextEpisode=watched+1,complete=Boolean(total&&watched>=total);if(source){source.textContent=complete&&!upcoming?'Serie completada · '+watched+' vistos':'Buscar dónde ver · episodio '+nextEpisode;source.disabled=complete&&!upcoming;source.setAttribute('aria-label',complete&&!upcoming?'Todos los episodios están vistos':'Buscar dónde ver el episodio '+nextEpisode)}
+  const source=$('#onebaseEpisodesModal [data-ep-action="source"]'),nextEpisode=watched+1,complete=Boolean(total&&watched>=total);if(source){source.textContent=complete&&!upcoming?'Anime completado · '+watched+' vistos':'Buscar dónde ver · episodio '+nextEpisode;source.disabled=complete&&!upcoming;source.setAttribute('aria-label',complete&&!upcoming?'Todos los episodios están vistos':'Buscar dónde ver el episodio '+nextEpisode)}
 }
 function setWatchedEpisode(ep){
   const item=getData()[episodeIndex];if(!item)return;
