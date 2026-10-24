@@ -68,8 +68,15 @@ module.exports = async function handler(req, res) {
         for (const media of payload?.data?.Page?.media || []) results.set(Number(media.id), media);
       }
       const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-      // Fall back to a title match when a saved AniList ID is stale or incorrect.
-      const missing = entries.filter(item => String(item?.title || '').trim().length >= 2 && (!Number(item?.id) || !results.has(Number(item.id)))).slice(0, 20);
+      // Verify saved IDs against the title. Older library records can contain a stale or mismatched ID.
+      const titleOf = media => [media.title?.userPreferred,media.title?.romaji,media.title?.english,media.title?.native,...(Array.isArray(media.synonyms)?media.synonyms:[])].filter(Boolean);
+      const missing = entries.filter(item => {
+        const title=String(item?.title||'').trim(),id=Number(item?.id)||0,media=id?results.get(id):null;
+        if(title.length<2)return false;
+        if(!media)return true;
+        const wanted=normalize(title);
+        return !titleOf(media).some(value=>normalize(value)===wanted||normalize(value).startsWith(wanted+' ')||wanted.startsWith(normalize(value)+' '));
+      }).slice(0,20);
       for (const entry of missing) {
         const title = String(entry.title || '').trim();
         const upstream = await fetch(ANILIST_URL, {
@@ -92,12 +99,16 @@ module.exports = async function handler(req, res) {
         }
         const candidates = payload?.data?.Page?.media || [];
         const wanted = normalize(title);
-        const exact = candidates.find(media => [
-          media.title?.userPreferred, media.title?.romaji, media.title?.english, media.title?.native,
-          ...(Array.isArray(media.synonyms) ? media.synonyms : [])
-        ].some(value => normalize(value) === wanted));
-        const match = exact || (candidates.length === 1 ? candidates[0] : null);
-        if (match) results.set(Number(match.id), match);
+        const exact = candidates.find(media => titleOf(media).some(value => normalize(value) === wanted));
+        const partial = candidates.find(media => titleOf(media).some(value => {
+          const candidate=normalize(value);
+          return candidate.startsWith(wanted+' ')||wanted.startsWith(candidate+' ')||candidate.includes(wanted);
+        }));
+        const match = exact || partial || (candidates.length === 1 ? candidates[0] : null);
+        if (match) {
+          if(Number(entry.id)&&Number(entry.id)!==Number(match.id))results.delete(Number(entry.id));
+          results.set(Number(match.id), match);
+        }
       }
       return json(res, 200, { ok: true, results: [...results.values()] });
     } catch (error) {
