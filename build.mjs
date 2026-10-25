@@ -32,7 +32,7 @@ const headAssets = `
 <script src="/onebase-safe-boot.js?v=1"></script>
 <link rel="stylesheet" href="/onebase-loot-v2.css?v=24">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=13">
-<link rel="stylesheet" href="/onebase-brand.css?v=7">
+<link rel="stylesheet" href="/onebase-brand.css?v=8">
 <link rel="stylesheet" href="/onebase-experience-v1.css?v=3">
 <link rel="stylesheet" href="/onebase-beast.css?v=1">
 <script src="/onebase-brand.js?v=9" defer></script>
