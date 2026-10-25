@@ -33,6 +33,22 @@ async function wikiPageText(pageTitle: string) { if (!pageTitle) return ''; cons
 function pickEpisodeNumber(text: string) { const source = String(text || ''); const patterns = [/\|\s*(?:n[úu]mero[_\s]*de[_\s]*episodios?|num(?:ero)?[_\s]*de[_\s]*episodios?|n[úu]mero[_\s]*episodios?|episodios?|episodes?|num[_\s]*episodes?)\s*=\s*(?:\{\{[^}]*\}\}\s*)?(?:\[\[[^\]]+\]\]\s*)?(\d{1,4})\b/i,/(?:n[úu]mero|number)\s+de\s+episodios?\s*[:：=]\s*(\d{1,4})\b/i,/(?:total\s+de\s+episodios?|total\s+episodes?)\s*[:：=]\s*(\d{1,4})\b/i]; for (const pattern of patterns) { const match = source.match(pattern); if (match) return Number(match[1]); } return null; }
 async function currentWikipediaTotal(title: string) { const pageTitle = await wikiSearch(title); if (!pageTitle) return null; const total = pickEpisodeNumber(await wikiPageText(pageTitle)); return Number.isFinite(total) ? { total, pageTitle } : null; }
 
+async function isAuthorizedCron(req: Request, supabaseAdmin: any) {
+  const supplied = req.headers.get('authorization') || '';
+  const match = /^Bearer ([a-f0-9]{64})$/i.exec(supplied);
+  if (!match) return false;
+  try {
+    const { data, error } = await supabaseAdmin.rpc('onebase_get_runtime_secret', { secret_name: 'onebase_cron_secret' });
+    const expected = String(data || '');
+    if (error || !/^[a-f0-9]{64}$/i.test(expected) || match[1].length !== expected.length) return false;
+    let difference = 0;
+    for (let i = 0; i < expected.length; i++) difference |= expected.charCodeAt(i) ^ match[1].charCodeAt(i);
+    return difference === 0;
+  } catch {
+    return false;
+  }
+}
+
 async function processUser(supabaseAdmin: any, userId: string, subscriptions: any[], vapid: any) {
   const { data: file, error: fileError } = await supabaseAdmin.storage.from(BUCKET).download(`${userId}/library.txt`); if (fileError || !file) return { userId, checked: 0, updates: 0, sent: 0, skipped: 'library-unavailable' };
   const candidates = decodeLibrary(await file.text()).filter(item => { const total = Number(item.total); const watched = Number(item.watched) || 0; return String(item.anime || '').trim() && Number.isFinite(total) && total > 0 && String(item.state || '').toLowerCase() !== 'abandonado' && watched >= 0; }).slice(0, 100);
@@ -54,6 +70,7 @@ async function processUser(supabaseAdmin: any, userId: string, subscriptions: an
 export default { fetch: withSupabase({ auth: 'none' }, async (req, ctx) => {
   if (req.method === 'GET') { const url = new URL(req.url); if (url.searchParams.get('config') !== 'vapid') return json({ ok: true, service: 'onebase-episode-cron' }); try { return json({ ok: true, publicKey: (await getVapidKeys(ctx.supabaseAdmin)).publicKey }); } catch (error: any) { return json({ ok: false, error: String(error?.message || error) }, 500); } }
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
+  if (!await isAuthorizedCron(req, ctx.supabaseAdmin)) return json({ error: 'Unauthorized' }, 401);
   const { data: state } = await ctx.supabaseAdmin.from('onebase_cron_state').select('last_started_at').eq('id', true).maybeSingle(); const lastStarted = state?.last_started_at ? new Date(state.last_started_at).getTime() : 0; if (lastStarted && Date.now() - lastStarted < 300000) return json({ ok: true, skipped: 'rate-limited', lastStartedAt: state.last_started_at });
   const vapid = await getVapidKeys(ctx.supabaseAdmin); await ctx.supabaseAdmin.from('onebase_cron_state').update({ last_started_at: new Date().toISOString() }).eq('id', true);
   try {
