@@ -1,0 +1,5 @@
+[functions.onebase-episode-cron]
+verify_jwt = false
+
+[functions.onebase-notifications]
+verify_jwt = true
