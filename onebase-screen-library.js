@@ -83,10 +83,37 @@
   }
   function open(options={}) { selectedType=options.type==='movie'||options.type==='tv'?options.type:'all'; modal.classList.remove('is-detail'); modal.querySelector('.ob-screen-kicker').textContent='ONEBASE · SERIES Y PELÍCULAS'; modal.querySelector('.ob-screen-title').textContent=selectedType==='movie'?'Añadir película':selectedType==='tv'?'Añadir serie':'Buscar películas y series'; modal.classList.add('open'); scrollLock(true); input.value=''; body.innerHTML='<div class="ob-screen-state">Busca un título para añadirlo a la biblioteca.</div>'; setTimeout(()=>input.focus(),30); }
   function close() { serial++; modal.classList.remove('open','is-detail'); scrollLock(false); selected=null; }
+  function sanitizeImported(raw){
+    const type=raw?.type==='tv'?'tv':raw?.type==='movie'?'movie':'';
+    const id=Number(raw?.id),title=clean(raw?.title||raw?.name);
+    if(!type||!Number.isSafeInteger(id)||id<=0||!title)return null;
+    const state=['viendo','terminado','pendiente','pausa','abandonado','espera'].includes(String(raw.state))?String(raw.state):'pendiente';
+    const progress={};
+    if(raw.seasonProgress&&typeof raw.seasonProgress==='object')for(const [season,value] of Object.entries(raw.seasonProgress).slice(0,100)){const n=Math.max(0,Math.floor(Number(value)||0));if(/^\d+$/.test(season))progress[season]=n;}
+    const seasons=Array.isArray(raw.seasons)?raw.seasons.slice(0,100).map(s=>({season_number:Math.max(0,Math.floor(Number(s?.season_number)||0)),episode_count:Math.max(0,Math.floor(Number(s?.episode_count)||0)),name:clean(s?.name).slice(0,120)})):[];
+    const score=raw.score===''||raw.score==null?'':Math.max(0,Math.min(10,Number(raw.score)||0));
+    return {id,type,title:title.slice(0,240),originalTitle:clean(raw.originalTitle||title).slice(0,240),releaseDate:clean(raw.releaseDate).slice(0,32),overview:clean(raw.overview).slice(0,5000),posterPath:clean(raw.posterPath).slice(0,500),backdropPath:clean(raw.backdropPath).slice(0,500),genres:Array.isArray(raw.genres)?raw.genres.map(x=>clean(x).slice(0,80)).filter(Boolean).slice(0,20):[],voteAverage:Math.max(0,Math.min(10,Number(raw.voteAverage)||0)),score,favorite:!!raw.favorite,seasonProgress:progress,seasons,homepage:'',state,addedAt:Number(raw.addedAt)||Date.now(),updatedAt:Date.now()};
+  }
+  function importItems(items,{replace=false}={}){
+    const incoming=(Array.isArray(items)?items:[]).map(sanitizeImported).filter(Boolean);
+    if(!incoming.length)return {added:0,updated:0};
+    let added=0,updated=0;
+    if(replace){
+      const unique=new Map();
+      incoming.forEach(item=>unique.set(item.type+':'+item.id,item));
+      library=[...unique.values()];persist();return {added:library.length,updated:0};
+    }
+    for(const item of incoming){
+      const index=library.findIndex(x=>x.type===item.type&&Number(x.id)===item.id);
+      if(index<0){library.unshift(item);added++;}
+      else{const current=library[index],seasonProgress={...(current.seasonProgress||{})};Object.entries(item.seasonProgress||{}).forEach(([k,v])=>seasonProgress[k]=Math.max(Number(seasonProgress[k])||0,v));library[index]={...current,...item,seasonProgress,addedAt:current.addedAt||item.addedAt};updated++;}
+    }
+    persist();return {added,updated};
+  }
   function setStatus(type,id,state){const item=library.find(x=>x.type===type&&String(x.id)===String(id));if(!item)return;item.state=state;item.updatedAt=Date.now();persist();if(modal.classList.contains('open'))showLibrary();}
   function removeItem(type,id){const existing=library.find(x=>x.type===type&&String(x.id)===String(id));if(!existing)return false;const label=titleOf(existing);if(!window.confirm('¿Eliminar «'+label+'» de tu biblioteca?'))return false;library=library.filter(x=>!(x.type===type&&String(x.id)===String(id)));persist();window.toast?.('Eliminado de la biblioteca.');if(modal.classList.contains('open'))showLibrary();return true;}
   function openItem(type,id){const item=library.find(x=>x.type===type&&String(x.id)===String(id));if(item){open({type});showDetail(item,true)}}
-  window.OneBaseScreenLibrary={open,items:()=>library.map(x=>({...x})),setStatus,openItem,removeItem};
+  window.OneBaseScreenLibrary={open,items:()=>library.map(x=>({...x})),setStatus,openItem,removeItem,importItems,restoreItems(items){return importItems(items,{replace:true})}};
   modal.querySelector('.ob-screen-close').addEventListener('click',close); modal.addEventListener('click',e=>{if(e.target===modal)close()}); modal.querySelector('[data-search]').addEventListener('click',()=>search(input.value,1)); input.addEventListener('keydown',e=>{if(e.key==='Enter')search(input.value,1);if(e.key==='Escape')close()}); input.addEventListener('input',()=>{clearTimeout(timer);const q=input.value.trim();if(q.length<2)return;timer=setTimeout(()=>search(q,1),350)}); document.addEventListener('keydown',e=>{if(e.key==='Escape'&&modal.classList.contains('open'))close()});
   const chooser=document.createElement('div');chooser.id='ob-library-add-chooser';chooser.innerHTML='<section><button type="button" data-close aria-label="Cerrar">×</button><span>ONEBASE · AÑADIR</span><h2>¿Qué quieres añadir?</h2><div><button type="button" data-add-kind="anime">Anime</button><button type="button" data-add-kind="movie">Película</button><button type="button" data-add-kind="tv">Serie</button></div></section>';document.body.appendChild(chooser);const chooserStyle=document.createElement('style');chooserStyle.textContent='#ob-library-add-chooser{position:fixed;inset:0;z-index:26000;display:none;place-items:center;padding:18px;background:#000b;backdrop-filter:blur(9px)}#ob-library-add-chooser.open{display:grid}#ob-library-add-chooser section{position:relative;width:min(460px,94vw);padding:26px;border:1px solid #38383b;border-radius:20px;background:#111;color:#fff;box-shadow:0 30px 90px #000b}#ob-library-add-chooser span{font-size:9px;letter-spacing:2px;color:#999}#ob-library-add-chooser h2{margin:8px 0 20px}#ob-library-add-chooser section>div{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}#ob-library-add-chooser button{cursor:pointer;border:1px solid #39393d;border-radius:11px;background:#1b1b1e;color:#fff;padding:12px;font-weight:800}#ob-library-add-chooser [data-close]{position:absolute;right:12px;top:10px;padding:5px 10px}#ob-library-add-chooser section>div button:hover{border-color:#e7c276;color:#e7c276}';document.head.appendChild(chooserStyle);const closeChooser=()=>chooser.classList.remove('open');window.OneBaseLibraryAdd={open:()=>chooser.classList.add('open')};document.addEventListener('click',e=>{const trigger=e.target?.closest?.('[data-ob-add]');if(!trigger)return;e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();chooser.classList.add('open')},true);chooser.querySelector('[data-close]').onclick=closeChooser;chooser.addEventListener('click',e=>{if(e.target===chooser)closeChooser()});chooser.querySelectorAll('[data-add-kind]').forEach(b=>b.onclick=()=>{closeChooser();const kind=b.dataset.addKind;if(kind==='anime')window.OneBaseAniListSearch?.open?.();else open({type:kind==='movie'?'movie':'tv'})});
 })();
