@@ -87,7 +87,7 @@ header::before{display:none!important}
   letter-spacing:2px!important;
   font-weight:700!important;
 }
-.brand .tag::after{content:"  •  YOUR PERSONAL ANIME DATABASE";color:#625d53}
+.brand .tag::after{content:""}
 
 /* ---------------------------------------------------------------
    GLOBAL DARK BASE
