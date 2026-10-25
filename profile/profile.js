@@ -23,13 +23,14 @@ function render(p){
   const st=p.public_stats&&typeof p.public_stats==='object'?p.public_stats:{};
   const name=String(p.username||'Usuario'),avatar=String(p.avatar_data||''),bio=String(p.bio||'');
   const stats=[
-    ['animeCount','Animes'],['completed','Completados'],['chapters','Capítulos vistos'],['favorites','Favoritos'],['active','Activos']
+    ['contentCount','En biblioteca'],['animeCount','Anime'],['movieCount','Películas'],['seriesCount','Series'],
+    ['completed','Completados'],['chapters','Episodios de anime'],['seriesEpisodes','Episodios de series'],['favorites','Favoritos']
   ];
   const profile=$('#profile');
   profile.innerHTML='<div class="profile-hero">'+ '<div class="avatar">'+(avatar?'<img src="'+esc(avatar)+'" alt="Avatar de '+esc(name)+'">':esc(initials(name)))+'</div><div class="hero-copy"><div class="kicker">ONEBASE · PERFIL PÚBLICO</div><h1 class="name">'+esc(name)+'</h1>'+(bio?'<p class="bio">'+esc(bio)+'</p>':'')+'</div></div><div class="content"><div class="stats">'+stats.map(x=>'<div class="stat"><b>'+fmt(st[x[0]])+'</b><span>'+x[1]+'</span></div>').join('')+'<div class="stat"><b>'+(Number(st.avgScore)>0?Number(st.avgScore).toFixed(1):'—')+'</b><span>Nota media personal</span></div></div><h2 class="section-title">Favoritos destacados</h2><div class="highlights" id="highlights"></div></div>';
   const highlights=Array.isArray(st.highlights)?st.highlights:[];
   const h=$('#highlights');
-  h.innerHTML=highlights.length?highlights.map(x=>'<article class="anime"><div class="anime-cover">'+(x.cover?'<img loading="lazy" src="'+esc(x.cover)+'" alt="">':'')+'</div><div class="anime-body"><div class="anime-title" title="'+esc(x.title||'')+'">'+esc(x.title||'Anime')+'</div><div class="anime-score">'+(x.score===null||x.score===undefined?'Sin nota':Number(x.score).toFixed(1)+'/10')+'</div></div></article>').join(''):'<div class="empty" style="grid-column:1/-1">No hay favoritos destacados publicados todavía.</div>';
+  h.innerHTML=highlights.length?highlights.map(x=>'<article class="anime"><div class="anime-cover">'+(x.cover?'<img loading="lazy" src="'+esc(x.cover)+'" alt="">':'')+'<span class="kind">'+esc(({anime:'Anime',movie:'Película',series:'Serie'})[x.kind]||'Contenido')+'</span></div><div class="anime-body"><div class="anime-title" title="'+esc(x.title||'')+'">'+esc(x.title||'Contenido')+'</div><div class="anime-score">'+(x.score===null||x.score===undefined?'Sin nota':Number(x.score).toFixed(1)+'/10')+'</div></div></article>').join(''):'<div class="empty" style="grid-column:1/-1">No hay favoritos destacados publicados todavía.</div>';
   document.title=name+' · ONEBASE';
   $('#state').classList.add('hidden');profile.classList.remove('hidden');
 }
