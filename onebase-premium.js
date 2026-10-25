@@ -398,8 +398,18 @@ async function savePublicSettings(){
   const payload={id:user.id,username:String(p.name||'Usuario').slice(0,32),avatar_data:String(p.avatar||''),public_enabled:publicState.enabled,bio:publicState.bio,public_stats:snapshot};
   try{const r=await c.from('profiles').upsert(payload,{onConflict:'id'});if(r.error)throw r.error;$('#onebasePublicStatus').textContent=publicState.enabled?'✓ Perfil público actualizado.':'✓ Perfil público oculto.';updatePublicLink()}catch(e){$('#onebasePublicStatus').textContent='No se pudo guardar: '+(e?.message||'error')}}
 function buildPublicSnapshot(){
-  const s=stats(),high=s.filled.filter(x=>x.favorite).sort((a,b)=>(Number(b.updatedAt)||0)-(Number(a.updatedAt)||0)).slice(0,8).map(x=>({title:String(x.anime||'').slice(0,100),cover:String(x.cover||x.coverImage||'').slice(0,1000),score:x.score===''?null:Number(x.score)||0}));
-  return{animeCount:s.filled.length,completed:s.completed,chapters:s.chapters,favorites:s.favorites,active:s.active,avgScore:Number(s.avg.toFixed(2)),hours:Number(s.hours.toFixed(1)),highlights:high,updatedAt:Date.now()};
+  const s=stats(),screen=window.OneBaseScreenLibrary?.items?.()||[];
+  const movies=screen.filter(x=>x.type==='movie'),series=screen.filter(x=>x.type==='tv');
+  const seriesEpisodes=series.reduce((sum,x)=>sum+Object.values(x.seasonProgress||{}).reduce((n,v)=>n+Math.max(0,Number(v)||0),0),0);
+  const completed=s.completed+screen.filter(x=>String(x.state||'').toLowerCase()==='terminado').length;
+  const active=s.active+screen.filter(x=>String(x.state||'').toLowerCase()==='viendo').length;
+  const scores=[...s.filled.filter(x=>x.score!==''&&Number.isFinite(Number(x.score))).map(x=>Number(x.score)),...screen.filter(x=>x.score!==''&&Number.isFinite(Number(x.score))).map(x=>Number(x.score))];
+  const avg=scores.length?scores.reduce((a,b)=>a+b,0)/scores.length:0;
+  const high=[
+    ...s.filled.filter(x=>x.favorite).map(x=>({kind:'anime',title:String(x.anime||'').slice(0,100),cover:String(x.cover||x.coverImage||'').slice(0,1000),score:x.score===''?null:Number(x.score)||0,updatedAt:Number(x.updatedAt)||0})),
+    ...screen.filter(x=>x.favorite).map(x=>({kind:x.type==='tv'?'series':'movie',title:String(x.title||x.name||'').slice(0,100),cover:x.posterPath?'https://image.tmdb.org/t/p/w500'+String(x.posterPath):'',score:x.score===''?null:Number(x.score)||0,updatedAt:Number(x.updatedAt)||0}))
+  ].sort((a,b)=>b.updatedAt-a.updatedAt).slice(0,8).map(({updatedAt,...item})=>item);
+  return{contentCount:s.filled.length+screen.length,animeCount:s.filled.length,movieCount:movies.length,seriesCount:series.length,completed,chapters:s.chapters,seriesEpisodes,favorites:s.favorites+screen.filter(x=>x.favorite).length,active,avgScore:Number(avg.toFixed(2)),hours:Number(s.hours.toFixed(1)),highlights:high,updatedAt:Date.now()};
 }
 async function syncPublicSnapshot(){
   if(!publicState.enabled)return;
@@ -424,6 +434,8 @@ function bindEvents(){
   window.addEventListener('animetracker:saved',()=>{setTimeout(refresh,0);void syncPublicSnapshot()});
   window.addEventListener('animetracker:restored',()=>{setTimeout(refresh,0);void syncPublicSnapshot()});
   window.addEventListener('onebase:anime-added',()=>{setTimeout(refresh,0);void syncPublicSnapshot()});
+  window.addEventListener('onebase:screen-library-changed',()=>{setTimeout(refresh,0);void syncPublicSnapshot()});
+  window.addEventListener('onebase:screen-library-restored',()=>{setTimeout(refresh,0);void syncPublicSnapshot()});
   window.addEventListener('storage',e=>{if(e.key==='anime_tracker_profile_v1'||e.key===PUBLIC_KEY){publicState=loadLocalPublic();setTimeout(refresh,0)}});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeHealth();closeEpisodes()}});
 }
