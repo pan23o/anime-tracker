@@ -85,7 +85,7 @@ function firstMatchingShowLink(html,base,q,host){
   candidates.sort((a,b)=>((normalizeText(a.text)===qn)?-1:0)-((normalizeText(b.text)===qn)?-1:0));
   return candidates.find(x=>titleMatches(x.text,q))||null;
 }
-function episodeTerm(episode){const raw=String(episode||'').trim(),season=raw.match(/^s(\d+)e(\d+)$/i);return season?`s${Number(season[1])}e${String(Number(season[2])).padStart(2,'0')}`:Number(raw)>0?`E${Number(raw)}`:''}
+function episodeTerm(episode){const raw=String(episode||'').trim(),season=raw.match(/^s(\d+)e(\d+)$/i);return season?`S${Number(season[1])}E${String(Number(season[2])).padStart(2,'0')}`:Number(raw)>0?`E${String(Number(raw)).padStart(2,'0')}`:''}
  function exactEpisodeLink(html,base,episode){
    if(!episode)return null;const links=extractLinks(html,base),season=String(episode).match(/^s(\d+)e(\d+)$/i);if(season){const token=episodeTerm(episode);return links.find(x=>new RegExp(token,'i').test(x.text)||new RegExp(token,'i').test(x.raw))||null}const n=String(Number(episode));
   return links.find(x=>new RegExp(`(?:episode|episodio|s\\d+e)\\s*0*${n}\\b|\\b0*${n}\\s*torrents?`,'i').test(x.text))||links.find(x=>new RegExp(`(?:episode|episodio)[^0-9]{0,12}0*${n}\\b`,'i').test(x.raw))||null;
@@ -95,7 +95,7 @@ async function searchSubsPlease(home,q,episode,language){
   try{page=await fetchHtml(showUrl)}catch(_){const shows=await fetchHtml(new URL('/shows/',home).toString());const link=firstMatchingShowLink(shows.html,shows.url,q,host);if(!link)throw new Error('Anime no encontrado en SubsPlease.');showUrl=link.url;page=await fetchHtml(showUrl)}
   if(!verifyTitle(page.html,q).found)throw new Error('Anime no encontrado en SubsPlease.');
   const supportsLanguage=detectLanguageSupport(page.html);const ep=exactEpisodeLink(page.html,page.url,episode);const target=ep?ep.url:languageInUrl(page.url,supportsLanguage?language:'');
-  return{url:target,found:true,episodeFound:true,episodeResolved:!!ep,mode:ep?'show-episode':'show-page-episode-unverified',languageApplied:!!(supportsLanguage&&language),verification:'checked'};
+  const suffix=episodeTerm(episode)?` ${episodeTerm(episode)}`:'';const multi=new URL('/search/',home);multi.searchParams.set('q',`${q}${suffix} MultiSub`);return{url:target,fallbackUrl:target,multiSubsUrl:multi.toString(),found:true,languageFound:false,episodeFound:true,episodeResolved:!!ep,mode:ep?'show-episode':'show-page-episode-unverified',languageApplied:!!(supportsLanguage&&language),verification:'checked'};
 }
 async function searchNyaa(home,q,episode){
   const titleUrl=new URL('/',home);titleUrl.searchParams.set('f','0');titleUrl.searchParams.set('c','0_0');titleUrl.searchParams.set('q',q);
@@ -118,14 +118,13 @@ async function searchExt(home,q,episode,language){
 function scoreForm(form){const t=form.toLowerCase();let s=0;if(/(type=["']search["']|name=["'](?:q|query|search|keyword|title|anime)["'])/.test(t))s+=8;if(/(placeholder=["'][^"']*(?:buscar|search|anime)[^"']*["'])/.test(t))s+=6;if(/(buscar|search|busca)/.test(t))s+=3;if(/(login|signin|register|password|correo|email)/.test(t))s-=6;return s}
 function findSearchForm(html,base){const forms=html.match(/<form\b[\s\S]*?<\/form>/gi)||[];let best=null;for(const form of forms){const score=scoreForm(form);if(score<=0)continue;const open=form.match(/^<form\b[^>]*>/i)?.[0]||'';const action=absolute(base,attr(open,'action')||base);if(!action)continue;const method=(attr(open,'method')||'get').toLowerCase();const inputs=form.match(/<input\b[^>]*>/gi)||[];let field=null;for(const input of inputs){const type=(attr(input,'type')||'text').toLowerCase(),name=attr(input,'name'),ph=attr(input,'placeholder');if(type==='search'||/^(q|query|search|keyword|title|anime)$/i.test(name)||/buscar|search|anime/i.test(ph)){field=name||'q';break}}if(!field)field='q';const c={score,action,method,field};if(!best||c.score>best.score)best=c}return best}
 async function searchGeneric(home,q,episode){
-  let base;try{base=await fetchHtml(home.toString())}catch(_){const u=new URL('/search',home);u.searchParams.set('q',episode?`${q} ${episodeTerm(episode)}`:q);return{url:u.toString(),found:true,episodeFound:!episode,mode:'generic-unverified',languageApplied:false,verification:'unavailable'}}
-  const form=findSearchForm(base.html,base.url);if(!form||form.method==='post'){const u=new URL('/search',base.url);u.searchParams.set('q',episode?`${q} ${episodeTerm(episode)}`:q);return{url:u.toString(),found:true,episodeFound:!episode,mode:'generic-fallback',languageApplied:false,verification:'unavailable'}}
-  const build=term=>{const u=new URL(form.action);u.searchParams.set(form.field,term);return u.toString()};const titleUrl=build(q);let titlePage;
-  try{titlePage=await fetchHtml(titleUrl)}catch(_){return{url:titleUrl,found:true,episodeFound:!episode,mode:'generic-title-unverified',languageApplied:false,verification:'unavailable'}}
-  if(!verifyTitle(titlePage.html,q).found)return{url:titleUrl,found:false,episodeFound:false,mode:'generic-title',languageApplied:false,verification:'checked'};
-  if(!episode)return{url:titlePage.url,found:true,episodeFound:true,mode:'generic-title',languageApplied:false,verification:'checked'};
-  const epUrl=build(`${q} ${episodeTerm(episode)}`);let epPage;try{epPage=await fetchHtml(epUrl)}catch(_){return{url:epUrl,found:true,episodeFound:true,mode:'generic-episode-unverified',languageApplied:false,verification:'unavailable'}}
-  const epCheck=verifyEpisode(epPage.html,q);return{url:epUrl,found:epCheck.found,episodeFound:epCheck.episodeFound,mode:'generic-title-then-episode',languageApplied:false,verification:'checked'};
+  const suffix=episodeTerm(episode)?` ${episodeTerm(episode)}`:'',plain=`${q}${suffix}`,tagged=`${plain} ES`;
+  const fallbackUrlFor=build=>build(plain),multiUrlFor=build=>build(`${plain} MultiSub`);
+  let base;try{base=await fetchHtml(home.toString())}catch(_){const build=term=>{const u=new URL('/search',home);u.searchParams.set('q',term);return u.toString()};const u=build(tagged);return{url:u,fallbackUrl:fallbackUrlFor(build),multiSubsUrl:multiUrlFor(build),found:true,languageFound:true,episodeFound:!episode,mode:'generic-unverified',languageApplied:false,verification:'unavailable'}}
+  const form=findSearchForm(base.html,base.url);const build=term=>{if(!form||form.method==='post'){const u=new URL('/search',base.url);u.searchParams.set('q',term);return u.toString()}const u=new URL(form.action);u.searchParams.set(form.field,term);return u.toString()};
+  const taggedUrl=build(tagged),fallbackUrl=fallbackUrlFor(build),multiSubsUrl=multiUrlFor(build);
+  let result;try{result=await fetchHtml(taggedUrl)}catch(_){return{url:taggedUrl,fallbackUrl,multiSubsUrl,found:true,languageFound:true,episodeFound:!episode,mode:'generic-tagged-unverified',languageApplied:false,verification:'unavailable'}}
+  const verified=verifyTitle(result.html,q);return{url:taggedUrl,fallbackUrl,multiSubsUrl,found:verified.found,languageFound:verified.found,episodeFound:verified.found,mode:'generic-spanish-first',languageApplied:false,verification:'checked'};
 }
 module.exports=async function handler(req,res){
   res.setHeader('Cache-Control','no-store');if(req.method!=='GET')return res.status(405).json({ok:false,error:'Método no permitido.'});
