@@ -15,6 +15,7 @@
   const qs=(s,r=document)=>r?[...r.querySelectorAll(s)]:[];
   const notify=(message)=>{ try{ if(typeof toast==='function') toast(message); else window.alert(message); }catch(_){ window.alert(message); } };
   const library=()=>{ try{return (typeof data!=='undefined'&&Array.isArray(data))?data:[];}catch(_){return [];} };
+  const screenLibrary=()=>{try{return window.OneBaseScreenLibrary?.items?.()||JSON.parse(localStorage.getItem('onebase_screen_library_v1')||'[]')}catch(_){return []}};
   const normTitle=s=>String(s||'').toLowerCase().trim().replace(/[^\p{L}\p{N}]+/gu,' ');
   const number=v=>{const n=Number(v);return Number.isFinite(n)?n:0;};
   const cleanText=v=>String(v??'').trim();
@@ -41,7 +42,8 @@
       type:'library',
       version:1,
       exportedAt:new Date().toISOString(),
-      data:JSON.parse(JSON.stringify(library().filter(x=>cleanText(x?.anime))))
+      data:JSON.parse(JSON.stringify(library().filter(x=>cleanText(x?.anime)))),
+      screenLibrary:JSON.parse(JSON.stringify(screenLibrary()))
     };
     download(`onebase-library-${localDateKeySafe()}.json`,JSON.stringify(payload,null,2));
     notify('Biblioteca OneBase exportada');
@@ -53,7 +55,8 @@
       type:'full-backup',
       version:1,
       exportedAt:new Date().toISOString(),
-      snapshot:currentSnapshot()
+      snapshot:currentSnapshot(),
+      screenLibrary:JSON.parse(JSON.stringify(screenLibrary()))
     };
     download(`onebase-backup-${localDateKeySafe()}.json`,JSON.stringify(payload,null,2));
     notify('Copia de seguridad descargada');
@@ -201,6 +204,14 @@
         return;
       }
       const obj=JSON.parse(raw);
+      if(obj?.app==='OneBase'&&obj?.type==='library'){
+        const entries=Array.isArray(obj.data)?obj.data.map(normalizeImported).filter(Boolean):[];
+        if(entries.length)mergeImported(entries,'OneBase');
+        const screenResult=window.OneBaseScreenLibrary?.importItems?.(obj.screenLibrary)||{added:0,updated:0};
+        if(!entries.length&&!screenResult.added&&!screenResult.updated)throw new Error('La exportación OneBase no contiene contenido válido.');
+        if(screenResult.added||screenResult.updated){setStatus('OneBase: '+screenResult.added+' películas/series añadidas · '+screenResult.updated+' actualizadas.','success');notify('Biblioteca audiovisual importada.');}
+        return;
+      }
       const items=collectAniListEntries(obj);
       if(items.length){mergeImported(items,'AniList');return;}
       const mal=collectMALJson(obj);
@@ -226,8 +237,9 @@
       else{
         throw new Error('El restaurador de OneBase no está disponible todavía.');
       }
+      if(Array.isArray(obj?.screenLibrary))window.OneBaseScreenLibrary?.restoreItems?.(obj.screenLibrary);
       try{render();}catch(_){ }
-      setStatus(`Copia restaurada: ${Array.isArray(snap.data)?snap.data.length:snap.length} entradas.`,'success');
+      setStatus(`Copia restaurada: ${Array.isArray(snap.data)?snap.data.length:snap.length} entradas y ${Array.isArray(obj?.screenLibrary)?obj.screenLibrary.length:0} películas/series.`,'success');
       notify('Copia de seguridad restaurada');
     }catch(error){
       console.error('[ONEBASE] restore failed',error);
@@ -244,25 +256,30 @@
   }
 
   function progression(){
-    const list=library().filter(x=>cleanText(x?.anime));
-    const chapters=list.reduce((s,x)=>s+number(x.watched),0);
-    const completed=list.filter(x=>number(x.total)>0&&number(x.watched)>=number(x.total)).length;
+    const anime=library().filter(x=>cleanText(x?.anime)),screen=screenLibrary();
+    const series=screen.filter(x=>x?.type==='tv');
+    const episodes=series.reduce((sum,x)=>sum+Object.values(x?.seasonProgress||{}).reduce((n,v)=>n+Math.max(0,number(v)),0),0);
+    const chapters=anime.reduce((sum,x)=>sum+number(x.watched),0)+episodes;
+    const completedAnime=anime.filter(x=>number(x.total)>0&&number(x.watched)>=number(x.total)).length;
+    const completedScreen=screen.filter(x=>String(x?.state||'').toLowerCase()==='terminado').length;
+    const completed=completedAnime+completedScreen;
+    const entries=anime.length+screen.length;
+    const favorites=anime.filter(x=>x.favorite).length+screen.filter(x=>x.favorite).length;
     const unlocked=unlockedCount();
-    const favorites=list.filter(x=>x.favorite).length;
-    const xp=chapters*2+completed*100+list.length*20+unlocked*50+favorites*10;
+    const xp=chapters*2+completed*100+entries*20+unlocked*50+favorites*10;
     const level=Math.max(1,Math.floor(Math.sqrt(xp/100))+1);
     const floorXp=Math.pow(level-1,2)*100;
     const nextXp=Math.pow(level,2)*100;
     const progress=nextXp>floorXp?Math.min(1,Math.max(0,(xp-floorXp)/(nextXp-floorXp))):0;
-    const titles=[[1,'Novato'],[5,'Aprendiz'],[10,'Aficionado'],[20,'Otaku avanzado'],[30,'Otaku veterano'],[45,'Maestro del anime'],[60,'Leyenda de OneBase']];
+    const titles=[[1,'Explorador'],[5,'Coleccionista'],[10,'Cinéfilo'],[20,'Multiverso'],[30,'Curador'],[45,'Leyenda'],[60,'Icono OneBase']];
     let title=titles[0][1];titles.forEach(([min,t])=>{if(level>=min)title=t;});
-    return {level,title,xp,progress,chapters,completed,unlocked};
+    return {level,title,xp,progress,chapters,completed,unlocked,entries,favorites,anime:anime.length,movies:screen.filter(x=>x.type==='movie').length,series:series.length};
   }
 
   function renderLevel(target){
     if(!target)return;
     const p=progression();
-    target.innerHTML=`<div class="obx-level-card"><div class="obx-level-ring"><strong>${p.level}</strong></div><div class="obx-level-copy"><strong>Nivel ${p.level} — ${p.title}</strong><span>${p.xp.toLocaleString('es-ES')} XP · ${p.unlocked} logros desbloqueados · ${p.chapters} capítulos vistos</span><div class="obx-level-bar"><span style="width:${Math.round(p.progress*100)}%"></span></div></div></div>`;
+    target.innerHTML=`<div class="obx-level-card"><div class="obx-level-ring"><strong>${p.level}</strong></div><div class="obx-level-copy"><strong>Nivel ${p.level} — ${p.title}</strong><span>${p.xp.toLocaleString('es-ES')} XP · ${p.unlocked} logros desbloqueados · ${p.chapters} episodios de anime y series vistos</span><div class="obx-level-bar"><span style="width:${Math.round(p.progress*100)}%"></span></div></div></div>`;
   }
 
   function buildDataSection(){
@@ -276,7 +293,7 @@
       <div class="obx-data-grid">
         <div class="obx-data-card"><strong>Importar AniList</strong><p>Acepta exportaciones JSON de AniList y conserva progreso, estado, nota e ID.</p><button type="button" id="obxImportAniList">Seleccionar JSON</button></div>
         <div class="obx-data-card"><strong>Importar MyAnimeList</strong><p>Acepta el XML oficial de MAL y recupera títulos, episodios vistos, estado y nota.</p><button type="button" id="obxImportMAL">Seleccionar XML</button></div>
-        <div class="obx-data-card"><strong>Exportar OneBase</strong><p>Descarga solo tu biblioteca en un JSON limpio, pensado para migraciones.</p><button type="button" id="obxExportOneBase">Exportar biblioteca</button></div>
+        <div class="obx-data-card"><strong>Exportar OneBase</strong><p>Descarga anime, películas y series en un JSON que puedes volver a importar en OneBase.</p><button type="button" id="obxExportOneBase">Exportar biblioteca</button></div>
         <div class="obx-data-card"><strong>Descargar copia de seguridad</strong><p>Incluye la configuración y el estado completo disponible en OneBase.</p><button type="button" id="obxExportBackup">Descargar copia</button></div>
         <div class="obx-data-card wide"><strong>Restaurar copia</strong><p>Vuelve a un estado anterior de OneBase. Antes de restaurar se crea automáticamente una copia del estado actual.</p><button type="button" id="obxRestoreBackup">Seleccionar copia JSON</button></div>
       </div>
@@ -319,6 +336,8 @@
     window.addEventListener('animetracker:saved',()=>setTimeout(refreshProfileLevel,0));
     window.addEventListener('animetracker:restored',()=>setTimeout(refreshProfileLevel,0));
     window.addEventListener('onebase:txt-restored',()=>setTimeout(refreshProfileLevel,0));
+    window.addEventListener('onebase:screen-library-changed',()=>setTimeout(refreshProfileLevel,0));
+    window.addEventListener('onebase:screen-library-restored',()=>setTimeout(refreshProfileLevel,0));
     setInterval(()=>{buildDataSection();refreshProfileLevel();},800);
   }
 
