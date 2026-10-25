@@ -6,12 +6,14 @@
 'use strict';
 
 const KEY='onebase_loot_v2_mode';
+const TYPE_KEY='onebase_loot_v2_content_type';
 const HISTORY='onebase_lootbox_history_v2';
 const MODES={
   personalized:{label:'PERSONALIZADO',sub:'Se adapta a ti'},
   random:{label:'ALEATORIO',sub:'Sin preferencias'},
   opposite:{label:'LO CONTRARIO',sub:'Explora lo que no ves'}
 };
+const CONTENT_TYPES={all:{label:'MEZCLADO',sub:'2 anime · 2 películas · 1 serie'},anime:{label:'ANIME',sub:'Solo anime'},movie:{label:'PELÍCULAS',sub:'Solo películas'},tv:{label:'SERIES',sub:'Solo series'}};
 const GENRES=['Action','Adventure','Comedy','Drama','Ecchi','Fantasy','Horror','Mahou Shoujo','Mecha','Music','Mystery','Psychological','Romance','Sci-Fi','Slice of Life','Sports','Supernatural','Thriller','Cars','Demons','Game','Historical','Martial Arts','Military','Parody','School','Space','Vampire','Samurai'];
 const ADULT=['Ecchi'];
 const THEMES={
@@ -20,6 +22,9 @@ const THEMES={
 
 let mode=localStorage.getItem(KEY)||'personalized';
 if(!MODES[mode])mode='personalized';
+let contentType=localStorage.getItem(TYPE_KEY)||'all';
+if(!CONTENT_TYPES[contentType])contentType='all';
+let sessionSeen=new Set();
 let roll=null,busy=false,selected=null,resolved=new Set(),openingTimer=0,closeTimer=0,loadError='',activeCinematicClose=null;
 
 const $=s=>document.querySelector(s);
@@ -89,79 +94,76 @@ function screenTitles(x){
   return titleKeys([x.title,x.name,x.originalTitle,x.original_title,x.original_name]);
 }
 function pick(candidates,p,mode,targets){
-  const hist=loadHistory(),owned=ids();
-  const animeTitles=new Set(list().flatMap(x=>titleKeys([x.anime,x.title])));
-  const screen=screenItems();
+  const hist=loadHistory(),owned=ids(),currentSeen=new Set([...sessionSeen,...(Array.isArray(roll)?roll.map(x=>Number(x.id)):[])]);
+  const animeTitles=new Set(list().flatMap(x=>titleKeys([x.anime,x.title]))),screen=screenItems();
+  const kindOf=x=>x?.provider==='tmdb'&&['movie','tv'].includes(x.mediaType)?x.mediaType:'anime';
   const byId=new Map(candidates.filter(x=>x&&Number.isSafeInteger(Number(x.id))&&Number(x.id)!==0).map(x=>[Number(x.id),x]));
   const pool=[],seenTitles=new Set();
   for(const x of byId.values()){
-    const kind=x.provider==='tmdb'&&['movie','tv'].includes(x.mediaType)?x.mediaType:'anime';
-    const titles=candidateTitles(x),titleSet=new Set(titles);
-    const alreadyOwned=owned.has(Number(x.id))||hist.has(Number(x.id))||
+    const kind=kindOf(x),titles=candidateTitles(x),titleSet=new Set(titles);
+    if(contentType!=='all'&&kind!==contentType)continue;
+    const alreadyOwned=owned.has(Number(x.id))||hist.has(Number(x.id))||currentSeen.has(Number(x.id))||
       (kind==='anime'&&titles.some(title=>animeTitles.has(title)))||
-      (kind!=='anime'&&screen.some(item=>item.type===kind&&(
-        Number(item.id)===Number(x.externalId)||screenTitles(item).some(title=>titleSet.has(title))
-      )));
+      (kind!=='anime'&&screen.some(item=>item.type===kind&&(Number(item.id)===Number(x.externalId)||screenTitles(item).some(title=>titleSet.has(title)))));
     if(alreadyOwned)continue;
-    const duplicateKey=kind+':';
-    if(titles.some(title=>seenTitles.has(duplicateKey+title)))continue;
-    titles.forEach(title=>seenTitles.add(duplicateKey+title));
-    pool.push(x);
+    const duplicateKey=kind+':';if(titles.some(title=>seenTitles.has(duplicateKey+title)))continue;
+    titles.forEach(title=>seenTitles.add(duplicateKey+title));pool.push(x);
   }
-  const ranked=pool.map(x=>({x,s:scoreCandidate(x,p,mode,targets)})).sort((a,b)=>b.s-a.s);
-  const chosen=[];
-  while(chosen.length<5&&ranked.length){
-    const topPool=ranked.splice(0,Math.min(8,ranked.length));
-    const total=topPool.reduce((s,o)=>s+Math.max(.1,o.s),0);
-    let r=Math.random()*total,pick=topPool[topPool.length-1];
-    for(const o of topPool){r-=Math.max(.1,o.s);if(r<=0){pick=o;break}}
-    chosen.push(pick.x);
-    // A weighted candidate may be selected from topPool; return the other
-    // candidates to the pool so the same anime cannot appear twice.
-    ranked.push(...topPool.filter(o=>Number(o.x.id)!==Number(pick.x.id)));
-    ranked.sort((a,b)=>b.s-a.s);
-  }
-  return chosen.map(x=>({
-    id:Number(x.id),provider:String(x.provider||'anilist'),externalId:Number(x.externalId)||0,mediaType:String(x.mediaType||''),posterPath:String(x.posterPath||''),releaseDate:String(x.releaseDate||''),
-    title:x.title?.userPreferred||x.title?.english||x.title?.romaji||'Anime recomendado',
-    cover:x.coverImage?.extraLarge||x.coverImage?.large||x.coverImage?.medium||'',
-    banner:String(x.bannerImage||''),
-    genres:Array.isArray(x.genres)?x.genres.slice(0,6):[],
-    tags:Array.isArray(x.tags)?x.tags.slice(0,8):[],
-    description:text(x.description||''),
-    episodes:Number(x.episodes)||0,duration:Number(x.duration)||0,
-    status:String(x.status||''),score:Number(x.averageScore)||0,popularity:Number(x.popularity)||0,siteUrl:String(x.siteUrl||''),
-    reason:reasonFor(x,p,mode==='opposite'?targets:null)
-  }));
+  const draw=(source,count)=>{
+    const ranked=source.map(x=>({x,s:scoreCandidate(x,p,mode,targets)})).sort((a,b)=>b.s-a.s),chosen=[];
+    while(chosen.length<count&&ranked.length){
+      const topPool=ranked.splice(0,Math.min(8,ranked.length)),total=topPool.reduce((sum,o)=>sum+Math.max(.1,o.s),0);
+      let r=Math.random()*total,pick=topPool[topPool.length-1];
+      for(const o of topPool){r-=Math.max(.1,o.s);if(r<=0){pick=o;break}}
+      chosen.push(pick.x);ranked.push(...topPool.filter(o=>Number(o.x.id)!==Number(pick.x.id)));ranked.sort((x,y)=>y.s-x.s);
+    }
+    return chosen;
+  };
+  let chosen=[];
+  if(contentType==='all'){
+    for(const [kind,count] of [['anime',2],['movie',2],['tv',1]])chosen.push(...draw(pool.filter(x=>kindOf(x)===kind),count));
+    if(chosen.length<5){const chosenIds=new Set(chosen.map(x=>Number(x.id)));chosen.push(...draw(pool.filter(x=>!chosenIds.has(Number(x.id))),5-chosen.length))}
+  }else chosen=draw(pool,5);
+  return chosen.map(x=>{
+    const kind=kindOf(x);
+    return {id:Number(x.id),kind,provider:String(x.provider||'anilist'),externalId:Number(x.externalId)||0,mediaType:String(x.mediaType||''),posterPath:String(x.posterPath||''),releaseDate:String(x.releaseDate||''),title:x.title?.userPreferred||x.title?.english||x.title?.romaji||'Recomendación OneBase',cover:x.coverImage?.extraLarge||x.coverImage?.large||x.coverImage?.medium||'',banner:String(x.bannerImage||''),genres:Array.isArray(x.genres)?x.genres.slice(0,6):[],tags:Array.isArray(x.tags)?x.tags.slice(0,8):[],description:text(x.description||''),episodes:Number(x.episodes)||0,duration:Number(x.duration)||0,status:String(x.status||''),score:Number(x.averageScore)||0,popularity:Number(x.popularity)||0,siteUrl:String(x.siteUrl||''),reason:reasonFor(x,p,mode==='opposite'?targets:null)};
+  });
 }
-async function fetchTmdbMix(signal){
-  const requests=['movie','tv'].map(async type=>{
+async function fetchTmdbMix(signal,typeFilter=contentType){
+  const types=typeFilter==='movie'?['movie']:typeFilter==='tv'?['tv']:typeFilter==='anime'?[]:['movie','tv'];
+  const requests=types.map(async type=>{
     const r=await fetch('/api/onebase-health?service=tmdb&action=trending&type='+type,{headers:{accept:'application/json'},signal});
     const payload=await r.json().catch(()=>null);if(!r.ok||!payload?.ok)throw new Error(payload?.error||'TMDB no disponible');
-    const labels={28:'Action',12:'Adventure',16:'Animation',35:'Comedy',80:'Crime',99:'Documentary',18:'Drama',10751:'Family',14:'Fantasy',36:'History',27:'Horror',10402:'Music',9648:'Mystery',10749:'Romance',878:'Sci-Fi',10770:'TV Movie',53:'Thriller',10752:'War',37:'Western',10759:'Action',10762:'Family',10763:'Documentary',10764:'Reality',10765:'Sci-Fi',10766:'Drama',10767:'Talk',10768:'War'};
+    const labels={28:'Action',12:'Adventure',16:'Animation',35:'Comedy',80:'Crime',99:'Documentary',18:'Drama',10751:'Family',14:'Fantasy',36:'History',27:'Horror',10402:'Music',9648:'Mystery',10770:'TV Movie',53:'Thriller',10752:'War',37:'Western',10759:'Action',10762:'Family',10763:'Documentary',10764:'Reality',10765:'Sci-Fi',10766:'Drama',10767:'Talk',10768:'War'};
     return (payload.results||[]).map(x=>{const title=x.title||x.name||x.original_title||x.original_name||'Título sin nombre',ext=Number(x.id)||0;return {id:-(100000000+ext+(type==='tv'?50000000:0)),provider:'tmdb',externalId:ext,mediaType:type,title:{userPreferred:title},description:String(x.overview||''),genres:(x.genre_ids||[]).map(id=>labels[id]).filter(Boolean),tags:[],status:'',episodes:0,duration:0,averageScore:Math.round((Number(x.vote_average)||0)*10),popularity:Number(x.popularity)||0,coverImage:{extraLarge:x.poster_path?'https://image.tmdb.org/t/p/w500'+x.poster_path:'',large:x.poster_path?'https://image.tmdb.org/t/p/w500'+x.poster_path:''},bannerImage:x.backdrop_path?'https://image.tmdb.org/t/p/w1280'+x.backdrop_path:'',posterPath:x.poster_path||'',releaseDate:x.release_date||x.first_air_date||'',siteUrl:'https://www.themoviedb.org/'+type+'/'+ext};});
   });
   const results=await Promise.allSettled(requests);return results.filter(x=>x.status==='fulfilled').flatMap(x=>x.value);
 }
 async function fetchRoll(){
   const p=profile(),taste=top(p.genres,8),targets=mode==='opposite'?oppositeGenres(p):[];
-  const hist=loadHistory(),owned=[...ids()];
-  const exclude=[...new Set([...hist,...owned])].filter(Number.isFinite).slice(-10000);
-  const body={mode,genres:taste,targetGenres:targets,excludeIds:exclude.slice(-350),page:1+Math.floor(Math.random()*4)};
-  const controller=typeof AbortController==='undefined'?null:new AbortController();
-  const timer=controller?setTimeout(()=>controller.abort(),18000):null;
+  const hist=loadHistory(),owned=[...ids()],exclusions=new Set([...hist,...owned,...sessionSeen,...(Array.isArray(roll)?roll.map(x=>Number(x.id)):[])]);
+  const body={mode,genres:taste,targetGenres:targets,excludeIds:[...exclusions].filter(Number.isFinite).slice(-350),page:1+Math.floor(Math.random()*4)};
+  const controller=typeof AbortController==='undefined'?null:new AbortController(),timer=controller?setTimeout(()=>controller.abort(),18000):null;
   try{
-    const r=await fetch('/api/lootbox-recommendations-v2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:controller?.signal});
-    const payload=await r.json().catch(()=>null);
-    if(!r.ok||!payload?.ok)throw new Error(payload?.error||'No se pudieron preparar las cajas.');
-    let mixed=[];try{mixed=await fetchTmdbMix(controller?.signal)}catch(_){/* AniList and Kitsu remain available if TMDB is temporarily unavailable */}
-    let picked=pick([...(Array.isArray(payload.results)?payload.results:[]),...mixed],p,mode,targets);
-    if(picked.length<5){
+    let animeResults=[],screenResults=[],animeError=null,screenError=null;
+    const animeTask=contentType==='movie'||contentType==='tv'?Promise.resolve([]):(async()=>{
+      const r=await fetch('/api/lootbox-recommendations-v2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:controller?.signal});
+      const payload=await r.json().catch(()=>null);if(!r.ok||!payload?.ok)throw new Error(payload?.error||'No se pudieron preparar recomendaciones de anime.');
+      return Array.isArray(payload.results)?payload.results:[];
+    })();
+    const screenTask=contentType==='anime'?Promise.resolve([]):fetchTmdbMix(controller?.signal,contentType);
+    const results=await Promise.allSettled([animeTask,screenTask]);
+    if(results[0].status==='fulfilled')animeResults=results[0].value;else animeError=results[0].reason;
+    if(results[1].status==='fulfilled')screenResults=results[1].value;else screenError=results[1].reason;
+    let picked=pick([...animeResults,...screenResults],p,mode,targets);
+    if(picked.length<5&&(contentType==='all'||contentType==='anime')){
       const fallback=await fetch('/api/lootbox-recommendations-v2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...body,mode:'random',page:1}),signal:controller?.signal});
-      const fp=await fallback.json().catch(()=>null);
-      if(fallback.ok&&fp?.ok)picked=pick([...(payload.results||[]),...(fp.results||[]),...mixed],p,mode,targets);
+      const fp=await fallback.json().catch(()=>null);if(fallback.ok&&fp?.ok)picked=pick([...animeResults,...(Array.isArray(fp.results)?fp.results:[]),...screenResults],p,mode,targets);
     }
-    if(picked.length<5)throw new Error('No hay 5 animes nuevos disponibles. Prueba otro modo o genera otra tirada.');
+    if(picked.length<5){
+      if(!animeResults.length&&!screenResults.length)throw animeError||screenError||new Error('No se pudieron consultar los catálogos.');
+      throw new Error('No hay cinco recomendaciones nuevas de '+CONTENT_TYPES[contentType].label.toLowerCase()+'. Prueba otro tipo o vuelve a intentarlo.');
+    }
     return picked;
   }catch(error){
     if(error?.name==='AbortError')throw new Error('Las fuentes de recomendaciones tardaron demasiado en responder. Pulsa Reintentar.');
@@ -169,6 +171,7 @@ async function fetchRoll(){
   }finally{if(timer)clearTimeout(timer)}
 }
 function modeLabel(){return MODES[mode].label}
+function contentTypeLabel(){return CONTENT_TYPES[contentType].label}
 function boxMarkup(x,i){
   const locked=selected!==null&&selected!==i;
   const done=resolved.has(i);
@@ -182,32 +185,27 @@ function boxMarkup(x,i){
 }
 
 function shell(){
-  const disabled=busy||selected!==null;
   const cases=roll?'<div class="lv2-cases">'+roll.map((x,i)=>boxMarkup(x,i)).join('')+'</div>':'';
+  const typeButtons=Object.entries(CONTENT_TYPES).map(([k,v])=>'<button type="button" class="lv2-type '+(contentType===k?'active':'')+'" data-lv2-type="'+k+'" aria-pressed="'+(contentType===k)+'">'+v.label+'<small>'+v.sub+'</small></button>').join('');
   return '<div class="onebase-loot-v2">'+
-    '<div class="lv2-top"><div><div class="lv2-kicker">ONEBASE · DESCUBRIMIENTOS</div><h3>Tu próximo descubrimiento está dentro.</h3><p>Elige una de las 5 cajas. Se abrirá por arriba y descubrirás anime, una película o una serie sorpresa. Después podrás guardarlo o descartarlo.</p></div>'+
-    '<div class="lv2-modes">'+Object.entries(MODES).map(([k,v])=>'<button class="lv2-mode '+(mode===k?'active':'')+'" data-lv2-mode="'+k+'">'+v.label+'<small>'+v.sub+'</small></button>').join('')+'</div></div>'+
-    '<div class="lv2-rollbar"><span>'+modeLabel()+' · '+(busy?'ANALIZANDO PERFIL…':selected!==null?'1 CAJA ELEGIDA · 4 BLOQUEADAS':'5 CAJAS DISPONIBLES')+'</span><button class="lv2-reroll" data-lv2-reroll '+(busy?'disabled':'')+'>↻ REROLL · NUEVA TIRADA</button></div>'+
+    '<div class="lv2-top"><div><div class="lv2-kicker">ONEBASE · DESCUBRIMIENTOS</div><h3>Tu próximo descubrimiento está dentro.</h3><p>Elige el formato y el estilo. La tirada mezclada reparte 2 anime, 2 películas y 1 serie cuando hay suficientes opciones. Guarda cada hallazgo en la biblioteca que le corresponde.</p></div>'+
+    '<div class="lv2-controls"><div class="lv2-control-label">FORMATO</div><div class="lv2-types" role="group" aria-label="Filtrar recomendaciones por formato">'+typeButtons+'</div><div class="lv2-control-label">ESTILO DE DESCUBRIMIENTO</div><div class="lv2-modes">'+Object.entries(MODES).map(([k,v])=>'<button type="button" class="lv2-mode '+(mode===k?'active':'')+'" data-lv2-mode="'+k+'" aria-pressed="'+(mode===k)+'">'+v.label+'<small>'+v.sub+'</small></button>').join('')+'</div></div></div>'+
+    '<div class="lv2-rollbar"><span>'+modeLabel()+' · '+contentTypeLabel()+' · '+(busy?'ANALIZANDO TU COLECCIÓN…':selected!==null?'1 CAJA ELEGIDA · 4 BLOQUEADAS':'5 CAJAS DISPONIBLES')+'</span><button class="lv2-reroll" data-lv2-reroll '+(busy?'disabled':'')+'>↻ REROLL · NUEVA TIRADA</button></div>'+
     (loadError?'<div class="lv2-empty lv2-error" role="alert"><div><b>No se pudieron cargar las cajas</b><small>'+esc(loadError)+'</small><button type="button" data-lv2-reroll>Reintentar</button></div></div>':'')+
     (roll?.some(x=>x.provider==='kitsu')?'<div class="lv2-source-note" role="status">Fuente alternativa activa: recomendaciones del catálogo Kitsu.</div>':'')+
-    (busy?'<div class="lv2-empty"><div><div class="lv2-spinner"></div><b>Construyendo tu tirada</b><small>Comparando géneros, temas, novedad y lo que ya tienes…</small></div></div>':cases)+
+    (busy?'<div class="lv2-empty"><div><div class="lv2-spinner"></div><b>Construyendo tu tirada</b><small>Comparando tus gustos y evitando títulos de tiradas anteriores…</small></div></div>':cases)+
     (!roll&&!busy&&!loadError?'<div class="lv2-empty"><div><b>Preparando tus cajas…</b><small>La primera tirada se genera automáticamente.</small></div></div>':'')+
     (selected!==null&&roll?.[selected]&&!resolved.has(selected)?detail(roll[selected],selected):'')+
-    (selected!==null?'<div class="lv2-reroll-note">Las otras cajas no se vuelven a abrir en esta tirada. Usa REROLL para generar 5 nuevas.</div>':'')+
+    (selected!==null?'<div class="lv2-reroll-note">Las otras cajas quedan selladas en esta tirada. Puedes generar otra tirada cuando quieras.</div>':'')+
   '</div>';
 }
-function rarity(x){
-  const s=Number(x.score)||0;
-  if(s>=85)return ['SECRETA','red'];
-  if(s>=78)return ['RESTRINGIDA','purple'];
-  if(s>=70)return ['MIL-SPEC','blue'];
-  return ['ESTÁNDAR','blue'];
-}
+function mediaLabel(x){return x.kind==='movie'?'PELÍCULA':x.kind==='tv'?'SERIE':x.provider==='kitsu'?'ANIME · KITSU':'ANIME'}
+function ratingSource(x){return x.provider==='tmdb'?'TMDB':x.provider==='kitsu'?'Kitsu':'AniList'}
 function detail(x,i){
-  const r=rarity(x);
+  const year=String(x.releaseDate||'').slice(0,4),meta=[(x.genres||[]).slice(0,3).join(' · '),year,x.episodes?x.episodes+' episodios':''].filter(Boolean).join(' · ');
   return '<section class="lv2-reveal '+(resolved.has(i)?'is-closing':'')+'"><div class="lv2-reveal-inner">'+
     '<div class="lv2-reveal-cover">'+(x.cover?'<img src="'+esc(x.cover)+'" alt="Portada de '+esc(x.title)+'">':'')+'</div>'+
-    '<div class="lv2-reveal-copy"><span class="lv2-reveal-rarity">◆ '+r[0]+'</span><h4>'+esc(x.title)+'</h4><div class="lv2-reveal-meta">'+esc((x.genres||[]).join(' · ')||'Anime')+(x.episodes?' · '+x.episodes+' episodios':'')+'</div><div class="lv2-reveal-score">★ '+(x.score?(x.score/10).toFixed(1):'—')+' / 10</div><p class="lv2-reveal-desc">'+esc(x.description||'Sin descripción disponible.')+'</p><div class="lv2-actions"><button class="lv2-save" data-lv2-save="'+i+'">＋ GUARDAR COMO PENDIENTE</button><button class="lv2-skip" data-lv2-skip="'+i+'">♻ DESCARTAR</button></div><div class="lv2-reason">'+esc(x.reason)+'</div></div></div></section>';
+    '<div class="lv2-reveal-copy"><span class="lv2-reveal-rarity">'+esc(mediaLabel(x))+'</span><h4>'+esc(x.title)+'</h4><div class="lv2-reveal-meta">'+esc(meta||'Nuevo en OneBase')+'</div><div class="lv2-reveal-score">★ '+(x.score?(x.score/10).toFixed(1):'—')+' / 10 <small>'+esc(ratingSource(x))+'</small></div><p class="lv2-reveal-desc">'+esc(x.description||'Sin descripción disponible.')+'</p><div class="lv2-actions"><button class="lv2-save" data-lv2-save="'+i+'">＋ GUARDAR COMO PENDIENTE</button><button class="lv2-skip" data-lv2-skip="'+i+'">♻ DESCARTAR</button></div><div class="lv2-reason">'+esc(x.reason)+'</div></div></div></section>';
 }
 function opening(i){
   const x=roll?.[i];if(!x)return;
@@ -257,9 +255,9 @@ function opening(i){
     '<div class="obc-box"><div class="obc-light"></div><div class="obc-chest"><div class="obc-lid">ONEBASE</div><div class="obc-inside"></div><div class="obc-base">◈</div></div></div>'+
     '<div class="obc-reward"><div class="obc-card">'+(x.cover?'<img src="'+esc(x.cover)+'" alt="Portada de '+esc(x.title)+'">':'◈')+'</div>'+
     '<div class="obc-panel"><div class="obc-content"><div class="obc-tag">◆ RECOMPENSA DESCUBIERTA</div>'+
-    '<h2 class="obc-title">'+esc(x.title)+'</h2><div class="obc-meta">'+esc((x.genres||[]).join(' · ')||'Anime')+(x.episodes?' · '+x.episodes+' episodios':'')+(x.score?' · ★ '+(x.score/10).toFixed(1):'')+'</div>'+
+    '<div class="obc-tag">◆ '+esc(mediaLabel(x))+'</div><h2 class="obc-title">'+esc(x.title)+'</h2><div class="obc-meta">'+esc((x.genres||[]).join(' · ')||mediaLabel(x))+(x.episodes?' · '+x.episodes+' episodios':'')+(x.score?' · ★ '+(x.score/10).toFixed(1)+' · '+esc(ratingSource(x)):'')+'</div>'+
     '<p class="obc-desc">'+esc(x.description||'Sin descripción disponible.')+'</p>'+
-    '<div class="obc-actions"><button type="button" class="obc-save">＋ GUARDAR ANIME</button><button type="button" class="obc-discard">DESCARTAR</button></div></div></div></div>'+
+    '<div class="obc-actions"><button type="button" class="obc-save">＋ GUARDAR EN BIBLIOTECA</button><button type="button" class="obc-discard">DESCARTAR</button></div></div></div></div>'+
     '<div class="obc-caption" aria-live="polite">La caja está lista…</div></div>';
   const previousOverflow={body:document.body.style.overflow,root:document.documentElement.style.overflow};
   document.body.appendChild(el);
@@ -279,7 +277,7 @@ function opening(i){
     anim.cancel();
     return true;
   };
-  const finish=()=>{el.classList.add('obc-done');caption.textContent='¡Has descubierto un anime!';};
+  const finish=()=>{el.classList.add('obc-done');caption.textContent='¡Has descubierto '+mediaLabel(x).toLocaleLowerCase('es-ES')+'!';};
   const closeOpening=(refresh=true)=>{
     ++runId;animations.forEach(animation=>animation.cancel());animations=[];
     window.removeEventListener('keydown',onKeyDown);el.remove();
@@ -393,7 +391,8 @@ async function reroll(){
   selected=null;resolved.clear();loadError='';busy=true;renderLoot();
   try{
     const next=await fetchRoll();
-    if(previous)previous.forEach(x=>markHistory(x.id));
+    // Keep unopened rewards out of permanent history, but avoid repeats in this session.
+    next.forEach(x=>sessionSeen.add(Number(x.id)));
     roll=next;
   }catch(e){
     roll=previous;
@@ -404,6 +403,7 @@ async function reroll(){
 function bind(){
   const app=$('#onebasePageApp');if(!app)return;
   app.querySelectorAll('[data-lv2-mode]').forEach(b=>b.onclick=async()=>{const next=b.dataset.lv2Mode;if(next===mode)return;mode=next;localStorage.setItem(KEY,mode);await reroll()});
+  app.querySelectorAll('[data-lv2-type]').forEach(b=>b.onclick=async()=>{const next=b.dataset.lv2Type;if(!CONTENT_TYPES[next]||next===contentType)return;contentType=next;localStorage.setItem(TYPE_KEY,contentType);await reroll()});
   app.querySelectorAll('[data-lv2-reroll]').forEach(b=>b.onclick=()=>void reroll());
   app.querySelectorAll('[data-lv2-open]').forEach(b=>b.onclick=()=>choose(Number(b.dataset.lv2Open)));
   app.querySelectorAll('[data-lv2-save]').forEach(b=>b.onclick=()=>save(Number(b.dataset.lv2Save)));
@@ -429,6 +429,6 @@ addEventListener('popstate',()=>setTimeout(enter,60));
 addEventListener('hashchange',()=>setTimeout(enter,60));
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',enter,{once:true});else setTimeout(enter,150);
 
-window.OneBaseLootV2={reroll,render:renderLoot,reload(){const saved=localStorage.getItem(KEY)||'personalized';mode=MODES[saved]?saved:'personalized';if(inLoot()){roll=null;loadError='';void reroll()}},close(){activeCinematicClose?.()}};
+window.OneBaseLootV2={reroll,render:renderLoot,reload(){const saved=localStorage.getItem(KEY)||'personalized';mode=MODES[saved]?saved:'personalized';const savedType=localStorage.getItem(TYPE_KEY)||'all';contentType=CONTENT_TYPES[savedType]?savedType:'all';sessionSeen.clear();if(inLoot()){roll=null;loadError='';void reroll()}},close(){activeCinematicClose?.()}};
 window.dispatchEvent(new CustomEvent('onebase:loot-v2-ready'));
 })();
