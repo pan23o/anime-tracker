@@ -205,7 +205,16 @@
       }
       const obj=JSON.parse(raw);
       if(obj?.app==='OneBase'&&obj?.type==='library'){
-        const entries=Array.isArray(obj.data)?obj.data.map(normalizeImported).filter(Boolean):[];
+        const entries=Array.isArray(obj.data)?obj.data.map(raw=>{
+          const item=normalizeImported(raw);if(!item)return null;
+          const copy={...item};
+          for(const key of ['cover','coverImage','bannerImage','description','siteUrl','source','sourceAnimeId','duration','durationMin','apiStatus','anilistStatus','knownTotal','plannedEpisodes','newEpisodes']){
+            if(raw?.[key]!=null)copy[key]=typeof raw[key]==='string'?raw[key].slice(0,5000):raw[key];
+          }
+          for(const key of ['genres','tags'])if(Array.isArray(raw?.[key]))copy[key]=raw[key].map(x=>cleanText(x).slice(0,100)).filter(Boolean).slice(0,30);
+          if(raw?.favorite!=null)copy.favorite=!!raw.favorite;
+          return copy;
+        }).filter(Boolean):[];
         if(entries.length)mergeImported(entries,'OneBase');
         const screenResult=window.OneBaseScreenLibrary?.importItems?.(obj.screenLibrary)||{added:0,updated:0};
         if(!entries.length&&!screenResult.added&&!screenResult.updated)throw new Error('La exportación OneBase no contiene contenido válido.');
