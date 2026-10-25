@@ -69,9 +69,12 @@ async function searchSite(host,home,q,episode){
     try{const result=await page(spanishUrl);if(hasNoResults(result.html))return{url:spanishUrl,fallbackUrl,multiSubsUrl,titleOnlyUrl,languageFound:false,multiSubsFound:false,languageQuery:null,verification:'checked'};return{url:spanishUrl,fallbackUrl,multiSubsUrl,titleOnlyUrl,languageFound:true,multiSubsFound:false,languageQuery:`${plain} ES`,verification:'checked'}}
     catch(_){return{url:spanishUrl,fallbackUrl,multiSubsUrl,titleOnlyUrl,languageFound:false,multiSubsFound:false,languageQuery:`${plain} ES`,verification:'unavailable'}}
   }
-  for(const candidate of candidates(q,episode)){
-    try{const u=extUrl(home,candidate.term),p=await page(u),hit=findResult(p.html,p.url,q,candidate.kind);if(hit)return{url:p.url,fallbackUrl,multiSubsUrl,titleOnlyUrl,languageFound:candidate.kind==='spanish',multiSubsFound:candidate.kind==='multi-subs',languageQuery:candidate.term,verification:'checked'}}catch(_){}
-  }
-  return{url:extUrl(home,`${plain} ES`),fallbackUrl,multiSubsUrl,titleOnlyUrl,languageFound:false,multiSubsFound:false,languageQuery:null,verification:'checked'}
+  const spanishUrl=extUrl(home,`${plain} ES`);
+  try{
+    const result=await page(spanishUrl);
+    if(hasNoResults(result.html))return{url:spanishUrl,fallbackUrl,multiSubsUrl,titleOnlyUrl,languageFound:false,multiSubsFound:false,languageQuery:null,verification:'checked'};
+    return{url:spanishUrl,fallbackUrl,multiSubsUrl,titleOnlyUrl,languageFound:true,multiSubsFound:false,languageQuery:`${plain} ES`,verification:'checked'};
+  }catch(_){return{url:spanishUrl,fallbackUrl,multiSubsUrl,titleOnlyUrl,languageFound:false,multiSubsFound:false,languageQuery:`${plain} ES`,verification:'unavailable'}}
+
 }
 module.exports=async function(req,res){res.setHeader('Cache-Control','no-store');if(req.method!=='GET')return res.status(405).json({ok:false,error:'Método no permitido.'});const raw=String(req.query?.url||'').trim(),q=String(req.query?.query||'').trim(),episode=String(req.query?.episode||'').trim();if(!raw||!q)return res.status(400).json({ok:false,error:'Faltan la URL o el anime.'});if(q.length>200||episode.length>12||episode&&!/^(?:\d{1,4}|s\d{1,2}e\d{1,3})$/i.test(episode))return res.status(400).json({ok:false,error:'La búsqueda o el episodio no son válidos.'});try{const home=await safe(raw),host=home.hostname.replace(/^www\./,'').toLowerCase();if(host!=='nyaa.si'&&host!=='ext.to')return res.status(400).json({ok:false,error:'Esta búsqueda solo admite Nyaa y EXT.to.'});const r=await searchSite(host,home,q,episode);return res.status(200).json({ok:true,url:r.url,fallbackUrl:r.fallbackUrl||null,multiSubsUrl:r.multiSubsUrl||null,titleOnlyUrl:r.titleOnlyUrl||null,found:true,languageFound:r.languageFound,multiSubsFound:r.multiSubsFound,languageQuery:r.languageQuery,verification:r.verification,query:q,episode:episode||null,language:'ES'})}catch(e){return res.status(200).json({ok:true,url:null,fallbackUrl:null,found:false,languageFound:false,multiSubsFound:false,verification:'error',error:String(e.message||'No se ha podido completar la búsqueda.')})}};
