@@ -36,12 +36,10 @@ self.addEventListener('notificationclick', event => {
 self.addEventListener('push', event => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch (_) {}
-  event.waitUntil(self.registration.showNotification(data.title || 'OneBase', {
-    body: data.body || 'Tienes una actualización nueva.',
-    icon: '/favicon.png',
-    badge: '/favicon.png',
-    tag: data.tag || 'onebase-update',
-    renotify: true,
-    data: data.data || {}
-  }));
+  event.waitUntil((async () => {
+    const windows = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const client of windows) {
+      try { client.postMessage({ type: 'ONEBASE_PUSH_NOTIFICATION', payload: data }); } catch (_) {}
+    }
+  })());
 });
