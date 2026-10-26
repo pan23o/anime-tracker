@@ -17,12 +17,8 @@
   function saveJson(key, value) {
     try { localStorage.setItem(key, JSON.stringify(value)); } catch (_) {}
   }
-  function notifyBrowser(title, body, anime, episode) {
-    if (!('Notification' in window) || Notification.permission !== 'granted') return;
-    const options = { body, tag: `onebase-episode-${encodeURIComponent(anime)}-${episode}`, data: { anime, episode }, icon: '/favicon.png', badge: '/favicon.png' };
-    try {
-      navigator.serviceWorker?.ready.then(reg => reg.showNotification(title, options)).catch(() => new Notification(title, options));
-    } catch (_) {}
+  function notifyOneBase(title, body, anime, episode) {
+    window.OneBaseNotifications?.show?.(title, body, { kicker: 'Nuevos episodios', icon: '◷', anime, episode });
   }
   async function getClient() {
     if (window.OneBaseSupabase) return window.OneBaseSupabase;
@@ -56,38 +52,29 @@
     return vapidPublicKey;
   }
   async function enablePush() {
-    const client = await getClient();
-    if (!client) throw new Error('Supabase no está disponible.');
-    const { data: sessionData } = await client.auth.getSession();
-    if (!sessionData?.session) throw new Error('Inicia sesión para activar las notificaciones.');
-    const permission = await askPermission();
-    if (permission !== 'granted') throw new Error('El navegador no ha concedido permiso para las notificaciones.');
-    const registration = await registerServiceWorker();
-    if (!registration?.pushManager) throw new Error('Este navegador no admite Push Notifications.');
-    let subscription = await registration.pushManager.getSubscription();
-    if (!subscription) subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(await getVapidPublicKey()) });
-    const { data, error } = await client.functions.invoke('onebase-notifications', { body: { subscription: subscription.toJSON() } });
-    if (error) throw error;
-    if (!data?.ok) throw new Error(data?.error || 'No se pudo guardar la suscripción.');
-    localStorage.setItem('onebase_push_enabled_v1', '1');
+    window.OneBaseNotifications?.setEnabled?.(true);
     updateNotificationButtons(true);
     return true;
   }
   async function disablePush() {
-    const client = await getClient();
-    if (!client) return false;
+    window.OneBaseNotifications?.setEnabled?.(false);
     const registration = await registerServiceWorker();
     const subscription = await registration?.pushManager?.getSubscription();
-    if (!subscription) return true;
-    try { await fetch(`${SUPABASE_URL}/functions/v1/onebase-notifications`, { method: 'DELETE', headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${(await client.auth.getSession()).data?.session?.access_token || ''}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: subscription.endpoint }) }); } catch (_) {}
-    try { await subscription.unsubscribe(); } catch (_) {}
-    localStorage.removeItem('onebase_push_enabled_v1');
+    if (subscription) {
+      const client = await getClient().catch(() => null);
+      try {
+        const session = client ? (await client.auth.getSession()).data?.session : null;
+        if (session?.access_token) await fetch(`${SUPABASE_URL}/functions/v1/onebase-notifications`, { method: 'DELETE', headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: subscription.endpoint }) });
+      } catch (_) {}
+      try { await subscription.unsubscribe(); } catch (_) {}
+    }
+    try { localStorage.removeItem('onebase_push_enabled_v1'); } catch (_) {}
     updateNotificationButtons(false);
     return true;
   }
   function updateNotificationButtons(enabled) {
     document.querySelectorAll('[data-onebase-notifications]').forEach(button => {
-      button.textContent = enabled ? '✓ NOTIFICACIONES ACTIVADAS' : '🔔 ACTIVAR NOTIFICACIONES';
+      button.textContent = enabled ? '✓ AVISOS DE ONEBASE ACTIVADOS' : '○ AVISOS DE ONEBASE DESACTIVADOS';
       button.classList.toggle('active', enabled);
       button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
     });
@@ -101,18 +88,14 @@
     button.dataset.onebaseNotifications = '1';
     button.className = 'onebase-notification-toggle';
     button.textContent = '🔔 ACTIVAR NOTIFICACIONES';
-    button.title = 'Recibir avisos cuando OneBase detecte nuevos episodios';
+    button.title = 'Mostrar avisos dentro de OneBase sin notificaciones del navegador';
     button.addEventListener('click', async () => {
-      try {
-        await enablePush();
-        if (window.toast) window.toast('✓ Notificaciones de episodios activadas.');
-      } catch (error) {
-        if (window.toast) window.toast(`⚠️ ${error?.message || 'No se pudieron activar las notificaciones.'}`);
-        else console.warn('[ONEBASE] Notification setup:', error);
-      }
+      const active = window.OneBaseNotifications?.enabled?.() !== false;
+      if (active) await disablePush(); else await enablePush();
+      if (window.toast) window.toast(active ? 'Avisos de OneBase desactivados.' : 'Avisos de OneBase activados.');
     });
     const style = document.createElement('style');
-    style.textContent = '.onebase-notification-toggle{width:100%;margin-top:8px;padding:10px 12px;border:1px solid rgba(214,168,79,.28);border-radius:10px;background:rgba(214,168,79,.08);color:inherit;font:800 10px/1.1 inherit;letter-spacing:.06em;cursor:pointer;transition:transform .18s ease,border-color .18s ease,background .18s ease}.onebase-notification-toggle:hover{transform:translateY(-1px);border-color:rgba(214,168,79,.58);background:rgba(214,168,79,.14)}.onebase-notification-toggle.active{border-color:rgba(103,223,138,.55);background:rgba(103,223,138,.08)}';
+    style.textContent = '.onebase-notification-toggle{width:100%;margin-top:8px;padding:10px 12px;border:1px solid rgba(214,168,79,.28);border-radius:10px;background:rgba(214,168,79,.08);color:inherit;font:800 10px/1.1 inherit;letter-spacing:.06em;cursor:pointer;transition:transform .18s ease,border-color .18s ease,background .18s ease}.onebase-notification-toggle:hover{transform:translateY(-1px);border-color:rgba(214,168,79,.58);background:rgba(214,168,79,.14)}.onebase-notification-toggle.active{border-color:rgba(214,168,79,.58);background:rgba(214,168,79,.12);color:#f0cf83}';
     document.head.appendChild(style);
     menu.appendChild(button);
   }
@@ -145,7 +128,7 @@
         const key = `${item.id || item.anime}:${nextTotal}`;
         if (!notified[key]) {
           notified[key] = Date.now();
-          notifyBrowser('Nuevo episodio en OneBase', `${item.anime}: hay ${nextTotal - previousTotal} episodio${nextTotal - previousTotal === 1 ? '' : 's'} nuevo${nextTotal - previousTotal === 1 ? '' : 's'}.`, item.anime, nextTotal);
+          notifyOneBase('Nuevo episodio disponible', `${item.anime}: hay ${nextTotal - previousTotal} episodio${nextTotal - previousTotal === 1 ? '' : 's'} nuevo${nextTotal - previousTotal === 1 ? '' : 's'}.`, item.anime, nextTotal);
         }
       }
       if (changed) {
@@ -158,15 +141,12 @@
     try {
       const registration = await registerServiceWorker();
       const subscription = await registration?.pushManager?.getSubscription();
-      const enabled = Boolean(subscription && Notification.permission === 'granted');
-      updateNotificationButtons(enabled);
-      const client = await getClient();
-      const { data: sessionData } = await client.auth.getSession();
-      if (enabled && sessionData?.session) await client.functions.invoke('onebase-notifications', { body: { subscription: subscription.toJSON() } });
-    } catch (_) {}
+      if (subscription) await disablePush();
+      updateNotificationButtons(window.OneBaseNotifications?.enabled?.() !== false);
+    } catch (_) { updateNotificationButtons(window.OneBaseNotifications?.enabled?.() !== false); }
   }
 
-  window.OneBaseEpisodeNotifications = { checkUpdates, askPermission, enablePush, disablePush, registerServiceWorker };
+  window.OneBaseEpisodeNotifications = { checkUpdates, enablePush, disablePush, registerServiceWorker };
   window.addEventListener('animetracker:restored', () => setTimeout(checkUpdates, 1200));
   window.addEventListener('onebase:txt-restored', () => setTimeout(checkUpdates, 1200));
   document.addEventListener('DOMContentLoaded', () => setTimeout(() => { ensureNotificationButton(); hydrateNotificationState(); checkUpdates(); }, 1800), { once: true });
