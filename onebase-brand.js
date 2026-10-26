@@ -44,28 +44,29 @@
     if(!button)return;
     button.setAttribute('aria-pressed',String(soundEnabled));
     button.setAttribute('aria-label',soundEnabled?'Desactivar sonidos de interfaz':'Activar sonidos de interfaz');
-    button.textContent=soundEnabled?'♫ Sonido: sí':'♫ Sonido: no';
+    button.textContent=button.classList.contains('onebase-sound-floating')?'♫':(soundEnabled?'♫ Sonido: sí':'♫ Sonido: no');
+    button.title=soundEnabled?'Sonidos de interfaz activados':'Sonidos de interfaz desactivados';
     button.classList.toggle('is-enabled',soundEnabled);
   }
   function installSoundControl(){
     const controls=document.querySelector('.controls');
-    const nav=document.querySelector('#onebaseSidebar nav');
-    const controlsVisible=controls&&getComputedStyle(controls).display!=='none'&&getComputedStyle(controls).visibility!=='hidden';
-    const host=controlsVisible?controls:nav;
+    const rect=controls?.getBoundingClientRect?.();
+    const controlsVisible=!!controls&&!!rect?.width&&!!rect?.height&&getComputedStyle(controls).display!=='none'&&getComputedStyle(controls).visibility!=='hidden';
+    const host=controlsVisible?controls:document.body;
     if(!host)return;
     let button=document.getElementById('onebaseSoundToggle');
     if(!button){
       button=document.createElement('button');
       button.type='button';button.id='onebaseSoundToggle';
-      button.className='btn ghost onebase-sound-toggle'+(host===nav?' onebase-sound-sidebar':'');
       button.addEventListener('click',()=>{
         soundEnabled=!soundEnabled;
         try{localStorage.setItem(SOUND_KEY,soundEnabled?'1':'0')}catch(_){}
         updateSoundButton(button);
         if(soundEnabled)playTone(740,0,.11,.018);
       });
-      host.appendChild(button);
     }
+    button.className='btn ghost onebase-sound-toggle'+(controlsVisible?'':' onebase-sound-floating');
+    if(button.parentElement!==host)host.appendChild(button);
     updateSoundButton(button);
     if(soundBound)return;
     soundBound=true;
