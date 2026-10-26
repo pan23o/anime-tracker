@@ -441,7 +441,7 @@ function bindEvents(){
 }
 function boot(){
   if(booted)return;booted=true;
-  const link=document.createElement('link');link.rel='stylesheet';link.href='/onebase-premium.css?v=22';document.head.appendChild(link);
+  const link=document.createElement('link');link.rel='stylesheet';link.href='/onebase-premium.css?v=23';document.head.appendChild(link);
   ensureHealthButton();ensureHealth();ensureEpisodeModal();ensurePublicSection();wrapRender();bindEvents();refresh();void loadPublicSettings();void syncPublicSnapshot();
   window.OneBasePremium={refresh,openHealth,openEpisodes,openInfo:openInfoIndex,runHealth,publicUrl,profileBio(){return publicState.bio},saveProfileBio(value){publicState.bio=String(value||'').slice(0,280);saveLocalPublic();void syncPublicSnapshot();window.dispatchEvent(new CustomEvent('onebase:profile-bio-changed'));return publicState.bio},removeAnimeFromLibrary(index){const row=document.querySelector('.row[data-index="'+Number(index)+'"]'),button=row?.querySelector('.clearAnime');if(!button)return false;button.click();return true}};
 }
