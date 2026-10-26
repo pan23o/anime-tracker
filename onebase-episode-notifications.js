@@ -6,7 +6,6 @@
   const CHECK_INTERVAL = 6 * 60 * 60 * 1000;
   const SUPABASE_URL = 'https://djfjqecahztogacliavh.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_tm8Tid_HSYtu6cxXQ3ddKA_RWN15BSB';
-  let vapidPublicKey = '';
 
   function getData() {
     try { return Array.isArray(window.data) ? window.data : []; } catch (_) { return []; }
@@ -25,31 +24,6 @@
     if (!window.supabase?.createClient) return null;
     window.OneBaseSupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
     return window.OneBaseSupabase;
-  }
-  async function registerServiceWorker() {
-    if (window.OneBaseNotifications?.register) return window.OneBaseNotifications.register();
-    if (!('serviceWorker' in navigator)) return null;
-    try { return await navigator.serviceWorker.register('/onebase-sw.js', { scope: '/' }); }
-    catch (error) { console.warn('[ONEBASE] Service worker registration failed:', error); return null; }
-  }
-  function urlBase64ToUint8Array(base64) {
-    const padding = '='.repeat((4 - (base64.length % 4)) % 4);
-    const raw = atob((base64 + padding).replace(/-/g, '+').replace(/_/g, '/'));
-    return Uint8Array.from(raw, char => char.charCodeAt(0));
-  }
-  async function askPermission() {
-    if (!('Notification' in window)) return 'unsupported';
-    if (Notification.permission === 'default') return Notification.requestPermission();
-    return Notification.permission;
-  }
-  async function getVapidPublicKey() {
-    if (vapidPublicKey) return vapidPublicKey;
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/onebase-episode-cron?config=vapid`, { headers: { apikey: SUPABASE_KEY } });
-    if (!response.ok) throw new Error('No se pudo inicializar el sistema de notificaciones.');
-    const data = await response.json();
-    if (!data?.publicKey) throw new Error(data?.error || 'No hay clave pública de notificaciones disponible.');
-    vapidPublicKey = data.publicKey;
-    return vapidPublicKey;
   }
   async function enablePush() {
     window.OneBaseNotifications?.setEnabled?.(true);
