@@ -1,10 +1,21 @@
-/* OneBase in-app notifications and service worker. */
+/* OneBase in-app notifications. Retires the legacy browser push worker. */
 (function () {
   'use strict';
   const PREF_KEY = 'onebase_inapp_notifications_v1';
   let host = null;
-  function enabled() {
-    try { const value = localStorage.getItem(PREF_KEY); return value === null ? true : value === '1'; } catch (_) { return true; }
+  const enabled = () => { try { const value = localStorage.getItem(PREF_KEY); return value === null ? true : value === '1'; } catch (_) { return true; } };
+  async function retireLegacyWorker() {
+    if (!('serviceWorker' in navigator)) return;
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (const registration of registrations) {
+        const urls = [registration.active, registration.waiting, registration.installing].filter(Boolean).map(worker => worker.scriptURL || '');
+        if (!urls.some(url => /\/onebase-sw\.js(?:[?#]|$)/i.test(url))) continue;
+        const subscription = await registration.pushManager?.getSubscription?.().catch?.(() => null);
+        try { await subscription?.unsubscribe?.(); } catch (_) {}
+        try { await registration.unregister(); } catch (_) {}
+      }
+    } catch (_) {}
   }
   function ensureHost() {
     if (host?.isConnected) return host;
@@ -38,8 +49,7 @@
   function show(title, body, detail = {}) {
     if (!enabled()) return false;
     const stack = ensureHost(), notice = document.createElement('article');
-    notice.className = 'ob-notice';
-    notice.setAttribute('role', 'status');
+    notice.className = 'ob-notice'; notice.setAttribute('role', 'status');
     const icon = document.createElement('span'); icon.className = 'ob-notice-icon'; icon.setAttribute('aria-hidden', 'true'); icon.textContent = detail.icon || '◷';
     const copy = document.createElement('span'); copy.className = 'ob-notice-copy';
     const kicker = document.createElement('small'); kicker.className = 'ob-notice-kicker'; kicker.textContent = detail.kicker || 'OneBase · Aviso';
@@ -48,25 +58,12 @@
     copy.append(kicker, heading, message);
     const close = document.createElement('button'); close.type = 'button'; close.className = 'ob-notice-close'; close.setAttribute('aria-label', 'Cerrar notificación'); close.textContent = '×';
     const dismiss = () => { if (!notice.isConnected) return; notice.classList.add('is-leaving'); setTimeout(() => notice.remove(), 240); };
-    close.addEventListener('click', dismiss);
-    notice.append(icon, copy, close); stack.appendChild(notice);
+    close.addEventListener('click', dismiss); notice.append(icon, copy, close); stack.appendChild(notice);
     while (stack.children.length > 4) stack.firstElementChild.remove();
-    setTimeout(dismiss, 7200);
-    return true;
-  }
-  async function register() {
-    if (!('serviceWorker' in navigator)) return null;
-    try { return await navigator.serviceWorker.register('/onebase-sw.js', { scope: '/' }); }
-    catch (error) { console.warn('[ONEBASE] Service worker registration failed:', error); return null; }
+    setTimeout(dismiss, 7200); return true;
   }
   window.OneBaseNotifications = window.OneBaseNotifications || {};
-  Object.assign(window.OneBaseNotifications, { register, show, enabled, setEnabled(value) { try { localStorage.setItem(PREF_KEY, value ? '1' : '0'); } catch (_) {} return Boolean(value); } });
-  navigator.serviceWorker?.addEventListener?.('message', event => {
-    if (event.data?.type === 'ONEBASE_PUSH_NOTIFICATION') {
-      const data = event.data.payload || {};
-      show(data.title || 'Tienes una novedad', data.body || '', { kicker: data.kicker || 'OneBase · Aviso', icon: data.icon || '◷' });
-    }
-  });
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => void register(), { once: true });
-  else void register();
+  Object.assign(window.OneBaseNotifications, { retireLegacyWorker, show, enabled, setEnabled(value) { try { localStorage.setItem(PREF_KEY, value ? '1' : '0'); } catch (_) {} return Boolean(value); } });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => void retireLegacyWorker(), { once: true });
+  else void retireLegacyWorker();
 })();
