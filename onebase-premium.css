@@ -900,3 +900,14 @@ body[data-theme] .ob-section-card>header{
 .ob-anime-card:hover{z-index:2;transform:translateY(-5px)}
 .ob-anime-card:hover .ob-card-open{transform:none;border-color:rgba(214,168,79,.48);box-shadow:0 18px 45px rgba(0,0,0,.34)}
 .ob-anime-card .ob-card-open{transition:border-color .23s ease,box-shadow .23s ease}
+
+/* Keep the filter drawer inside the library frame at every viewport width. */
+.ob-library-tools{grid-template-columns:minmax(0,1fr);min-width:0}
+.ob-library-tools>input,.ob-library-filters{grid-column:1/-1;width:100%;max-width:100%;min-width:0;box-sizing:border-box}
+.ob-library-filters{overflow:visible}
+.ob-library-filters>summary{display:flex;align-items:center;justify-content:space-between;min-width:0;text-align:left}
+.ob-library-filter-grid{width:100%;max-width:100%;min-width:0;box-sizing:border-box;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.ob-library-filter-grid>*{width:100%;max-width:100%;min-width:0;box-sizing:border-box}
+.ob-library-filter-grid select{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:760px){.ob-library-filter-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:420px){.ob-library-filter-grid{grid-template-columns:minmax(0,1fr)}}
