@@ -565,7 +565,7 @@ body a:focus-visible,
 body [role="button"]:focus-visible{
   outline:2px solid #d6a84f!important;outline-offset:2px!important
 }
-body button[aria-pressed="true"],
+body button[aria-pressed="true"]:not(#onebaseSoundToggle),
 body button.active,
 body .lv2-mode.active,
 body .lv2-type.active,
@@ -589,3 +589,16 @@ body .onebase-sound-toggle.is-enabled{
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;animation-duration:.001ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition:none!important;transition-duration:.001ms!important}
 }
+
+html body #onebaseSidebar nav button{color:#c9c9c9!important}
+html body #onebaseSidebar nav button:hover,
+html body #onebaseSidebar nav button.active{color:#f0c96a!important;border-color:#d6a84f!important}
+html body #onebaseSidebar nav button.active{background:rgba(214,168,79,.14)!important;box-shadow:0 0 0 2px rgba(214,168,79,.12)!important}
+html body #onebaseSoundToggle.onebase-sound-sidebar,
+html body #onebaseSoundToggle.onebase-sound-sidebar.is-enabled{
+  width:40px!important;min-height:38px!important;margin:4px auto!important;padding:0!important;
+  display:grid!important;place-items:center!important;border-radius:12px!important;
+  border:1px solid rgba(214,168,79,.38)!important;background:#111!important;
+  color:#f0c96a!important;font-size:16px!important;box-shadow:none!important
+}
+html body #onebaseSoundToggle.onebase-sound-sidebar:hover{background:rgba(214,168,79,.14)!important}
