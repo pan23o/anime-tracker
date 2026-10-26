@@ -24,7 +24,7 @@ function render(p){
   const name=String(p.username||'Usuario'),avatar=String(p.avatar_data||''),bio=String(p.bio||'');
   const stats=[
     ['contentCount','En biblioteca'],['animeCount','Anime'],['movieCount','Películas'],['seriesCount','Series'],
-    ['completed','Completados'],['chapters','Episodios de anime'],['seriesEpisodes','Episodios de series'],['favorites','Favoritos'],['active','En curso']
+    ['animeCompleted','Anime vistos'],['movieCompleted','Películas vistas'],['seriesCompleted','Series terminadas'],['ratingsCount','Valoraciones'],['chapters','Episodios de anime'],['seriesEpisodes','Episodios de series'],['favorites','Favoritos'],['active','En curso']
   ];
   const profile=$('#profile');
   profile.innerHTML='<div class="profile-hero">'+ '<div class="avatar">'+(avatar?'<img src="'+esc(avatar)+'" alt="Avatar de '+esc(name)+'">':esc(initials(name)))+'</div><div class="hero-copy"><div class="kicker">ONEBASE · PERFIL PÚBLICO</div><h1 class="name">'+esc(name)+'</h1>'+(bio?'<p class="bio">'+esc(bio)+'</p>':'')+'</div></div><div class="content"><div class="stats">'+stats.map(x=>'<div class="stat"><b>'+fmt(st[x[0]]??(x[0]==='contentCount'?st.animeCount:0))+'</b><span>'+x[1]+'</span></div>').join('')+'<div class="stat"><b>'+(Number(st.avgScore)>0?Number(st.avgScore).toFixed(1):'—')+'</b><span>Nota media personal</span></div></div><h2 class="section-title">Favoritos destacados</h2><div class="highlights" id="highlights"></div></div>';
