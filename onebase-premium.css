@@ -916,3 +916,18 @@ body[data-theme] .ob-section-card>header{
 .ob-library-filter-count{display:inline-grid;place-items:center;min-width:19px;height:19px;padding:0 5px;border:1px solid rgba(214,168,79,.38);border-radius:999px;background:rgba(214,168,79,.13);color:#e6c778;font-size:8px}
 .ob-library-filter-reset{border-color:rgba(214,168,79,.34)!important;background:rgba(214,168,79,.09)!important;color:#e6c778!important}
 .ob-library-filter-reset:hover{background:rgba(214,168,79,.16)!important;border-color:rgba(214,168,79,.62)!important}
+
+/* Confirmación integrada de OneBase para acciones destructivas. */
+.ob-confirm-overlay{position:fixed;z-index:2147483000;inset:0;display:grid;place-items:center;padding:20px;background:rgba(0,0,0,.76);backdrop-filter:blur(8px);animation:ob-confirm-fade .16s ease-out}
+.ob-confirm-dialog{width:min(440px,100%);padding:24px;border:1px solid rgba(214,168,79,.42);border-radius:20px;background:linear-gradient(145deg,#181818,#0c0c0c);box-shadow:0 24px 90px rgba(0,0,0,.68);animation:ob-confirm-rise .2s cubic-bezier(.2,.8,.2,1)}
+.ob-confirm-dialog h2{margin:0;color:#f4e0aa;font-size:17px;line-height:1.35}
+.ob-confirm-dialog p{margin:11px 0 22px;color:#bbb;font-size:13px;line-height:1.6;overflow-wrap:anywhere}
+.ob-confirm-actions{display:flex;justify-content:flex-end;gap:9px}
+.ob-confirm-actions button{min-height:40px;padding:0 15px;border:1px solid #3b3b3b;border-radius:11px;background:#161616;color:#eee;font:700 12px Inter,Arial,sans-serif;transition:transform .16s ease,border-color .16s ease,background .16s ease}
+.ob-confirm-actions button:hover{transform:translateY(-1px);border-color:#d6a84f}
+.ob-confirm-actions .ob-confirm-accept{border-color:#d6a84f;background:linear-gradient(135deg,#d6a84f,#a87922);color:#100d06}
+.ob-confirm-actions .ob-confirm-accept.is-danger{border-color:#a55245;background:linear-gradient(135deg,#c56c5b,#8f382d);color:#fff}
+@keyframes ob-confirm-fade{from{opacity:0}to{opacity:1}}
+@keyframes ob-confirm-rise{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+.ob-library-filters>summary{justify-content:flex-start}
+@media(prefers-reduced-motion:reduce){.ob-confirm-overlay,.ob-confirm-dialog{animation:none}}

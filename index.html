@@ -1123,10 +1123,10 @@ function createRow(i){
   });
   info.addEventListener("click",()=>openInfoModal(i));
 
-  clear.addEventListener("click",()=>{
+  clear.addEventListener("click",async()=>{
     if(i>=data.length || !data[i]?.anime?.trim()) return;
     const item=data[i];
-    if(settings.confirmDelete&&!confirm(`¿Mover ${item.anime} a la papelera?`)) return;
+    if(settings.confirmDelete&&(!window.OneBaseConfirm||!await window.OneBaseConfirm.confirm({title:"Mover a la papelera",message:`¿Quieres mover ${item.anime} a la papelera?`,confirmText:"Mover"}))) return;
     lookupToken++;
     if(lookupTimer) clearTimeout(lookupTimer);
     if(lookupController){lookupController.abort();lookupController=null;}
@@ -1985,9 +1985,9 @@ function renderTrash(){
     const i=Number(b.dataset.restore),entry=trash[i];if(!entry)return;
     data.push(normalizeItem(entry.item));trash.splice(i,1);storeJson(TRASH_STORAGE,trash);save();render();renderTrash();toast("Anime restaurado");
   }));
-  el.querySelectorAll("[data-delete]").forEach(b=>b.addEventListener("click",()=>{
+  el.querySelectorAll("[data-delete]").forEach(b=>b.addEventListener("click",async()=>{
     const i=Number(b.dataset.delete),entry=trash[i];if(!entry)return;
-    if(!confirm(`¿Eliminar definitivamente ${entry.item?.anime||"este anime"}?`))return;
+    if(!window.OneBaseConfirm||!await window.OneBaseConfirm.confirm({title:"Eliminar definitivamente",message:`¿Eliminar definitivamente ${entry.item?.anime||"este anime"}?`,confirmText:"Eliminar"}))return;
     trash.splice(i,1);storeJson(TRASH_STORAGE,trash);renderTrash();toast("Eliminado definitivamente");
   }));
 }
@@ -2058,7 +2058,7 @@ document.getElementById("profilePhotoRemove").addEventListener("click",()=>{prof
   storeJson(SETTINGS_STORAGE,settings);window.dispatchEvent(new CustomEvent("onebase:legacy-settings-changed",{detail:settings}));toast("Ajustes guardados");
 }));
 document.getElementById("backupNow").addEventListener("click",()=>{createBackup("Manual",true);renderBackupList();toast("Copia local creada");});
-document.getElementById("emptyTrash").addEventListener("click",()=>{if(!trash.length)return;if(confirm("¿Vaciar la papelera definitivamente?")){trash=[];storeJson(TRASH_STORAGE,trash);renderTrash();toast("Papelera vaciada");}});
+document.getElementById("emptyTrash").addEventListener("click",async()=>{if(!trash.length)return;if(window.OneBaseConfirm&&await window.OneBaseConfirm.confirm({title:"Vaciar la papelera",message:"¿Eliminar definitivamente todo lo que hay en la papelera?",confirmText:"Vaciar papelera"})){trash=[];storeJson(TRASH_STORAGE,trash);renderTrash();toast("Papelera vaciada");}});
 document.getElementById("resetAll").addEventListener("click",()=>{
   if(!confirm("¿Borrar TODOS los datos de AnimeTracker de este navegador?"))return;
   if(!confirm("Esta acción elimina biblioteca, papelera, copias, perfil, logros y ajustes. ¿Continuar?"))return;

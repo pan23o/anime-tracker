@@ -14,6 +14,28 @@ let publicState=loadLocalPublic();
 let supa=null;
 
 const $=s=>document.querySelector(s);
+function installConfirmDialog(){
+ if(window.OneBaseConfirm?.confirm)return;
+ window.OneBaseConfirm={confirm(options={}){
+  if(document.getElementById('ob-confirm-overlay'))return Promise.resolve(false);
+  const overlay=document.createElement('div');overlay.id='ob-confirm-overlay';overlay.className='ob-confirm-overlay';overlay.setAttribute('role','presentation');
+  const dialog=document.createElement('section');dialog.className='ob-confirm-dialog';dialog.setAttribute('role','alertdialog');dialog.setAttribute('aria-modal','true');dialog.setAttribute('aria-labelledby','ob-confirm-title');dialog.setAttribute('aria-describedby','ob-confirm-message');
+  const title=document.createElement('h2');title.id='ob-confirm-title';title.textContent=String(options.title||'¿Confirmas esta acción?');
+  const message=document.createElement('p');message.id='ob-confirm-message';message.textContent=String(options.message||'');
+  const actions=document.createElement('div');actions.className='ob-confirm-actions';
+  const cancel=document.createElement('button');cancel.type='button';cancel.className='ob-confirm-cancel';cancel.textContent=String(options.cancelText||'Cancelar');
+  const confirm=document.createElement('button');confirm.type='button';confirm.className='ob-confirm-accept'+(options.danger===false?'':' is-danger');confirm.textContent=String(options.confirmText||'Confirmar');
+  actions.append(cancel,confirm);dialog.append(title,message,actions);overlay.append(dialog);document.body.append(overlay);
+  return new Promise(resolve=>{
+   let done=false;
+   const finish=value=>{if(done)return;done=true;document.removeEventListener('keydown',onKey);overlay.remove();resolve(value)};
+   const onKey=e=>{if(e.key==='Escape'){e.preventDefault();finish(false)}if(e.key==='Enter'&&e.target!==cancel){e.preventDefault();finish(true)}};
+   cancel.addEventListener('click',()=>finish(false));confirm.addEventListener('click',()=>finish(true));overlay.addEventListener('click',e=>{if(e.target===overlay)finish(false)});document.addEventListener('keydown',onKey);
+   cancel.focus();
+  });
+ }};
+}
+installConfirmDialog();
 function modalScrollLock(){
   if(!window.OneBaseModalScrollLock){
     const owners=new Set();let previous=null;
@@ -614,8 +636,7 @@ function releaseEntries(kind){
   items().forEach(o=>{
    const x=o.x,status=animeStatus(x),at=releaseTimestamp(x.nextAiringAt),watched=Math.max(0,Math.floor(Number(x.watched)||0)),total=Math.max(0,Number(x.total)||Number(x.knownTotal)||0);
    if(status==='FINISHED'||status==='CANCELLED')return;
-   const hasFutureDate=at>now;
-   const waiting=!hasFutureDate&&['RELEASING','NOT_YET_RELEASED','HIATUS'].includes(status);
+   const hasFutureDate=at>now,waiting=!hasFutureDate&&['RELEASING','NOT_YET_RELEASED','HIATUS'].includes(status);
    if(!hasFutureDate&&!waiting)return;
    const airingEpisode=Number(x.nextAiringEpisode)||0,nextEpisode=watched+1;
    const episodeLabel=airingEpisode>0?'Episodio '+airingEpisode:(nextEpisode>0?'Episodio '+nextEpisode:'Próximo episodio');
@@ -624,13 +645,15 @@ function releaseEntries(kind){
  }else{
   screenItems().filter(x=>x.type===(kind==='series'?'tv':'movie')).forEach(x=>{
    const loaded=releaseDetails.get(String(x.id))||{};
-   let label=kind==='movies'?'Estreno en cines':'Estreno de la serie',raw='',next=null,seasonNumber=0,watched=0,total=0;
+   let label=kind==='movies'?'Estreno en cines':'Siguiente episodio',raw='',next=null,seasonNumber=0,watched=0,total=0,watchEpisode=0;
    if(kind==='movies')raw=x.releaseDate||x.release_date||x.premiereDate||'';
    else{
     next=x.next_episode_to_air||x.nextEpisodeToAir||loaded.next_episode_to_air||loaded.nextEpisodeToAir||null;
-    raw=next?.air_date||x.nextEpisodeAirDate||'';
+    const nextAt=releaseTimestamp(next?.air_date||'');
+    const hasFutureEpisode=Boolean(next&&nextAt>now);
+    raw=hasFutureEpisode?next.air_date:'';
     const seasons=Array.isArray(x.seasons)?x.seasons:[];
-    seasonNumber=Number(x.selectedSeason)||Number(next?.season_number)||0;
+    seasonNumber=Number(hasFutureEpisode?next?.season_number:0)||Number(x.selectedSeason)||0;
     if(!seasonNumber){
      const withProgress=seasons.filter(s=>Number(x.seasonProgress?.[String(s.season_number)])>0);
      const unfinished=withProgress.find(s=>Number(x.seasonProgress?.[String(s.season_number)])<Number(s.episode_count));
@@ -640,17 +663,19 @@ function releaseEntries(kind){
     watched=Math.max(0,Math.floor(Number(x.seasonProgress?.[String(seasonNumber)])||0));
     total=Math.max(0,Number(season?.episode_count)||0);
     if(!total)total=Math.max(0,Number(x.number_of_episodes||x.numberOfEpisodes)||0);
-    label=(seasonNumber>0?'Temporada '+seasonNumber+' · ':'')+'Episodio '+(watched+1);
-    if(next&&Number(next.episode_number)>0)label=(Number(next.season_number)>0?'Temporada '+Number(next.season_number)+' · ':'')+'Estreno episodio '+Number(next.episode_number);
-    else raw=raw||x.first_air_date||x.firstAirDate||x.releaseDate||'';
+    watchEpisode=hasFutureEpisode&&Number(next.episode_number)>0?Number(next.episode_number):watched+1;
+    label=(seasonNumber>0?'Temporada '+seasonNumber+' · ':'')+'Episodio '+watchEpisode;
+    if(hasFutureEpisode)label=(Number(next.season_number)>0?'Temporada '+Number(next.season_number)+' · ':'')+'Estreno episodio '+Number(next.episode_number||watchEpisode);
+    else raw=x.first_air_date||x.firstAirDate||x.releaseDate||'';
    }
    const at=releaseTimestamp(raw),waiting=x.state==='espera';
    const status=String(loaded.status||x.tmdbStatus||'').toLowerCase();
-   const airing=at>now||status==='returning series'||status==='in production';
+   const airing=kind==='series'&&(status==='returning series'||status==='in production');
    const following=kind==='series'&&(x.state==='viendo'||watched>0)&&(!total||watched<total);
+   const hasRealUpcoming=at>now;
    const continuing=kind==='series'&&airing&&(x.state==='viendo'||watched>0);
-   if(at>now||waiting||following||continuing){
-    out.push({kind,id:x.id,title:x.title||x.name||'Sin título',cover:x.posterPath?'https://image.tmdb.org/t/p/w500'+x.posterPath:'',state:x.state||'pendiente',at:at>now?at:0,label,date:releaseDateLabel(at),watchEpisode:kind==='series'?watched+1:0,watched,total,season:seasonNumber});
+   if(hasRealUpcoming||waiting||following||continuing){
+    out.push({kind,id:x.id,title:x.title||x.name||'Sin título',cover:x.posterPath?'https://image.tmdb.org/t/p/w500'+x.posterPath:'',state:x.state||'pendiente',at:hasRealUpcoming?at:0,label,date:releaseDateLabel(hasRealUpcoming?at:0),watchEpisode:kind==='series'?watchEpisode:0,watched,total,season:seasonNumber});
    }
   });
  }
