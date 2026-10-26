@@ -34,8 +34,8 @@
     try {
       const registrations = await navigator.serviceWorker?.getRegistrations?.() || [];
       for (const registration of registrations) {
-        const urls = [registration.active, registration.waiting, registration.installing].filter(Boolean).map(worker => worker.scriptURL || '');
-        if (!urls.some(url => /\/onebase-sw\.js(?:[?#]|$)/i.test(url))) continue;
+        const scopeOrigin = new URL(registration.scope || location.origin).origin;
+        if (scopeOrigin !== location.origin) continue;
         const subscription = await registration.pushManager?.getSubscription?.().catch?.(() => null);
         if (subscription) {
           try {
