@@ -56,18 +56,28 @@
     updateNotificationButtons(true);
     return true;
   }
+  async function retireBrowserPush() {
+    try {
+      const registrations = await navigator.serviceWorker?.getRegistrations?.() || [];
+      for (const registration of registrations) {
+        const urls = [registration.active, registration.waiting, registration.installing].filter(Boolean).map(worker => worker.scriptURL || '');
+        if (!urls.some(url => /\/onebase-sw\.js(?:[?#]|$)/i.test(url))) continue;
+        const subscription = await registration.pushManager?.getSubscription?.().catch?.(() => null);
+        if (subscription) {
+          try {
+            const client = await getClient().catch(() => null);
+            const session = client ? (await client.auth.getSession()).data?.session : null;
+            if (session?.access_token) await fetch(`${SUPABASE_URL}/functions/v1/onebase-notifications`, { method: 'DELETE', headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: subscription.endpoint }) });
+          } catch (_) {}
+          try { await subscription.unsubscribe(); } catch (_) {}
+        }
+        try { await registration.unregister(); } catch (_) {}
+      }
+    } catch (_) {}
+  }
   async function disablePush() {
     window.OneBaseNotifications?.setEnabled?.(false);
-    const registration = await registerServiceWorker();
-    const subscription = await registration?.pushManager?.getSubscription();
-    if (subscription) {
-      const client = await getClient().catch(() => null);
-      try {
-        const session = client ? (await client.auth.getSession()).data?.session : null;
-        if (session?.access_token) await fetch(`${SUPABASE_URL}/functions/v1/onebase-notifications`, { method: 'DELETE', headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: subscription.endpoint }) });
-      } catch (_) {}
-      try { await subscription.unsubscribe(); } catch (_) {}
-    }
+    await retireBrowserPush();
     try { localStorage.removeItem('onebase_push_enabled_v1'); } catch (_) {}
     updateNotificationButtons(false);
     return true;
@@ -138,15 +148,11 @@
     } catch (error) { console.warn('[ONEBASE] Episode update check failed:', error); }
   }
   async function hydrateNotificationState() {
-    try {
-      const registration = await registerServiceWorker();
-      const subscription = await registration?.pushManager?.getSubscription();
-      if (subscription) await disablePush();
-      updateNotificationButtons(window.OneBaseNotifications?.enabled?.() !== false);
-    } catch (_) { updateNotificationButtons(window.OneBaseNotifications?.enabled?.() !== false); }
+    await retireBrowserPush();
+    updateNotificationButtons(window.OneBaseNotifications?.enabled?.() !== false);
   }
 
-  window.OneBaseEpisodeNotifications = { checkUpdates, enablePush, disablePush, registerServiceWorker };
+  window.OneBaseEpisodeNotifications = { checkUpdates, enablePush, disablePush, retireBrowserPush };
   window.addEventListener('animetracker:restored', () => setTimeout(checkUpdates, 1200));
   window.addEventListener('onebase:txt-restored', () => setTimeout(checkUpdates, 1200));
   document.addEventListener('DOMContentLoaded', () => setTimeout(() => { ensureNotificationButton(); hydrateNotificationState(); checkUpdates(); }, 1800), { once: true });
