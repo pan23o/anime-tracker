@@ -37,7 +37,62 @@
   function syncLightTheme(){installLightThemeStyles();document.body.classList.toggle('onebase-light-theme',isLightTheme())}
   function replaceVisibleText(){const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);const nodes=[];let node;while((node=walker.nextNode())){const parent=node.parentElement;if(!parent||/^(SCRIPT|STYLE|NOSCRIPT|TEXTAREA)$/i.test(parent.tagName))continue;if(/AnimeTracker/i.test(node.nodeValue||''))nodes.push(node)}for(const text of nodes)text.nodeValue=text.nodeValue.replace(/AnimeTracker/gi,BRAND)}
   function installDashboardLevel(){const dashboard=document.querySelector('.dashboard');if(!dashboard)return;let levelCard=document.getElementById('onebaseLevelCard');if(!levelCard){levelCard=document.createElement('div');levelCard.id='onebaseLevelCard';levelCard.className='stat onebase-level-card';levelCard.innerHTML='<div class="label">Nivel del usuario</div><div class="value" id="onebaseLevelValue">NIVEL 1</div><div class="sub" id="onebaseLevelSub">0 XP · 0% al siguiente nivel</div><div class="levelProgress"><span id="onebaseLevelBar"></span></div>';dashboard.appendChild(levelCard)}const chapterEl=document.getElementById('statChapters'),completedEl=document.getElementById('statCompleted'),animeEl=document.getElementById('statAnime');const watched=Math.max(0,Number((chapterEl?.textContent||'0').replace(/\D/g,''))||0),completed=Math.max(0,Number((completedEl?.textContent||'0').replace(/\D/g,''))||0),anime=Math.max(0,Number((animeEl?.textContent||'0').replace(/\D/g,''))||0);const xp=watched*10+completed*50+anime*5,level=Math.max(1,Math.floor(xp/250)+1),currentBase=(level-1)*250,progress=Math.max(0,Math.min(100,((xp-currentBase)/250)*100));const value=document.getElementById('onebaseLevelValue'),sub=document.getElementById('onebaseLevelSub'),bar=document.getElementById('onebaseLevelBar');const nextValue=`NIVEL ${level}`,nextSub=`${xp.toLocaleString('es-ES')} XP · ${Math.round(progress)}% al siguiente nivel`,nextWidth=`${progress}%`;if(value&&value.textContent!==nextValue)value.textContent=nextValue;if(sub&&sub.textContent!==nextSub)sub.textContent=nextSub;if(bar&&bar.style.width!==nextWidth)bar.style.width=nextWidth}
-  function applyBrand(){document.title=BRAND;document.documentElement.dataset.brand='onebase';installLightThemeStyles();installPolishStyles();replaceVisibleText();syncLightTheme();installDashboardLevel()}
+  const SOUND_KEY='onebase_sound_enabled_v1';
+  let soundEnabled=localStorage.getItem(SOUND_KEY)!=='0';
+  let soundContext=null,soundBound=false;
+  function updateSoundButton(button){
+    if(!button)return;
+    button.setAttribute('aria-pressed',String(soundEnabled));
+    button.setAttribute('aria-label',soundEnabled?'Desactivar sonidos de interfaz':'Activar sonidos de interfaz');
+    button.textContent=soundEnabled?'♫ Sonido: sí':'♫ Sonido: no';
+    button.classList.toggle('is-enabled',soundEnabled);
+  }
+  function installSoundControl(){
+    const controls=document.querySelector('.controls');
+    if(!controls)return;
+    let button=document.getElementById('onebaseSoundToggle');
+    if(!button){
+      button=document.createElement('button');
+      button.type='button';button.id='onebaseSoundToggle';button.className='btn ghost onebase-sound-toggle';
+      button.addEventListener('click',()=>{
+        soundEnabled=!soundEnabled;
+        try{localStorage.setItem(SOUND_KEY,soundEnabled?'1':'0')}catch(_){}
+        updateSoundButton(button);
+        if(soundEnabled)playTone(740,0,.11,.018);
+      });
+      controls.appendChild(button);
+    }
+    updateSoundButton(button);
+    if(soundBound)return;
+    soundBound=true;
+    document.addEventListener('click',event=>{
+      const target=event.target?.closest?.('button,a,[role="button"]');
+      if(!target||target.disabled||target===button||target.hasAttribute('data-no-sound'))return;
+      if(!soundEnabled)return;
+      const Ctx=window.AudioContext||window.webkitAudioContext;
+      if(!Ctx)return;
+      try{
+        if(!soundContext)soundContext=new Ctx();
+        if(soundContext.state==='suspended')void soundContext.resume();
+        const success=target.matches('.lv2-save,.ob-screen-add,.ob-screen-detail-actions .ob-screen-add,.ob-page-add,[data-lv2-save],#profileSave,#cloudLogin')||/guardar|añadir|completad/i.test(target.getAttribute('aria-label')||target.textContent||'');
+        playTone(success?660:440,0,success ? 0.16 : 0.075,success ? 0.025 : 0.012);
+        if(success)playTone(880,.07,.13,.015);
+      }catch(_){}
+    },true);
+  }
+  function playTone(frequency,delay=0,duration=.09,volume=.014){
+    const Ctx=window.AudioContext||window.webkitAudioContext;
+    if(!Ctx)return;
+    try{
+      if(!soundContext)soundContext=new Ctx();
+      if(soundContext.state==='suspended')void soundContext.resume();
+      const start=soundContext.currentTime+delay,osc=soundContext.createOscillator(),gain=soundContext.createGain();
+      osc.type='sine';osc.frequency.setValueAtTime(frequency,start);
+      gain.gain.setValueAtTime(.0001,start);gain.gain.exponentialRampToValueAtTime(volume,start+.012);gain.gain.exponentialRampToValueAtTime(.0001,start+duration);
+      osc.connect(gain);gain.connect(soundContext.destination);osc.start(start);osc.stop(start+duration+.02);
+    }catch(_){}
+  }
+  function applyBrand(){document.title=BRAND;document.documentElement.dataset.brand='onebase';installLightThemeStyles();installPolishStyles();replaceVisibleText();syncLightTheme();installDashboardLevel();installSoundControl()}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',applyBrand,{once:true});else applyBrand();
   let refreshTimer=0;const observer=new MutationObserver(()=>{replaceVisibleText();syncLightTheme();window.clearTimeout(refreshTimer);refreshTimer=window.setTimeout(installDashboardLevel,80)});const startObserver=()=>observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['data-theme']});if(document.body)startObserver();else document.addEventListener('DOMContentLoaded',startObserver,{once:true});
 })();
