@@ -613,3 +613,7 @@ html body #onebaseSoundToggle.onebase-sound-floating.is-enabled{
 }
 html body #onebaseSoundToggle.onebase-sound-floating:hover{background:rgba(214,168,79,.18)!important;transform:translateY(-1px)!important}
 @media(max-width:600px){html body #onebaseSoundToggle.onebase-sound-floating{top:14px!important;right:66px!important;width:38px!important;height:38px!important}}
+
+html body #onebaseSidebar nav button i,
+html body #onebaseSidebar nav button[data-page="loot"] i{color:#d6a84f!important;text-shadow:none!important}
+html body #onebaseSidebar nav button.active i{color:#f0c96a!important;text-shadow:0 0 10px rgba(214,168,79,.28)!important}
