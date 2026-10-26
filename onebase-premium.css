@@ -893,3 +893,10 @@ body[data-theme] .ob-section-card>header{
 .ob-profile-favorites .ob-favorite-grid button{position:relative}.ob-profile-favorites .ob-favorite-grid button strong{display:block}.ob-profile-favorites .ob-favorite-grid button small{display:block;margin:4px 9px 9px;color:#d2ae63;font-size:7px;font-weight:850;text-transform:uppercase;letter-spacing:.7px}
 @media(max-width:700px){.ob-profile-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){.ob-profile-hero{align-items:flex-start;flex-wrap:wrap;padding:16px}.ob-profile-avatar{width:66px;height:66px;border-radius:19px}.ob-profile-identity{padding-top:5px}.ob-profile-identity h3{font-size:19px}.ob-profile-hero>#obEditProfile{width:100%}.ob-profile-section>header{align-items:flex-start;flex-direction:column}}
+
+/* Keep the colored status frame attached to the animated card surface. */
+.ob-anime-card{position:relative;isolation:isolate;border-radius:17px;transition:transform .23s ease;will-change:transform}
+.ob-anime-card::before{inset:0!important;border-radius:17px;pointer-events:none}
+.ob-anime-card:hover{z-index:2;transform:translateY(-5px)}
+.ob-anime-card:hover .ob-card-open{transform:none;border-color:rgba(214,168,79,.48);box-shadow:0 18px 45px rgba(0,0,0,.34)}
+.ob-anime-card .ob-card-open{transition:border-color .23s ease,box-shadow .23s ease}
