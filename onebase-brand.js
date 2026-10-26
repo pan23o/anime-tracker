@@ -49,25 +49,29 @@
   }
   function installSoundControl(){
     const controls=document.querySelector('.controls');
-    if(!controls)return;
+    const nav=document.querySelector('#onebaseSidebar nav');
+    const controlsVisible=controls&&getComputedStyle(controls).display!=='none'&&getComputedStyle(controls).visibility!=='hidden';
+    const host=controlsVisible?controls:nav;
+    if(!host)return;
     let button=document.getElementById('onebaseSoundToggle');
     if(!button){
       button=document.createElement('button');
-      button.type='button';button.id='onebaseSoundToggle';button.className='btn ghost onebase-sound-toggle';
+      button.type='button';button.id='onebaseSoundToggle';
+      button.className='btn ghost onebase-sound-toggle'+(host===nav?' onebase-sound-sidebar':'');
       button.addEventListener('click',()=>{
         soundEnabled=!soundEnabled;
         try{localStorage.setItem(SOUND_KEY,soundEnabled?'1':'0')}catch(_){}
         updateSoundButton(button);
         if(soundEnabled)playTone(740,0,.11,.018);
       });
-      controls.appendChild(button);
+      host.appendChild(button);
     }
     updateSoundButton(button);
     if(soundBound)return;
     soundBound=true;
     document.addEventListener('click',event=>{
       const target=event.target?.closest?.('button,a,[role="button"]');
-      if(!target||target.disabled||target===button||target.hasAttribute('data-no-sound'))return;
+      if(!target||target.disabled||target.id==='onebaseSoundToggle'||target.hasAttribute('data-no-sound'))return;
       if(!soundEnabled)return;
       const Ctx=window.AudioContext||window.webkitAudioContext;
       if(!Ctx)return;
@@ -94,5 +98,5 @@
   }
   function applyBrand(){document.title=BRAND;document.documentElement.dataset.brand='onebase';installLightThemeStyles();installPolishStyles();replaceVisibleText();syncLightTheme();installDashboardLevel();installSoundControl()}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',applyBrand,{once:true});else applyBrand();
-  let refreshTimer=0;const observer=new MutationObserver(()=>{replaceVisibleText();syncLightTheme();window.clearTimeout(refreshTimer);refreshTimer=window.setTimeout(installDashboardLevel,80)});const startObserver=()=>observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['data-theme']});if(document.body)startObserver();else document.addEventListener('DOMContentLoaded',startObserver,{once:true});
+  let refreshTimer=0;const observer=new MutationObserver(()=>{replaceVisibleText();syncLightTheme();window.clearTimeout(refreshTimer);refreshTimer=window.setTimeout(()=>{installDashboardLevel();installSoundControl()},80)});const startObserver=()=>observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['data-theme']});if(document.body)startObserver();else document.addEventListener('DOMContentLoaded',startObserver,{once:true});
 })();
