@@ -911,3 +911,8 @@ body[data-theme] .ob-section-card>header{
 .ob-library-filter-grid select{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media(max-width:760px){.ob-library-filter-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:420px){.ob-library-filter-grid{grid-template-columns:minmax(0,1fr)}}
+
+.ob-library-filters>summary{gap:9px}
+.ob-library-filter-count{display:inline-grid;place-items:center;min-width:19px;height:19px;padding:0 5px;border:1px solid rgba(214,168,79,.38);border-radius:999px;background:rgba(214,168,79,.13);color:#e6c778;font-size:8px}
+.ob-library-filter-reset{border-color:rgba(214,168,79,.34)!important;background:rgba(214,168,79,.09)!important;color:#e6c778!important}
+.ob-library-filter-reset:hover{background:rgba(214,168,79,.16)!important;border-color:rgba(214,168,79,.62)!important}
