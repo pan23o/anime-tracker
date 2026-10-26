@@ -499,3 +499,93 @@ body[data-theme="custom"] .modal{background:color-mix(in srgb,var(--bg) 80%,tran
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.001ms!important}
 }
+
+/* ONEBASE unified palette and feedback */
+:root{
+  --onebase-gold:#d6a84f;
+  --onebase-gold-bright:#f0c96a;
+  --onebase-gold-deep:#9d7428;
+  --onebase-ink:#090b0d;
+  --onebase-paper:#fff;
+}
+body .onebase-loot-v2{--lv2-gold:#d6a84f!important;--lv2-blue:#d6a84f!important;--lv2-purple:#f0c96a!important;--lv2-red:#fff!important}
+body .onebase-loot-v2 .lv2-case-rarity,
+body .onebase-loot-v2 .lv2-opening-case-rarity,
+body .onebase-loot-v2 .lv2-opening-progress i{
+  background:linear-gradient(90deg,#9d7428,#d6a84f,#f0c96a,#fff)!important;
+  box-shadow:0 0 18px rgba(214,168,79,.38)!important
+}
+body .onebase-loot-v2 .lv2-opening-sparks{
+  box-shadow:0 0 12px #fff,18px -50px 0 -2px #d6a84f,-45px -28px 0 -3px #f0c96a,56px 12px 0 -2px #9d7428,-65px 44px 0 -3px #fff,72px -55px 0 -3px #d6a84f,-82px -8px 0 -3px #f0c96a!important
+}
+body .onebase-loot-v2 .lv2-reveal::before{
+  background:radial-gradient(circle at 18% 20%,rgba(214,168,79,.13),transparent 30%),radial-gradient(circle at 90% 30%,rgba(240,201,106,.1),transparent 28%)!important
+}
+body .onebase-loot-v2 .lv2-reveal-rarity{
+  border-color:rgba(214,168,79,.6)!important;background:rgba(214,168,79,.1)!important;color:#f0c96a!important
+}
+body .onebase-loot-v2 .lv2-save{
+  border-color:rgba(214,168,79,.75)!important;background:linear-gradient(135deg,#f0c96a,#d6a84f)!important;color:#111!important
+}
+body .onebase-loot-v2 .lv2-skip{
+  border-color:rgba(255,255,255,.38)!important;background:rgba(255,255,255,.055)!important;color:#f4f2ec!important
+}
+body .onebase-loot-v2 .lv2-save:hover,
+body .onebase-loot-v2 .lv2-skip:hover{filter:brightness(1.1)!important}
+#ob-screen-modal .ob-screen-search button,
+#ob-screen-modal .ob-screen-add,
+#ob-screen-modal .ob-screen-detail-actions .ob-screen-add{
+  background:linear-gradient(135deg,#f0c96a,#d6a84f)!important;color:#111!important;border-color:#d6a84f!important
+}
+#ob-screen-modal .ob-screen-episode.is-watched{
+  border-color:#d6a84f!important;background:rgba(214,168,79,.18)!important;color:#f0c96a!important
+}
+#ob-screen-modal .ob-screen-detail-actions button,
+#ob-screen-modal .ob-screen-detail-actions a,
+#ob-screen-modal .ob-screen-edit-grid>[data-favorite]{
+  border-color:rgba(214,168,79,.58)!important;background:#17140f!important;color:#f0c96a!important
+}
+#ob-screen-modal .ob-screen-info b{color:#d6a84f!important}
+#ob-screen-modal .ob-screen-card:focus-visible,
+#ob-screen-modal .ob-screen-episode:focus-visible{outline:2px solid #d6a84f!important;outline-offset:2px}
+.onebase-health-dot{background:#d6a84f!important;box-shadow:0 0 10px rgba(214,168,79,.42)!important}
+.row[class*="onebase-status-"]{border-left-color:#d6a84f!important;box-shadow:inset 5px 0 18px rgba(214,168,79,.07)!important}
+.row[class*="onebase-status-"] .chip{border-color:rgba(214,168,79,.45)!important;color:#f0c96a!important;text-shadow:none!important}
+.row.onebase-status-paused{border-left-style:dashed!important}
+.row.onebase-status-abandoned .name{color:#f0c96a!important}
+.animeLink.name-favorite,.animeLink.name-poop,.animeLink.name-diamond{
+  color:#f0c96a!important;-webkit-text-fill-color:#f0c96a!important;background:none!important;
+  text-shadow:0 0 10px rgba(214,168,79,.2)!important;animation:none!important
+}
+body button{transition:transform .18s ease,filter .18s ease,border-color .18s ease,box-shadow .18s ease!important}
+body button:hover{border-color:#d6a84f!important;filter:brightness(1.06)}
+body button:active{transform:translateY(1px) scale(.985)!important}
+body button:focus-visible,
+body a:focus-visible,
+body [role="button"]:focus-visible{
+  outline:2px solid #d6a84f!important;outline-offset:2px!important
+}
+body button[aria-pressed="true"],
+body button.active,
+body .lv2-mode.active,
+body .lv2-type.active,
+body #onebaseSidebar button.active{
+  background:linear-gradient(135deg,#f0c96a,#d6a84f)!important;
+  color:#111!important;border-color:#d6a84f!important;box-shadow:0 0 0 2px rgba(214,168,79,.14)!important
+}
+body .lv2-save,body .ob-screen-add,body .ob-page-add,
+body .modalActions button:first-child,body .cloud-auth-actions button:first-child,
+body .onebase-sound-toggle.is-enabled{
+  background:linear-gradient(135deg,#f0c96a,#d6a84f)!important;color:#111!important;border-color:#d6a84f!important
+}
+.onebase-sound-toggle{white-space:nowrap}
+.onebase-sound-toggle[aria-pressed="false"]{color:#aaa!important;border-color:#555!important;background:#151515!important}
+#ob-screen-modal .ob-screen-shell{animation:onebaseModalIn .32s cubic-bezier(.2,.8,.2,1) both}
+#ob-screen-modal .ob-screen-card{animation:onebaseCardIn .28s ease both}
+#onebasePageApp .ob-stat-card,#onebasePageApp .ob-profile-hero,
+#onebasePageApp .ob-home-panel,#onebasePageApp .ob-section-card{animation:onebaseCardIn .3s ease both}
+@keyframes onebaseModalIn{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes onebaseCardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;animation-duration:.001ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition:none!important;transition-duration:.001ms!important}
+}
