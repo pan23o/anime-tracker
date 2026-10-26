@@ -602,3 +602,14 @@ html body #onebaseSoundToggle.onebase-sound-sidebar.is-enabled{
   color:#f0c96a!important;font-size:16px!important;box-shadow:none!important
 }
 html body #onebaseSoundToggle.onebase-sound-sidebar:hover{background:rgba(214,168,79,.14)!important}
+
+html body #onebaseSoundToggle.onebase-sound-floating,
+html body #onebaseSoundToggle.onebase-sound-floating.is-enabled{
+  position:fixed!important;top:22px!important;right:72px!important;z-index:2147483000!important;
+  display:grid!important;place-items:center!important;width:42px!important;height:42px!important;
+  margin:0!important;padding:0!important;border:1px solid rgba(214,168,79,.52)!important;
+  border-radius:50%!important;background:#111!important;color:#f0c96a!important;
+  font-size:19px!important;box-shadow:0 8px 25px rgba(0,0,0,.38)!important
+}
+html body #onebaseSoundToggle.onebase-sound-floating:hover{background:rgba(214,168,79,.18)!important;transform:translateY(-1px)!important}
+@media(max-width:600px){html body #onebaseSoundToggle.onebase-sound-floating{top:14px!important;right:66px!important;width:38px!important;height:38px!important}}
