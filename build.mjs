@@ -44,7 +44,7 @@ html = html.replace(/([\s\S]*)(<\/script>\s*<button class="cloud-account-btn")/i
 html = html.replace(/<\/head>/i, `${headAssets}\n</head>`);
 
 // Force the browser to fetch the corrected persistence engine.
-html = html.replace(/profile-enhancer\.js(?:\?[^"']*)?/g, 'profile-enhancer.js?v=11');
+html = html.replace(/profile-enhancer\.js(?:\?[^"']*)?/g, 'profile-enhancer.js?v=12');
 
 const runtimeScripts = [
   ['onebase-auto-complete.js', 'v=5'],
@@ -61,7 +61,7 @@ const runtimeScripts = [
   ['onebase-source-search-v2.js', 'v=21'],
   ['onebase-anilist-search.js', 'v=9'],
   ['onebase-anime-add-cleanup.js', 'v=2'],
-  ['onebase-premium.js', 'v=68'],
+  ['onebase-premium.js', 'v=69'],
   ['onebase-loot-v2.js', 'v=32'],
   ['onebase-integrations.js', 'v=1'],
   ['onebase-beast.js', 'v=1'],
