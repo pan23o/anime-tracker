@@ -257,7 +257,6 @@ function refreshEpisodeMetadata(item,force=false){
       const next=media.nextAiringEpisode||null,status=String(media.status||'').toUpperCase();
       item.anilistId=Number(media.id);item.aniId=Number(media.id);item.apiStatus=status;item.anilistStatus=status;
       item.nextAiringAt=Number(next?.airingAt)||0;item.nextAiringEpisode=Number(next?.episode)||0;
-      if(Number(media.episodes)>0){const knownBefore=Number(item.knownTotal)||0,totalBefore=Number(item.total)||0,episodeTotal=Number(media.episodes);if(!totalBefore||(knownBefore>0&&totalBefore===knownBefore))item.total=String(episodeTotal);item.knownTotal=String(episodeTotal)}
       try{window.save?.({skipBackup:true})}catch(_){}
       if($('#onebaseEpisodesModal')?.classList.contains('open')&&getData()[episodeIndex]===item)renderEpisodes();
       return true;
@@ -549,6 +548,7 @@ function home(){
  return shell('ONEBASE 2.0','Todo lo que sigues, en un solo lugar','Anime, películas y series conectados en tu biblioteca.', '<div class="ob-stat-grid">'+card('Todo',fmt(s.total),'en tu biblioteca')+card('Anime',fmt(s.a.length),'colección')+card('Películas',fmt(s.movies.length),'colección')+card('Series',fmt(s.series.length),'colección')+card('En curso',fmt(s.active),'para continuar')+card('Favoritos',fmt(s.favorites),'de todos los formatos')+'</div>'+continueBlock+'<div class="ob-home-actions"><button type="button" class="ob-page-add" data-go="library">Abrir biblioteca</button><button type="button" class="ob-page-add" data-go="stats">Ver estadísticas</button><button type="button" class="ob-page-add" data-go="loot">Abrir lootboxes</button></div>');
 }
 function library(){
+ if(window.__ONEBASE_LIBRARY_READY__===false)return shell('BIBLIOTECA','Tu biblioteca','Organiza tus animes, películas y series en un solo lugar.','<div class="ob-empty-large" role="status" aria-live="polite">Sincronizando tu biblioteca…</div>');
  const media=window.OneBaseScreenLibrary?.items?.()||[], anime=items(), all=[...anime.map(o=>({kind:'anime',key:o.i,x:o.x})),...media.map(x=>{const p=x.type==='tv'?seriesProgress(x):{watched:0,total:0};return{kind:x.type==='tv'?'series':'movie',key:x.id,x:{...x,state:x.state||'pendiente',watched:p.watched,total:p.total}}})];
  const title=x=>String(x.anime||x.title||x.name||''), statusOf=x=>x.state||'pendiente', matchesKind=o=>{switch(libraryKind){case 'anime':return o.kind==='anime';case 'movies':return o.kind==='movie';case 'series':return o.kind==='series';default:return true}};
  let a=all.filter(o=>matchesKind(o)&&(!fav||o.x.favorite)&&(!q||title(o.x).toLowerCase().includes(q.toLowerCase().trim()))&&(st==='all'||statusOf(o.x)===st)&&(genre==='all'||(Array.isArray(o.x.genres)&&o.x.genres.some(g=>String(g).toLowerCase()===genre.toLowerCase()))));
@@ -596,11 +596,6 @@ function refreshAniListReleases(force=false){
     if(String(x.anilistStatus||'').toUpperCase()!==status){x.anilistStatus=status;changed=true}
     if(Number(x.nextAiringAt||0)!==airingAt){x.nextAiringAt=airingAt;changed=true}
     if(Number(x.nextAiringEpisode||0)!==episode){x.nextAiringEpisode=episode;changed=true}
-    if(Number(media.episodes)>0){
-     const knownBefore=Number(x.knownTotal)||0,totalBefore=Number(x.total)||0,episodeTotal=Number(media.episodes);
-     if(!totalBefore||(knownBefore>0&&totalBefore===knownBefore)){if(String(x.total)!==String(episodeTotal)){x.total=String(episodeTotal);changed=true}}
-     if(knownBefore!==episodeTotal){x.knownTotal=String(episodeTotal);changed=true}
-    }
    });
    aniListReleaseLastRefresh=Date.now();
    if(changed){try{window.save?.({skipBackup:true})}catch(_){}}
@@ -891,7 +886,7 @@ function boot(){
  if(booted)return;booted=true;
  const brand=$('.brand h1');if(brand)brand.textContent='ONEBASE 2.0';installPageRuntime();
  try{setup()}catch(e){console.error('[ONEBASE] page setup failed',e)}
- const h=location.hash.slice(1);page=['home','library','episodes','stats','profile','loot'].includes(h)?h:'home';try{history.replaceState({onebasePage:page},'',location.pathname+'#'+page)}catch(_){}render();const syncRoute=p=>{if(!['home','library','episodes','stats','profile','loot'].includes(p)||p===page)return;if(p!=='loot')window.OneBaseLootV2?.close?.();page=p;transition(()=>render())};addEventListener('popstate',e=>syncRoute(e.state?.onebasePage||location.hash.slice(1)||'home'));addEventListener('hashchange',()=>syncRoute(location.hash.slice(1)||'home'));['animetracker:saved','animetracker:restored','onebase:anime-added','onebase:screen-library-changed'].forEach(ev=>addEventListener(ev,()=>setTimeout(render,0)))
+ const h=location.hash.slice(1);page=['home','library','episodes','stats','profile','loot'].includes(h)?h:'home';try{history.replaceState({onebasePage:page},'',location.pathname+'#'+page)}catch(_){}render();const syncRoute=p=>{if(!['home','library','episodes','stats','profile','loot'].includes(p)||p===page)return;if(p!=='loot')window.OneBaseLootV2?.close?.();page=p;transition(()=>render())};addEventListener('popstate',e=>syncRoute(e.state?.onebasePage||location.hash.slice(1)||'home'));addEventListener('hashchange',()=>syncRoute(location.hash.slice(1)||'home'));['animetracker:saved','animetracker:restored','onebase:anime-added','onebase:screen-library-changed','onebase:library-ready'].forEach(ev=>addEventListener(ev,()=>setTimeout(render,0)))
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else setTimeout(boot,0);
 })();
