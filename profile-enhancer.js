@@ -5,6 +5,9 @@
 (function () {
   'use strict';
 
+  // Prevent the app from showing an empty library while the account copy is restoring.
+  if (window.__ONEBASE_LIBRARY_READY__ === undefined) window.__ONEBASE_LIBRARY_READY__ = false;
+
   const SUPABASE_URL = 'https://djfjqecahztogacliavh.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_tm8Tid_HSYtu6cxXQ3ddKA_RWN15BSB';
   const LIB = 'anime_tracker_v6';
@@ -465,7 +468,7 @@
   function scheduleProfileSync() { if (!user) return; clearTimeout(profileTimer); profileTimer = setTimeout(async () => { if (!user) return; try { const p = normalizeProfile(profileLocal()); const { error } = await client.from('profiles').upsert({ id: user.id, username: p.name, avatar_data: p.avatar, updated_at: new Date().toISOString() }, { onConflict: 'id' }); if (error) throw error; window.dispatchEvent(new CustomEvent('onebase:profile-changed', { detail: { email: p.email || '' } })); } catch (e) { console.warn('[AnimeTracker] profile save failed:', e); } }, 500); }
   async function logout(event) { event?.preventDefault?.(); const button = $('cloudLogoutBtn'); if (button) { button.disabled = true; button.classList.add('cloud-logout-busy'); button.textContent = 'Cerrando sesión…'; } try { const oldUser = user, current = localList(); if (oldUser) { await uploadAccountFile(current); await uploadScreenLibrary(); await saveEmergencyMirror(current); await saveCloudTable(current); } user = null; setMeta({ ...ensureMeta(), owner: '' }); await saveEmergencyMirror(current); await client.auth.signOut(); $('cloudUserMenu')?.classList.remove('show'); updateAccountUi(); toast('✓ Sesión cerrada'); } catch (e) { console.error('[AnimeTracker] logout', e); toast('No se pudo cerrar la sesión.'); } finally { if (button) { button.disabled = false; button.classList.remove('cloud-logout-busy'); button.textContent = 'Cerrar sesión'; } } }
 
-  async function bootstrap() { if (bootPromise) return bootPromise; bootPromise = (async () => { const found = await getUser(); if (!found) { user = null; ensureMeta(); updateAccountUi(); return; } user = found; updateAccountUi(); await new Promise(resolve => setTimeout(resolve, 150)); await restoreAccountLibrary(); await saveEmergencyMirror(localList()); await syncProfile(); lastFingerprint = fingerprint(localList()); updateAccountUi(); })(); try { return await bootPromise; } finally { bootPromise = null; } }
+  async function bootstrap() { if (bootPromise) return bootPromise; bootPromise = (async () => { const found = await getUser(); if (!found) { user = null; ensureMeta(); updateAccountUi(); return; } user = found; updateAccountUi(); await new Promise(resolve => setTimeout(resolve, 150)); await restoreAccountLibrary(); await saveEmergencyMirror(localList()); await syncProfile(); lastFingerprint = fingerprint(localList()); updateAccountUi(); })(); try { return await bootPromise; } finally { bootPromise = null; window.__ONEBASE_LIBRARY_READY__ = true; window.dispatchEvent(new Event('onebase:library-ready')); } }
 
   function observe() {
     lastFingerprint = fingerprint(localList()); let lastDataFingerprint = '', lastProfileRaw = localStorage.getItem(PROFILE) || '';
@@ -485,6 +488,12 @@
     window.addEventListener('animetracker:progress-changed', () => { void saveProgressNow(); });
     try { if (typeof window.render === 'function' && !window.render.__animeTrackerWrapped) { const originalRender = window.render; const wrappedRender = function (...args) { const result = originalRender.apply(this, args); scheduleLibrarySave(); return result; }; wrappedRender.__animeTrackerWrapped = true; wrappedRender.__animeTrackerOriginal = originalRender; window.render = wrappedRender; } } catch {}
     window.addEventListener('beforeunload', () => { try { saveEmergencyMirror(localList()); } catch {} });
+  }
+
+  if (!client) {
+    window.__ONEBASE_LIBRARY_READY__ = true;
+    window.dispatchEvent(new Event('onebase:library-ready'));
+    return;
   }
 
   client.auth.onAuthStateChange((event, session) => { user = session?.user || null; updateAccountUi(); if (event === 'SIGNED_IN' && user) void bootstrap(); if (event === 'SIGNED_OUT') { user = null; updateAccountUi(); } });
