@@ -529,6 +529,7 @@ function navigate(p,push=true){
  if(p==='health'){window.OneBasePremium?.openHealth?.();return}
  if(p==='settings'){if(window.OneBaseSettings?.open){window.OneBaseSettings.open();}else{document.getElementById('settingsBtn')?.click();}return}
  if(!['home','library','episodes','stats','profile','loot'].includes(p))p='home';
+ if(p===page)return;
  page=p;
  if(push){try{history.pushState({onebasePage:p},'',location.pathname+'#'+p)}catch(_){}}
  transition(()=>render());
@@ -668,13 +669,14 @@ function releaseEntries(kind){
     if(hasFutureEpisode)label=(Number(next.season_number)>0?'Temporada '+Number(next.season_number)+' · ':'')+'Estreno episodio '+Number(next.episode_number||watchEpisode);
     else raw=x.first_air_date||x.firstAirDate||x.releaseDate||'';
    }
-   const at=releaseTimestamp(raw),waiting=x.state==='espera';
-   const status=String(loaded.status||x.tmdbStatus||'').toLowerCase();
+   const at=releaseTimestamp(raw),status=String(loaded.status||x.tmdbStatus||'').trim().toLowerCase();
+   const terminal=['ended','canceled','cancelled'].includes(status);
+   const waiting=x.state==='espera'&&!terminal;
    const airing=kind==='series'&&(status==='returning series'||status==='in production');
    const following=kind==='series'&&(x.state==='viendo'||watched>0)&&(!total||watched<total);
    const hasRealUpcoming=at>now;
    const continuing=kind==='series'&&airing&&(x.state==='viendo'||watched>0);
-   if(hasRealUpcoming||waiting||following||continuing){
+   if(!terminal&&(hasRealUpcoming||waiting||following||continuing)){
     out.push({kind,id:x.id,title:x.title||x.name||'Sin título',cover:x.posterPath?'https://image.tmdb.org/t/p/w500'+x.posterPath:'',state:x.state||'pendiente',at:hasRealUpcoming?at:0,label,date:releaseDateLabel(hasRealUpcoming?at:0),watchEpisode:kind==='series'?watchEpisode:0,watched,total,season:seasonNumber});
    }
   });
@@ -690,7 +692,7 @@ function loadReleaseDetail(item){
  releaseLookups.set(key,promise);return promise;
 }
 function hydrateReleaseDetails(){
- const candidates=screenItems().filter(x=>{if(x.type!=='tv'||releaseLookups.has(String(x.id)))return false;const active=x.state==='viendo'||Object.values(x.seasonProgress||{}).some(n=>Number(n)>0);const oldOrMissingDate=releaseTimestamp(x.nextEpisodeAirDate)<=Date.now();return active&&(!x.tmdbStatus||oldOrMissingDate)||!x.next_episode_to_air&&!x.nextEpisodeToAir&&!x.nextEpisodeAirDate&&!(releaseTimestamp(x.first_air_date||x.firstAirDate)>Date.now())});
+ const candidates=screenItems().filter(x=>{if(x.type!=='tv'||releaseLookups.has(String(x.id)))return false;const active=x.state==='viendo'||x.state==='espera'||Object.values(x.seasonProgress||{}).some(n=>Number(n)>0);const oldOrMissingDate=releaseTimestamp(x.nextEpisodeAirDate)<=Date.now();const needsStatusRefresh=active&&(!x.tmdbStatus||oldOrMissingDate);const missingSchedule=!x.next_episode_to_air&&!x.nextEpisodeToAir&&!x.nextEpisodeAirDate&&!(releaseTimestamp(x.first_air_date||x.firstAirDate)>Date.now());return needsStatusRefresh||missingSchedule});
  if(!candidates.length)return;
  (async()=>{
   for(let i=0;i<candidates.length;i+=4)await Promise.all(candidates.slice(i,i+4).map(loadReleaseDetail));
@@ -834,7 +836,7 @@ function bind(){
  app.querySelectorAll('#obEditProfile,#obProfileAvatar').forEach(b=>b.onclick=()=>document.getElementById('profileTopBtn')?.click());
  const bioInput=app.querySelector('#obProfileBio'),bioCount=app.querySelector('#obProfileBioCount');bioInput?.addEventListener('input',()=>{if(bioCount)bioCount.textContent=bioInput.value.length+'/280'});app.querySelector('#obProfileBioSave')?.addEventListener('click',()=>{window.OneBasePremium?.saveProfileBio?.(bioInput?.value||'');const status=app.querySelector('#obProfileBioCount');if(status)status.textContent=(bioInput?.value||'').length+'/280 · Guardado';window.toast?.('Descripción guardada');});
  app.querySelectorAll('[data-ob-add]').forEach(b=>b.onclick=()=>{if(window.OneBaseLibraryAdd?.open)window.OneBaseLibraryAdd.open();else window.OneBaseAniListSearch?.open?.()});
- app.querySelectorAll('[data-open]').forEach(b=>b.onclick=e=>{e.preventDefault();openInfo(Number(b.dataset.open))});app.querySelectorAll('[data-library-kind]').forEach(b=>b.onclick=()=>{libraryKind=b.dataset.libraryKind;st='all';genre='all';score='all';progress='all';fav=false;render()});app.querySelectorAll('[data-release-kind]').forEach(b=>b.onclick=()=>{releaseKind=b.dataset.releaseKind;render()});app.querySelectorAll('[data-media-open]').forEach(b=>b.onclick=()=>window.OneBaseScreenLibrary?.openItem?.(b.dataset.mediaType||b.dataset.mediaOpen,b.dataset.mediaId));app.querySelectorAll('[data-release-watch]').forEach(b=>b.onclick=()=>{if(b.dataset.releaseWatchKind==='anime'){window.OneBasePremium?.openEpisodes?.(Number(b.dataset.releaseWatchId));return}window.OneBaseSourceSearchV2?.openFor?.(b.dataset.releaseTitle,{type:'tv',watched:Number(b.dataset.releaseWatched)||0,total:Number(b.dataset.releaseTotal)||0,season:Number(b.dataset.releaseSeason)||0,episode:Number(b.dataset.releaseEpisode)||0,upcoming:true})});
+ app.querySelectorAll('[data-open]').forEach(b=>b.onclick=e=>{e.preventDefault();openInfo(Number(b.dataset.open))});app.querySelectorAll('[data-library-kind]').forEach(b=>b.onclick=()=>{libraryKind=b.dataset.libraryKind;st='all';genre='all';score='all';progress='all';fav=false;render()});app.querySelectorAll('[data-release-kind]').forEach(b=>b.onclick=()=>{releaseKind=b.dataset.releaseKind;render()});app.querySelectorAll('[data-media-open]').forEach(b=>b.onclick=()=>window.OneBaseScreenLibrary?.openItem?.(b.dataset.mediaType||b.dataset.mediaOpen,b.dataset.mediaId));app.querySelectorAll('[data-release-watch]').forEach(b=>b.onclick=()=>{if(b.dataset.releaseWatchKind==='anime'){window.OneBasePremium?.openEpisodes?.(Number(b.dataset.releaseWatchId));return}const item=screenItems().find(x=>String(x.id)===String(b.dataset.releaseWatchId)&&x.type==='tv')||{},detail=releaseDetails.get(String(b.dataset.releaseWatchId))||{},status=String(detail.status||item.tmdbStatus||'').toLowerCase(),next=detail.next_episode_to_air||detail.nextEpisodeToAir||item.next_episode_to_air||item.nextEpisodeToAir,upcoming=['returning series','in production'].includes(status)||Boolean(next?.air_date&&releaseTimestamp(next.air_date)>Date.now());window.OneBaseSourceSearchV2?.openFor?.(b.dataset.releaseTitle,{type:'tv',watched:Number(b.dataset.releaseWatched)||0,total:Number(b.dataset.releaseTotal)||0,season:Number(b.dataset.releaseSeason)||0,episode:Number(b.dataset.releaseEpisode)||0,upcoming})});
  app.querySelectorAll('[data-library-delete]').forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();if(b.dataset.libraryDelete==='anime'){window.OneBasePremium?.removeAnimeFromLibrary?.(Number(b.dataset.libraryId));setTimeout(()=>window.OneBasePages?.refresh?.(),0);return}window.OneBaseScreenLibrary?.removeItem?.(b.dataset.libraryType,b.dataset.libraryId)});
  app.querySelectorAll('[data-epopen]').forEach(b=>b.onclick=()=>window.OneBasePremium?.openEpisodes?.(Number(b.dataset.epopen)));
  app.querySelectorAll('[data-discover-genre]').forEach(b=>b.onclick=()=>{window.__ONEBASE_DISCOVER_GENRE__=b.dataset.discoverGenre;rollDiscovery()});
@@ -889,7 +891,7 @@ function boot(){
  if(booted)return;booted=true;
  const brand=$('.brand h1');if(brand)brand.textContent='ONEBASE 2.0';installPageRuntime();
  try{setup()}catch(e){console.error('[ONEBASE] page setup failed',e)}
- const h=location.hash.slice(1);page=['home','library','episodes','stats','profile','loot'].includes(h)?h:'home';try{history.replaceState({onebasePage:page},'',location.pathname+'#'+page)}catch(_){}render();const syncRoute=p=>{if(!['home','library','episodes','stats','profile','loot'].includes(p))return;if(p!=='loot')window.OneBaseLootV2?.close?.();page=p;render()};addEventListener('popstate',e=>syncRoute(e.state?.onebasePage||location.hash.slice(1)||'home'));addEventListener('hashchange',()=>syncRoute(location.hash.slice(1)||'home'));['animetracker:saved','animetracker:restored','onebase:anime-added','onebase:screen-library-changed'].forEach(ev=>addEventListener(ev,()=>setTimeout(render,0)))
+ const h=location.hash.slice(1);page=['home','library','episodes','stats','profile','loot'].includes(h)?h:'home';try{history.replaceState({onebasePage:page},'',location.pathname+'#'+page)}catch(_){}render();const syncRoute=p=>{if(!['home','library','episodes','stats','profile','loot'].includes(p)||p===page)return;if(p!=='loot')window.OneBaseLootV2?.close?.();page=p;transition(()=>render())};addEventListener('popstate',e=>syncRoute(e.state?.onebasePage||location.hash.slice(1)||'home'));addEventListener('hashchange',()=>syncRoute(location.hash.slice(1)||'home'));['animetracker:saved','animetracker:restored','onebase:anime-added','onebase:screen-library-changed'].forEach(ev=>addEventListener(ev,()=>setTimeout(render,0)))
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else setTimeout(boot,0);
 })();
