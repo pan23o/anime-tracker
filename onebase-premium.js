@@ -645,11 +645,11 @@ function releaseEntries(kind){
   });
  }else{
   screenItems().filter(x=>x.type===(kind==='series'?'tv':'movie')).forEach(x=>{
-   const loaded=releaseDetails.get(String(x.id))||{};
+   const releaseKey=String(x.id),loaded=releaseDetails.get(releaseKey)||{},hasFreshDetail=releaseDetails.has(releaseKey)&&releaseDetails.get(releaseKey)!==null;
    let label=kind==='movies'?'Estreno en cines':'Siguiente episodio',raw='',next=null,seasonNumber=0,watched=0,total=0,watchEpisode=0;
    if(kind==='movies')raw=x.releaseDate||x.release_date||x.premiereDate||'';
    else{
-    next=x.next_episode_to_air||x.nextEpisodeToAir||loaded.next_episode_to_air||loaded.nextEpisodeToAir||null;
+    next=hasFreshDetail?(loaded.next_episode_to_air||loaded.nextEpisodeToAir||null):(x.next_episode_to_air||x.nextEpisodeToAir||null);
     const nextAt=releaseTimestamp(next?.air_date||'');
     const hasFutureEpisode=Boolean(next&&nextAt>now);
     raw=hasFutureEpisode?next.air_date:'';
@@ -669,13 +669,13 @@ function releaseEntries(kind){
     if(hasFutureEpisode)label=(Number(next.season_number)>0?'Temporada '+Number(next.season_number)+' · ':'')+'Estreno episodio '+Number(next.episode_number||watchEpisode);
     else raw=x.first_air_date||x.firstAirDate||x.releaseDate||'';
    }
-   const at=releaseTimestamp(raw),status=String(loaded.status||x.tmdbStatus||'').trim().toLowerCase();
+   const at=releaseTimestamp(raw),status=String((hasFreshDetail?loaded.status:x.tmdbStatus)||'').trim().toLowerCase();
    const terminal=['ended','canceled','cancelled'].includes(status);
    const waiting=x.state==='espera'&&!terminal;
    const airing=kind==='series'&&(status==='returning series'||status==='in production');
-   const following=kind==='series'&&(x.state==='viendo'||watched>0)&&(!total||watched<total);
+   const following=kind==='series'&&x.state==='viendo'&&(!total||watched<total);
    const hasRealUpcoming=at>now;
-   const continuing=kind==='series'&&airing&&(x.state==='viendo'||watched>0);
+   const continuing=kind==='series'&&airing&&x.state==='viendo';
    if(!terminal&&(hasRealUpcoming||waiting||following||continuing)){
     out.push({kind,id:x.id,title:x.title||x.name||'Sin título',cover:x.posterPath?'https://image.tmdb.org/t/p/w500'+x.posterPath:'',state:x.state||'pendiente',at:hasRealUpcoming?at:0,label,date:releaseDateLabel(hasRealUpcoming?at:0),watchEpisode:kind==='series'?watchEpisode:0,watched,total,season:seasonNumber});
    }
@@ -688,11 +688,11 @@ function loadReleaseDetail(item){
  const promise=fetch('/api/onebase-health?service=tmdb&action=detail&type=tv&id='+encodeURIComponent(item.id),{headers:{accept:'application/json'}})
   .then(response=>response.json().then(payload=>response.ok&&payload?.ok?payload.result:null))
   .catch(()=>null)
-  .then(result=>{releaseDetails.set(key,result||{});return result});
+  .then(result=>{releaseDetails.set(key,result||null);return result});
  releaseLookups.set(key,promise);return promise;
 }
 function hydrateReleaseDetails(){
- const candidates=screenItems().filter(x=>{if(x.type!=='tv'||releaseLookups.has(String(x.id)))return false;const active=x.state==='viendo'||x.state==='espera'||Object.values(x.seasonProgress||{}).some(n=>Number(n)>0);const oldOrMissingDate=releaseTimestamp(x.nextEpisodeAirDate)<=Date.now();const needsStatusRefresh=active&&(!x.tmdbStatus||oldOrMissingDate);const missingSchedule=!x.next_episode_to_air&&!x.nextEpisodeToAir&&!x.nextEpisodeAirDate&&!(releaseTimestamp(x.first_air_date||x.firstAirDate)>Date.now());return needsStatusRefresh||missingSchedule});
+ const candidates=screenItems().filter(x=>x.type==='tv'&&!releaseLookups.has(String(x.id)));
  if(!candidates.length)return;
  (async()=>{
   for(let i=0;i<candidates.length;i+=4)await Promise.all(candidates.slice(i,i+4).map(loadReleaseDetail));
