@@ -570,3 +570,8 @@
 @media(max-width:620px){.onebase-loot-v2 .obc-choice-button{aspect-ratio:1/.96}.onebase-loot-v2 .obc-choice-chest{transform:translate(-50%,-50%) scale(.78)}}
 
 .lv2-source-note{margin:-8px 0 14px;padding:10px 12px;border:1px solid #30343a;border-radius:9px;background:#101216;color:#aeb4bf;font-size:10px;line-height:1.45}
+
+/* Cofres sin el marco oscuro alrededor de cada uno. */
+.onebase-loot-v2 .obc-choice-button,.onebase-loot-v2 .obc-choice.opened .obc-choice-button,.onebase-loot-v2 .obc-choice.selected:not(.opened) .obc-choice-button{background:transparent;border-color:transparent;box-shadow:none}
+.onebase-loot-v2 .obc-choice-button:hover:not(:disabled){background:radial-gradient(ellipse at center,rgba(231,185,99,.13),transparent 68%);border-color:transparent;box-shadow:none}
+.onebase-loot-v2 .obc-choice-button:focus-visible{outline:2px solid #f2ca78;outline-offset:3px}

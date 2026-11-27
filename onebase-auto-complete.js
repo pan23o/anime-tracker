@@ -28,7 +28,7 @@
     for (const item of list) {
       if (!item || !String(item.anime || '').trim()) continue;
 
-      const total = Number(item.total);
+      const total = Math.max(0, ...[item.total, item.knownTotal, item.plannedEpisodes, item.airedEpisodes].map(value => Number(value) || 0));
       const watched = Number(item.watched);
 
       // A completion can only be inferred when the maximum episode count is known.
@@ -38,11 +38,6 @@
         || Number(item.nextAiringAt) * 1000 > Date.now()
         || item.state === 'espera';
       if (airing) continue;
-
-      if (item.watched !== String(total)) {
-        item.watched = String(total);
-        changed = true;
-      }
 
       if (item.state !== COMPLETED) {
         item.state = COMPLETED;

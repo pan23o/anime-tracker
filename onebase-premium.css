@@ -952,3 +952,6 @@ body[data-theme] .ob-section-card>header{
  .onebase-sidebar nav button{min-width:0}
  .onebase-sidebar nav button i{font-size:15px}
 }
+
+/* Mostrar todas las tarjetas juntas, sin una espera por posición. */
+.ob-anime-card{animation-delay:0ms}
