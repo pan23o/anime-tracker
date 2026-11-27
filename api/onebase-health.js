@@ -19,7 +19,9 @@ async function tmdb(req, res) {
     if (action === 'search') {
       const query = String(req.query?.q || '').trim();
       if (query.length < 2 || query.length > 100) return json(res, 400, { ok: false, error: 'Escribe entre 2 y 100 caracteres para buscar.' });
-      url = new URL(`${API}/search/multi`);
+      const type = String(req.query?.type || 'all');
+      if (!['all', 'movie', 'tv'].includes(type)) return json(res, 400, { ok: false, error: 'Tipo de contenido no válido.' });
+      url = new URL(`${API}/search/${type === 'all' ? 'multi' : type}`);
       url.searchParams.set('query', query);
       url.searchParams.set('language', 'es-ES');
       url.searchParams.set('include_adult', 'false');
@@ -49,7 +51,8 @@ async function tmdb(req, res) {
     if (action === 'detail') return json(res, 200, { ok: true, result: payload }, cache);
     if (action === 'trending') return json(res, 200, { ok: true, type: String(req.query?.type || ''), results: (Array.isArray(payload?.results) ? payload.results : []).map(x => ({ ...x, media_type: String(req.query?.type || '') })) }, cache);
 
-    const results = (Array.isArray(payload?.results) ? payload.results : []).filter(x => ['movie', 'tv'].includes(x?.media_type));
+    const type = String(req.query?.type || 'all');
+    const results = (Array.isArray(payload?.results) ? payload.results : []).map(x => type === 'all' ? x : { ...x, media_type: type }).filter(x => ['movie', 'tv'].includes(x?.media_type));
     return json(res, 200, { ok: true, page: payload?.page || 1, totalPages: Math.min(Number(payload?.total_pages) || 1, 5), results }, cache);
   } catch (error) {
     console.error('[ONEBASE] TMDB request failed:', error);
