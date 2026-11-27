@@ -264,11 +264,13 @@ function opening(i){
   document.body.style.overflow='hidden';document.documentElement.style.overflow='hidden';
   const q=s=>el.querySelector(s),chest=q('.obc-chest'),lid=q('.obc-lid'),box=q('.obc-box'),light=q('.obc-light'),card=q('.obc-card'),panel=q('.obc-panel'),caption=q('.obc-caption');
   let runId=0,animations=[];
-  const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+  // Give each normal opening phase time to breathe; keep the accessible fade brief.
+  const pace=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches?1:2.1;
+  const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms*pace));
   const move=async(node,frames,duration,id)=>{
     if(runId!==id||!el.isConnected)return false;
     // Explicit inline frames avoid global CSS animation/transition collisions.
-    const anim=node.animate(frames,{duration,easing:'cubic-bezier(.22,1,.36,1)',fill:'forwards'});
+    const anim=node.animate(frames,{duration:duration*pace,easing:'cubic-bezier(.45,0,.2,1)',fill:'forwards'});
     animations.push(anim);
     try{await anim.finished}catch(_){return false}
     if(runId!==id||!el.isConnected)return false;

@@ -12,8 +12,8 @@ body{
 }
 body:after{display:none!important}
 body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;background:linear-gradient(180deg,rgba(255,210,26,.018),transparent 30%,rgba(255,210,26,.012));}
-header{position:relative;padding-top:30px;padding-bottom:22px}
-header:after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,210,26,.32),transparent);opacity:.7}
+body>header{position:relative;padding-top:30px;padding-bottom:22px}
+body>header:after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,210,26,.32),transparent);opacity:.7}
 .brand h1{font-size:clamp(34px,4vw,52px);letter-spacing:-3px;background:linear-gradient(110deg,#fff 0%,#fff 55%,var(--ob-gold) 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
 .brand .tag{color:#8a8a8a;letter-spacing:2px}
 .controls .btn,.controls .select{border-color:var(--ob-border);background:rgba(16,16,16,.8);backdrop-filter:blur(12px)}
@@ -70,7 +70,7 @@ header:after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;bac
   .row{grid-template-columns:minmax(220px,1fr) 130px 130px}
 }
 @media(max-width:620px){
-  header{align-items:flex-start;flex-direction:column}
+  body>header{align-items:flex-start;flex-direction:column}
   .controls{justify-content:flex-start}
   .dashboard{grid-template-columns:1fr 1fr}
   .row{grid-template-columns:minmax(180px,1fr) 95px}

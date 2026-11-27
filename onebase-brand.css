@@ -22,14 +22,14 @@
 /* ---------------------------------------------------------------
    BRAND — solid gold wordmark, no clipped gradient rectangle.
    --------------------------------------------------------------- */
-header{
+body>header{
   position:relative;
   isolation:isolate;
   padding-top:34px!important;
   padding-bottom:26px!important;
   animation:obReveal .55s cubic-bezier(.2,.8,.2,1) both;
 }
-header::before{display:none!important}
+body>header::before{display:none!important}
 
 .brand{
   position:relative;

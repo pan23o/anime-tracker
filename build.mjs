@@ -27,16 +27,16 @@ const indexPath = path.join(out, 'index.html');
 let html = fs.readFileSync(indexPath, 'utf8');
 
 html = html.replace(/\s*<link[^>]+rel=["'](?:shortcut )?icon["'][^>]*>/gi, '');
-html = html.replace(/<title>\s*AnimeTracker\s*<\/title>/i, '<title>ONEBASE 2.0</title>');
+html = html.replace(/<title>\s*AnimeTracker\s*<\/title>/i, '<title>ONEBASE</title>');
 
 const headAssets = `
 <script>window.__ONEBASE_LIBRARY_READY__=false;</script>
 <script src="/onebase-safe-boot.js?v=2"></script>
 <link rel="stylesheet" href="/onebase-loot-v2.css?v=25">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=13">
-<link rel="stylesheet" href="/onebase-brand.css?v=12">
-<link rel="stylesheet" href="/onebase-experience-v1.css?v=3">
-<link rel="stylesheet" href="/onebase-beast.css?v=1">
+<link rel="stylesheet" href="/onebase-brand.css?v=13">
+<link rel="stylesheet" href="/onebase-experience-v1.css?v=4">
+<link rel="stylesheet" href="/onebase-beast.css?v=2">
 <script src="/onebase-brand.js?v=12" defer></script>
 <script src="/onebase-status-effects.js?v=3" defer></script>`;
 
@@ -63,8 +63,8 @@ const runtimeScripts = [
   ['onebase-source-search-v2.js', 'v=21'],
   ['onebase-anilist-search.js', 'v=9'],
   ['onebase-anime-add-cleanup.js', 'v=2'],
-  ['onebase-premium.js', 'v=72'],
-  ['onebase-loot-v2.js', 'v=34'],
+  ['onebase-premium.js', 'v=73'],
+  ['onebase-loot-v2.js', 'v=35'],
   ['onebase-integrations.js', 'v=2'],
   ['onebase-beast.js', 'v=1'],
   ['onebase-screen-library.js', 'v=21']
