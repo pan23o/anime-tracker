@@ -400,11 +400,14 @@ function ensurePublicSection(){
   sec.querySelector('[data-public-copy]').onclick=copyPublicLink;
   sec.querySelector('[data-public-open]').onclick=openPublicLink;
 }
+function ownsProfile(id){try{return JSON.parse(localStorage.getItem('anime_tracker_persistence_v2')||'{}').owner==='account:'+id}catch(_){return false}}
+window.addEventListener('onebase:account-scope-changed',()=>{clearTimeout(publicTimer);publicState=loadLocalPublic();void loadPublicSettings()});
 async function loadPublicSettings(){
-  const user=await currentUser();if(!user){updatePublicLink();return}
+  const user=await currentUser();if(!user||!ownsProfile(user.id)){updatePublicLink();return}
   const c=supabaseClient();if(!c)return;
   try{
     const r=await c.from('profiles').select('public_enabled,bio').eq('id',user.id).maybeSingle();
+    if(!ownsProfile(user.id))return;
     if(!r.error&&r.data){publicState={enabled:Boolean(r.data.public_enabled),bio:String(r.data.bio||'').slice(0,280)};saveLocalPublic()}
   }catch(_){}
   const toggle=$('#onebasePublicEnabled'),bio=$('#onebasePublicBio');if(toggle)toggle.checked=publicState.enabled;if(bio)bio.value=publicState.bio;updatePublicLink();
@@ -415,11 +418,11 @@ async function updatePublicLink(){
   el.textContent=user&&publicState.enabled?publicUrl(user.id):(user?'Activa el perfil público para generar un enlace.':'Inicia sesión para generar tu enlace.');
 }
 async function savePublicSettings(){
-  const user=await currentUser();if(!user){$('#onebasePublicStatus').textContent='Inicia sesión primero.';return}
+  const user=await currentUser();if(!user||!ownsProfile(user.id)||window.__ONEBASE_LIBRARY_READY__===false){$('#onebasePublicStatus').textContent='Inicia sesión primero.';return}
   publicState.enabled=Boolean($('#onebasePublicEnabled')?.checked);publicState.bio=String($('#onebasePublicBio')?.value||'').slice(0,280);saveLocalPublic();
   const c=supabaseClient();if(!c)return;
   const p=profileLocal(),snapshot=buildPublicSnapshot();
-  const payload={id:user.id,username:String(p.name||'Usuario').slice(0,32),avatar_data:String(p.avatar||''),public_enabled:publicState.enabled,bio:publicState.bio,public_stats:snapshot};
+  const payload={id:user.id,username:String(p.name||'Usuario').slice(0,32),avatar_data:window.OneBaseSecurity.avatarUrl(p.avatar),public_enabled:publicState.enabled,bio:publicState.bio,public_stats:snapshot};
   try{const r=await c.from('profiles').upsert(payload,{onConflict:'id'});if(r.error)throw r.error;$('#onebasePublicStatus').textContent=publicState.enabled?'✓ Perfil público actualizado.':'✓ Perfil público oculto.';updatePublicLink()}catch(e){$('#onebasePublicStatus').textContent='No se pudo guardar: '+(e?.message||'error')}}
 function buildPublicSnapshot(){
   const s=stats(),screen=window.OneBaseScreenLibrary?.items?.()||[];
@@ -438,8 +441,8 @@ function buildPublicSnapshot(){
 async function syncPublicSnapshot(){
   if(!publicState.enabled)return;
   clearTimeout(publicTimer);publicTimer=setTimeout(async()=>{
-    const user=await currentUser();if(!user)return;const c=supabaseClient();if(!c)return;
-    try{const p=profileLocal();const r=await c.from('profiles').update({username:String(p.name||'Usuario').slice(0,32),avatar_data:String(p.avatar||''),public_stats:buildPublicSnapshot(),bio:publicState.bio,public_enabled:true,updated_at:new Date().toISOString()}).eq('id',user.id);if(r.error)throw r.error}catch(e){console.warn('[ONEBASE] public profile sync failed',e)}
+    const user=await currentUser();if(!user||!publicState.enabled||!ownsProfile(user.id)||window.__ONEBASE_LIBRARY_READY__===false)return;const c=supabaseClient();if(!c)return;
+    try{const p=profileLocal();const r=await c.from('profiles').update({username:String(p.name||'Usuario').slice(0,32),avatar_data:window.OneBaseSecurity.avatarUrl(p.avatar),public_stats:buildPublicSnapshot(),bio:publicState.bio,public_enabled:true,updated_at:new Date().toISOString()}).eq('id',user.id);if(r.error)throw r.error}catch(e){console.warn('[ONEBASE] public profile sync failed',e)}
   },900);
 }
 async function copyPublicLink(){
@@ -465,7 +468,7 @@ function bindEvents(){
 }
 function boot(){
   if(booted)return;booted=true;
-  const link=document.createElement('link');link.rel='stylesheet';link.href='/onebase-premium.css?v=26';document.head.appendChild(link);
+  const link=document.createElement('link');link.rel='stylesheet';link.href='/onebase-premium.css?v=27';document.head.appendChild(link);
   ensureHealthButton();ensureHealth();ensureEpisodeModal();ensurePublicSection();wrapRender();bindEvents();refresh();void loadPublicSettings();void syncPublicSnapshot();
   window.OneBasePremium={refresh,openHealth,openEpisodes,openInfo:openInfoIndex,runHealth,publicUrl,profileBio(){return publicState.bio},saveProfileBio(value){publicState.bio=String(value||'').slice(0,280);saveLocalPublic();void syncPublicSnapshot();window.dispatchEvent(new CustomEvent('onebase:profile-bio-changed'));return publicState.bio},removeAnimeFromLibrary(index){const row=document.querySelector('.row[data-index="'+Number(index)+'"]'),button=row?.querySelector('.clearAnime');if(!button)return false;button.click();return true}};
 }
@@ -821,7 +824,7 @@ function statistics(){
  return shell('ESTADÍSTICAS','Tu actividad completa','Anime, películas y series forman parte de tus números.', '<div class="ob-stat-grid ob-stat-grid-large">'+card('Contenido total',fmt(s.total),'en la biblioteca')+card('Anime',fmt(s.a.length),'colección')+card('Películas',fmt(s.movies.length),'colección')+card('Series',fmt(s.series.length),'colección')+card('Completados',fmt(s.completed),'todos los formatos')+card('Favoritos',fmt(s.favorites),'todos los formatos')+card('Episodios',fmt(s.w),'anime vistos')+card('Episodios de series',fmt(s.seriesWatched),'vistos')+card('Progreso series',s.seriesTotal?Math.round(s.seriesWatched/s.seriesTotal*100)+'%':'—','episodios')+card('Tiempo',s.h>=24?(s.h/24).toFixed(1)+' días':s.h.toFixed(1)+' h','anime estimado')+card('Progreso anime',s.t?Math.round(s.w/s.t*100)+'%':'—','episodios')+card('Nota media',avg?avg.toFixed(1)+'/10':'—',rated.length+' valoraciones')+'</div><div class="ob-stats-columns"><section class="ob-section-card"><header><h3>Géneros · todos los formatos</h3></header><div class="ob-bars">'+(gs.length?gs.map(x=>'<div class="ob-bar-row"><span>'+esc(x[0])+'</span><div><i style="width:'+Math.round(x[1]/gs[0][1]*100)+'%"></i></div><b>'+x[1]+'</b></div>').join(''):'<div class="ob-empty">Sin géneros todavía.</div>')+'</div></section><section class="ob-section-card"><header><h3>Distribución de notas</h3></header><div class="ob-rating-bars">'+ratings.map((n,i)=>'<div><span>'+i+'</span><i style="height:'+Math.max(4,n*18)+'px"></i><b>'+n+'</b></div>').join('')+'</div></section></div>');
 }
 function profilePage(){
- const p=prof(),s=stats(),progression=window.OneBaseExperience?.progression?.()||{level:1,xp:0,progress:0},name=String(p.name||'Usuario'),av=String(p.avatar||''),ini=name.trim().split(/\\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase()||'OB',bio=String(window.OneBasePremium?.profileBio?.()||'');
+ const p=prof(),s=stats(),progression=window.OneBaseExperience?.progression?.()||{level:1,xp:0,progress:0},name=String(p.name||'Usuario'),av=window.OneBaseSecurity.avatarUrl(p.avatar),ini=name.trim().split(/\\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase()||'OB',bio=String(window.OneBasePremium?.profileBio?.()||'');
  const movies=s.movies,series=s.series,animeCompleted=s.a.filter(x=>Number(x.total)>0&&Number(x.watched)>=Number(x.total)).length,movieCompleted=movies.filter(x=>String(x.state||'').toLowerCase()==='terminado').length,seriesCompleted=series.filter(x=>String(x.state||'').toLowerCase()==='terminado').length;
  const animeRated=s.r.length,movieRated=movies.filter(x=>x.score!==''&&Number.isFinite(Number(x.score))).length,seriesRated=series.filter(x=>x.score!==''&&Number.isFinite(Number(x.score))).length,avg=s.allRated.length?s.allRated.reduce((n,x)=>n+Number(typeof x==='object'?x.score:x),0)/s.allRated.length:0;
  const favoriteRows=[...items().filter(o=>o.x.favorite).map(o=>({kind:'anime',key:o.i,title:o.x.anime,cover:o.x.cover||o.x.coverImage||''})),...screenItems().filter(x=>x.favorite).map(x=>({kind:x.type==='tv'?'series':'movie',key:x.id,title:x.title||x.name||'',cover:x.posterPath?'https://image.tmdb.org/t/p/w500'+x.posterPath:''}))].slice(0,12);

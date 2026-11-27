@@ -1,57 +1,9 @@
 const {URL}=require('node:url');
-const dns=require('node:dns').promises;
-const net=require('node:net');
-
-
-function isPrivateIPv4(address){
-  const parts=String(address||'').split('.').map(Number);if(parts.length!==4||parts.some(n=>!Number.isInteger(n)||n<0||n>255))return true;
-  const[a,b,c]=parts;
-  return a===0||a===10||a===127||a>=224||(a===100&&b>=64&&b<=127)||(a===169&&b===254)||(a===172&&b>=16&&b<=31)||(a===192&&(b===0||b===168))||(a===192&&b===0&&c===2)||(a===192&&b===88&&c===99)||(a===198&&(b===18||b===19||b===51&&c===100))||(a===203&&b===0&&c===113);
-}
-function isPrivateHostname(hostname){
-  const h=String(hostname||'').toLowerCase().replace(/^\[|\]$/g,'').split('%')[0];
-  if(h==='localhost'||h.endsWith('.localhost')||h.endsWith('.local'))return true;
-  const ip=net.isIP(h);
-  if(ip===4)return isPrivateIPv4(h);
-  if(ip===6){
-    if(h==='::'||h==='::1'||h.startsWith('::ffff:')||h.startsWith('::ffff:0:'))return true;
-    if(h.startsWith('fc')||h.startsWith('fd')||/^fe[89ab]/.test(h)||h.startsWith('ff'))return true;
-    if(!/^[23]/.test(h)||h.startsWith('2001:db8:')||h.startsWith('2001:10:')||h.startsWith('2001:20:')||h.startsWith('2001:0:')||h.startsWith('2002:'))return true;
-    return false;
-  }
-  return false;
-}
-async function assertSafeUrl(value){
-  const u=new URL(value);
-  if(!/^https?:$/.test(u.protocol)||u.username||u.password)throw new Error('Solo se permiten URLs HTTP o HTTPS sin credenciales.');
-  const hostname=u.hostname.replace(/^\[|\]$/g,'');
-  if(isPrivateHostname(hostname))throw new Error('No se puede acceder a una dirección privada.');
-  if(net.isIP(hostname))return u;
-  try{
-    const records=await dns.lookup(hostname,{all:true,verbatim:true});
-    if(!records.length||records.some(record=>isPrivateHostname(record.address)))throw new Error('La dirección apunta a una red privada.');
-  }catch(error){
-    if(/privad/i.test(String(error?.message||'')))throw error;
-    throw new Error('No se pudo validar el destino externo.');
-  }
-  return u;
-}
-async function safeFetch(value,options={}){
-  let current=await assertSafeUrl(value);
-  for(let hop=0;hop<=5;hop++){
-    const response=await fetch(current,{...options,redirect:'manual'});
-    if(![301,302,303,307,308].includes(response.status))return{response,url:current};
-    const location=response.headers.get('location');
-    try{await response.body?.cancel()}catch(_){}
-    if(!location)throw new Error('Redirección sin destino.');
-    if(hop===5)throw new Error('Demasiadas redirecciones.');
-    current=await assertSafeUrl(new URL(location,current).toString());
-  }
-  throw new Error('No se pudo validar la redirección.');
-}
+const {safeFetch,resolveTarget}=require('../lib/safe-fetch.cjs');
+async function assertSafeUrl(value){return (await resolveTarget(value)).url}
 function attr(tag,name){const re=new RegExp(`${name}\\s*=\\s*["']([^"']*)["']`,'i');return(tag.match(re)||[])[1]||''}
 function decodeHtml(v){return String(v||'').replace(/&amp;/gi,'&').replace(/&quot;/gi,'"').replace(/&#39;|&#x27;/gi,"'").replace(/&lt;/gi,'<').replace(/&gt;/gi,'>')}
-function absolute(base,v){try{return new URL(decodeHtml(v),base).toString()}catch(_){return null}}
+function absolute(base,v){try{const u=new URL(decodeHtml(v),base);return ['http:','https:'].includes(u.protocol)&&!u.username&&!u.password?u.toString():null}catch(_){return null}}
 function strip(html){return String(html||'').replace(/<script[\s\S]*?<\/script>/gi,' ').replace(/<style[\s\S]*?<\/style>/gi,' ')}
 function normalizeText(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim()}
 function slugify(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/&/g,' and ').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'')}

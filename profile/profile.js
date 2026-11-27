@@ -21,7 +21,7 @@ function showError(title,body){
 function initials(name){return String(name||'Usuario').trim().split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase()||'OB'}
 function render(p){
   const st=p.public_stats&&typeof p.public_stats==='object'?p.public_stats:{};
-  const name=String(p.username||'Usuario'),avatar=String(p.avatar_data||''),bio=String(p.bio||'');
+  const name=String(p.username||'Usuario'),avatar=window.OneBaseSecurity.avatarUrl(p.avatar_data),bio=String(p.bio||'');
   const stats=[
     ['contentCount','En biblioteca'],['animeCount','Anime'],['movieCount','Películas'],['seriesCount','Series'],
     ['animeCompleted','Anime vistos'],['movieCompleted','Películas vistas'],['seriesCompleted','Series terminadas'],['ratingsCount','Valoraciones'],['chapters','Episodios de anime'],['seriesEpisodes','Episodios de series'],['favorites','Favoritos'],['active','En curso']
