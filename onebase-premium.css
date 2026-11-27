@@ -725,8 +725,9 @@ body[data-theme] #onebase-loot-cinema .obc-stage,
 body[data-theme] #onebase-loot-cinema .obc-panel,
 body[data-theme] #onebase-loot-cinema .obc-content{
   color:var(--text)!important;
-  background:var(--panel)!important;
-  border-color:var(--line)!important;
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
 }
 body[data-theme] #onebase-loot-cinema .obc-replay,
 body[data-theme] #onebase-loot-cinema .obc-caption,

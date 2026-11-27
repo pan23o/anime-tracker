@@ -1,6 +1,6 @@
 /* ONEBASE safe boot / recovery guard. */
 (function(){'use strict';
-const KEY='onebase-recovery-attempt',BACKUP='/backup/';
+const KEY='onebase-recovery-attempt',BACKUP='/';
 let startup=true,errorSeen=false,redirected=false;
 function recover(reason){if(redirected||!startup)return;redirected=true;try{if(sessionStorage.getItem(KEY)==='1')return;sessionStorage.setItem(KEY,'1')}catch(_){}window.location.replace(BACKUP+'?recovery=1&reason='+encodeURIComponent(String(reason||'startup-error').slice(0,120)))}
 function note(reason){errorSeen=true;console.error('[ONEBASE recovery guard]',reason||'startup-error')}

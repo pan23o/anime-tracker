@@ -195,7 +195,7 @@ function shell(){
     (roll?.some(x=>x.provider==='kitsu')?'<div class="lv2-source-note" role="status">Fuente alternativa activa: recomendaciones del catálogo Kitsu.</div>':'')+
     (busy?'<div class="lv2-empty"><div><div class="lv2-spinner"></div><b>Construyendo tu tirada</b><small>Comparando tus gustos y evitando títulos de tiradas anteriores…</small></div></div>':cases)+
     (!roll&&!busy&&!loadError?'<div class="lv2-empty"><div><b>Preparando tus cajas…</b><small>La primera tirada se genera automáticamente.</small></div></div>':'')+
-    (selected!==null&&roll?.[selected]&&!resolved.has(selected)?detail(roll[selected],selected):'')+
+    ''+
     (selected!==null?'<div class="lv2-reroll-note">Las otras cajas quedan selladas en esta tirada. Puedes generar otra tirada cuando quieras.</div>':'')+
   '</div>';
 }
@@ -215,7 +215,7 @@ function opening(i){
   if(!document.getElementById('onebase-loot-cinema-style')){
     const style=document.createElement('style');style.id='onebase-loot-cinema-style';
     style.textContent=`
-#onebase-loot-cinema{position:fixed!important;inset:0!important;z-index:2147483640!important;display:block!important;overflow:auto!important;overscroll-behavior:contain;background:radial-gradient(ellipse at 50% 38%,#1c1d21 0%,#111216 48%,#08090b 100%)!important;backdrop-filter:blur(8px)!important;-webkit-backdrop-filter:blur(8px)!important;color:#f8f2e9!important;font-family:system-ui,-apple-system,sans-serif!important;pointer-events:auto!important}
+#onebase-loot-cinema{position:fixed!important;inset:0!important;z-index:2147483640!important;display:block!important;overflow:auto!important;overscroll-behavior:contain;background:radial-gradient(ellipse at 50% 38%,rgba(30,26,20,.78),rgba(5,6,9,.88))!important;backdrop-filter:blur(8px)!important;-webkit-backdrop-filter:blur(8px)!important;color:#f8f2e9!important;font-family:system-ui,-apple-system,sans-serif!important;pointer-events:auto!important}
 #onebase-loot-cinema *{box-sizing:border-box}
 #onebase-loot-cinema .obc-stage{position:relative;width:min(1320px,97vw);height:min(800px,96dvh);min-height:560px;margin:auto;isolation:isolate}
 #onebase-loot-cinema .obc-top{position:absolute;top:5%;left:0;right:0;text-align:center;color:#f0c66d;font-size:12px;font-weight:900;letter-spacing:3px}
@@ -230,7 +230,7 @@ function opening(i){
 #onebase-loot-cinema .obc-card{position:absolute;left:50%;top:46%;width:270px;height:390px;transform:translate(-50%,110px) scale(.5);opacity:0;border:3px solid #f6cb75;border-radius:14px;overflow:hidden;background:#322618;box-shadow:0 0 38px #efbd5c88,0 22px 65px #000d;z-index:10}
 #onebase-loot-cinema .obc-card img{width:100%;height:100%;object-fit:cover;display:block}
 #onebase-loot-cinema .obc-panel{position:absolute;left:calc(50% - 190px);top:46%;width:min(850px,64vw);transform:translateY(-50%);opacity:0;clip-path:inset(0 100% 0 0);z-index:8;pointer-events:none}
-#onebase-loot-cinema .obc-content{padding:36px 42px 36px 42px;min-height:400px;border:0;border-radius:19px;background:linear-gradient(90deg,rgba(31,29,26,.7),rgba(24,23,23,.18),transparent);box-shadow:none}
+#onebase-loot-cinema .obc-content{padding:36px 42px 36px 42px;min-height:400px;border:0;border-radius:19px;background:transparent;box-shadow:none}
 #onebase-loot-cinema .obc-tag{color:#edc478;font-size:10px;font-weight:900;letter-spacing:1px}
 #onebase-loot-cinema .obc-title{font-size:clamp(25px,2.35vw,38px);line-height:1.16;margin:14px 0 12px;font-weight:950;color:#fff}
 #onebase-loot-cinema .obc-meta{font-size:14px;color:#d1b991}
@@ -277,7 +277,8 @@ function opening(i){
     anim.cancel();
     return true;
   };
-  const finish=()=>{el.classList.add('obc-done');caption.textContent='¡Has descubierto '+mediaLabel(x).toLocaleLowerCase('es-ES')+'!';};
+  panel.inert=true;panel.setAttribute('aria-hidden','true');
+  const finish=()=>{panel.inert=false;panel.removeAttribute('aria-hidden');el.classList.add('obc-done');caption.textContent='¡Has descubierto '+mediaLabel(x).toLocaleLowerCase('es-ES')+'!';};
   const closeOpening=(refresh=true)=>{
     ++runId;animations.forEach(animation=>animation.cancel());animations=[];
     window.removeEventListener('keydown',onKeyDown);el.remove();
@@ -289,13 +290,23 @@ function opening(i){
   activeCinematicClose=closeOpening;window.addEventListener('keydown',onKeyDown);
   const reset=()=>{
     animations.forEach(a=>a.cancel());animations=[];
-    el.classList.remove('obc-done');
-    chest.style.transform='translateX(-50%)';lid.style.transform='none';box.style.opacity='1';light.style.opacity='0';light.style.transform='translateX(-50%) scale(.35)';
+    el.classList.remove('obc-done');panel.inert=true;panel.setAttribute('aria-hidden','true');
+    chest.style.transform='translateX(-50%)';lid.style.opacity='1';lid.style.transform='none';box.style.opacity='1';light.style.opacity='0';light.style.transform='translateX(-50%) scale(.35)';
     card.style.opacity='0';card.style.transform='translate(-50%,110px) scale(.5)';
     panel.style.opacity='0';panel.style.clipPath='inset(0 100% 0 0)';
   };
   async function play(){
     const id=++runId;reset();
+    if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches){
+      caption.textContent='Abriendo la caja…';
+      if(!await move(lid,[{opacity:1,transform:'none'},{opacity:0,transform:'translateY(-24px) rotateX(-55deg)'}],350,id))return;
+      box.style.opacity='0';card.style.transform=innerWidth<1100?'translate(-50%,-50%) scale(.85)':'translate(calc(-50% - 365px),-50%)';
+      if(!await move(card,[{opacity:0},{opacity:1}],450,id))return;
+      caption.textContent='Revelando tu descubrimiento…';panel.style.clipPath='inset(0 0 0 0)';
+      if(!await move(panel,[{opacity:0},{opacity:1}],450,id))return;
+      finish();return;
+    }
+    lid.style.opacity='1';
     caption.textContent='La caja está lista…';await wait(180);
     if(runId!==id)return;
     for(let n=1;n<=2;n++){
@@ -344,10 +355,12 @@ function opening(i){
     panel.style.clipPath='inset(0 0 0 0)';
     finish();
   };
-  if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)skipButton.click();else void play();
+  // This function is reached only through an explicit click on a closed box.
+  void play();
 }
 
-function choose(i){
+function choose(i,event){
+  if(!event?.isTrusted)return;
   if(busy||selected!==null||!roll?.[i]||resolved.has(i))return;
   selected=i;
   // Do not render the underlying detail panel here. The result must remain
@@ -405,13 +418,14 @@ function bind(){
   app.querySelectorAll('[data-lv2-mode]').forEach(b=>b.onclick=async()=>{const next=b.dataset.lv2Mode;if(next===mode)return;mode=next;localStorage.setItem(KEY,mode);await reroll()});
   app.querySelectorAll('[data-lv2-type]').forEach(b=>b.onclick=async()=>{const next=b.dataset.lv2Type;if(!CONTENT_TYPES[next]||next===contentType)return;contentType=next;localStorage.setItem(TYPE_KEY,contentType);await reroll()});
   app.querySelectorAll('[data-lv2-reroll]').forEach(b=>b.onclick=()=>void reroll());
-  app.querySelectorAll('[data-lv2-open]').forEach(b=>b.onclick=()=>choose(Number(b.dataset.lv2Open)));
+  app.querySelectorAll('[data-lv2-open]').forEach(b=>b.onclick=event=>choose(Number(b.dataset.lv2Open),event));
   app.querySelectorAll('[data-lv2-save]').forEach(b=>b.onclick=()=>save(Number(b.dataset.lv2Save)));
   app.querySelectorAll('[data-lv2-skip]').forEach(b=>b.onclick=()=>skip(Number(b.dataset.lv2Skip)));
 }
 function renderLoot(){
   const app=$('#onebasePageApp');if(!app)return;
   if(!inLoot())return;
+  if(activeCinematicClose)return;
   app.innerHTML=shell();bind();
   if(!roll&&!busy&&!loadError)void reroll();
 }
@@ -429,6 +443,6 @@ addEventListener('popstate',()=>setTimeout(enter,60));
 addEventListener('hashchange',()=>setTimeout(enter,60));
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',enter,{once:true});else setTimeout(enter,150);
 
-window.OneBaseLootV2={reroll,render:renderLoot,reload(){const saved=localStorage.getItem(KEY)||'personalized';mode=MODES[saved]?saved:'personalized';const savedType=localStorage.getItem(TYPE_KEY)||'all';contentType=CONTENT_TYPES[savedType]?savedType:'all';sessionSeen.clear();if(inLoot()){roll=null;loadError='';void reroll()}},close(){activeCinematicClose?.()}};
+window.OneBaseLootV2={reroll,render:renderLoot,reload(){const saved=localStorage.getItem(KEY)||'personalized';mode=MODES[saved]?saved:'personalized';const savedType=localStorage.getItem(TYPE_KEY)||'all';contentType=CONTENT_TYPES[savedType]?savedType:'all';sessionSeen.clear();roll=null;selected=null;resolved.clear();loadError='';if(inLoot()){void reroll()}},close(){activeCinematicClose?.()}};
 window.dispatchEvent(new CustomEvent('onebase:loot-v2-ready'));
 })();

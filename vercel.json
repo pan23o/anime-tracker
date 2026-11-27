@@ -58,7 +58,7 @@
         },
         {
           "key": "Referrer-Policy",
-          "value": "strict-origin-when-cross-origin"
+          "value": "no-referrer"
         },
         {
           "key": "Permissions-Policy",
@@ -69,6 +69,18 @@
           "value": "frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
         }
       ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/backup",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/backup/:path*",
+      "destination": "/",
+      "permanent": false
     }
   ]
 }

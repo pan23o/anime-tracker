@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { protectHtml } from './security-policy.mjs';
 
 const root = process.cwd();
 const out = path.join(root, 'dist');
@@ -7,7 +8,7 @@ fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(out, { recursive: true });
 
 const files = [
-  'index.html','profile-enhancer.css','profile-enhancer.js','onebase-brand.css','onebase-brand.js',
+  'onebase-security.js','onebase-account-scope.js','index.html','profile-enhancer.css','profile-enhancer.js','onebase-brand.css','onebase-brand.js',
   'onebase-experience-v1.css','onebase-experience-v1.js',
   'onebase-status-effects.js','onebase-eye-v2.js','onebase-auto-complete.js','onebase-instant-save.js',
   'onebase-episode-notifications.js','onebase-notification-setup.js','onebase-settings.js',
@@ -30,7 +31,7 @@ html = html.replace(/<title>\s*AnimeTracker\s*<\/title>/i, '<title>ONEBASE 2.0</
 
 const headAssets = `
 <script>window.__ONEBASE_LIBRARY_READY__=false;</script>
-<script src="/onebase-safe-boot.js?v=1"></script>
+<script src="/onebase-safe-boot.js?v=2"></script>
 <link rel="stylesheet" href="/onebase-loot-v2.css?v=25">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=13">
 <link rel="stylesheet" href="/onebase-brand.css?v=12">
@@ -45,7 +46,7 @@ html = html.replace(/([\s\S]*)(<\/script>\s*<button class="cloud-account-btn")/i
 html = html.replace(/<\/head>/i, `${headAssets}\n</head>`);
 
 // Force the browser to fetch the corrected persistence engine.
-html = html.replace(/profile-enhancer\.js(?:\?[^"']*)?/g, 'profile-enhancer.js?v=13');
+html = html.replace(/profile-enhancer\.js(?:\?[^"']*)?/g, 'profile-enhancer.js?v=14');
 
 const runtimeScripts = [
   ['onebase-auto-complete.js', 'v=6'],
@@ -62,9 +63,9 @@ const runtimeScripts = [
   ['onebase-source-search-v2.js', 'v=21'],
   ['onebase-anilist-search.js', 'v=9'],
   ['onebase-anime-add-cleanup.js', 'v=2'],
-  ['onebase-premium.js', 'v=71'],
-  ['onebase-loot-v2.js', 'v=33'],
-  ['onebase-integrations.js', 'v=1'],
+  ['onebase-premium.js', 'v=72'],
+  ['onebase-loot-v2.js', 'v=34'],
+  ['onebase-integrations.js', 'v=2'],
   ['onebase-beast.js', 'v=1'],
   ['onebase-screen-library.js', 'v=21']
 ];
@@ -86,11 +87,12 @@ for (const [script, version] of runtimeScripts) {
 // This directory is never regenerated from the current source tree.
 const profileSource = path.join(root, 'profile');
 const profileOut = path.join(out, 'profile');
-if (fs.existsSync(profileSource)) fs.cpSync(profileSource, profileOut, { recursive: true });
+if (fs.existsSync(profileSource)) {
+  fs.cpSync(profileSource, profileOut, { recursive: true });
+  const profileIndex=path.join(profileOut,'index.html');
+  fs.writeFileSync(profileIndex,protectHtml(fs.readFileSync(profileIndex,'utf8')));
+}
 
-const backupSource = path.join(root, 'backup');
-const backupOut = path.join(out, 'backup');
-if (fs.existsSync(backupSource)) fs.cpSync(backupSource, backupOut, { recursive: true });
-
-fs.writeFileSync(indexPath, html);
+// Legacy snapshots remain in the repository, but are not served with account access.
+fs.writeFileSync(indexPath, protectHtml(html));
 console.log(`Built current OneBase to ${out}`);

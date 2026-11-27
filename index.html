@@ -489,8 +489,10 @@ body[data-theme] .achievements::-webkit-scrollbar-track{background:var(--soft)}
 .cloud-auth-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}.cloud-auth-actions button{flex:1;min-width:120px;padding:11px;border-radius:10px;border:1px solid var(--line2);background:var(--accent);color:var(--bg);font-weight:800;cursor:pointer}.cloud-auth-actions .secondary{background:var(--panel2);color:var(--text)}
 .cloud-status{font-size:12px;color:var(--muted);margin-top:12px}.cloud-user-menu{position:fixed;top:70px;right:18px;z-index:9991;display:none;background:var(--panel);border:1px solid var(--line2);border-radius:14px;padding:10px;min-width:220px;box-shadow:var(--shadow)}.cloud-user-menu.show{display:block}.cloud-user-menu button{width:100%;padding:10px;text-align:left;background:transparent;color:var(--text);border:0;cursor:pointer;border-radius:8px}.cloud-user-menu button:hover{background:var(--soft)}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2" integrity="sha384-7i/4BYWz4Mn+lJfg2HWfEPfZQ7tmFKF3CTSKlXBpxWjNlLjcg+T6smpHG4gLmU1u" crossorigin="anonymous"></script>
 <link rel="stylesheet" href="./profile-enhancer.css">
+<script src="/onebase-security.js?v=1"></script>
+<script src="/onebase-account-scope.js?v=1"></script>
 </head>
 <body>
 
@@ -1677,7 +1679,7 @@ function openInfoModal(i){
 
   const cover=document.getElementById("infoCoverWrap");
   cover.innerHTML=item.cover
-    ? `<img class="cover" src="${escapeHtml(item.cover)}" alt="Portada de ${escapeHtml(item.anime)}" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'coverPlaceholder',textContent:'Sin portada'}))">`
+    ? `<img class="cover" src="${escapeHtml(item.cover)}" alt="Portada de ${escapeHtml(item.anime)}">`
     : `<div class="coverPlaceholder">Sin portada</div>`;
 
   document.getElementById("infoGenres").innerHTML=(item.genres||[]).map(g=>`<span class="genre">${escapeHtml(g)}</span>`).join("");
@@ -2005,7 +2007,7 @@ function renderBackupList(){
   }));
 }
 function profileInitials(){return (profile.name||"AT").trim().split(/\s+/).slice(0,2).map(x=>x[0]||"").join("").toUpperCase()||"AT";}
-function setAvatar(el){if(!el)return;el.innerHTML=profile.avatar?`<img src="${profile.avatar}" alt="Foto de perfil">`:escapeHtml(profileInitials());}
+function setAvatar(el){window.OneBaseSecurity.renderAvatar(el,profile.avatar,profileInitials());}
 function refreshProfileUI(){
   setAvatar(document.getElementById("profileAvatar"));
   setAvatar(document.getElementById("profileTopBtn"));
@@ -2047,9 +2049,9 @@ document.getElementById("profileSave").addEventListener("click",()=>{
 });
 document.getElementById("profilePhotoBtn").addEventListener("click",()=>document.getElementById("profilePhotoInput").click());
 document.getElementById("profilePhotoInput").addEventListener("change",async e=>{
-  const f=e.target.files?.[0];if(!f)return;if(!f.type.startsWith("image/")){toast("Selecciona una imagen válida");return;}
+  const f=e.target.files?.[0];if(!f)return;if(!/^image\/(?:png|jpeg|gif|webp|avif)$/i.test(f.type)){toast("Selecciona una imagen válida");return;}
   if(f.size>2*1024*1024){toast("La imagen es demasiado grande (máximo 2 MB)");return;}
-  const reader=new FileReader();reader.onload=()=>{profile={...profile,avatar:String(reader.result||"")};storeJson(PROFILE_STORAGE,profile);refreshProfileUI();toast("Foto de perfil actualizada");};reader.readAsDataURL(f);
+  const reader=new FileReader();reader.onload=()=>{profile={...profile,avatar:window.OneBaseSecurity.avatarUrl(reader.result)};storeJson(PROFILE_STORAGE,profile);refreshProfileUI();toast("Foto de perfil actualizada");};reader.readAsDataURL(f);
 });
 document.getElementById("profilePhotoRemove").addEventListener("click",()=>{profile={...profile,avatar:""};storeJson(PROFILE_STORAGE,profile);refreshProfileUI();toast("Foto de perfil eliminada");});
 ["settingConfirmDelete","settingAutoBackup","settingAchievementPopups"].forEach(id=>document.getElementById(id).addEventListener("change",()=>{
