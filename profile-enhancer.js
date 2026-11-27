@@ -27,7 +27,7 @@
   });
   if (client) window.OneBaseSupabase = client;
 
-  if (!client) { console.error('[AnimeTracker] Supabase client unavailable'); return; }
+  if (!client) { console.error('[AnimeTracker] Supabase client unavailable'); window.__ONEBASE_LIBRARY_READY__ = true; window.dispatchEvent(new Event('onebase:library-ready')); return; }
 
   let user = null, bootPromise = null, saveTimer = null, profileTimer = null;
   let saving = false, queuedSave = false, bound = false, lastFingerprint = '';
@@ -497,7 +497,7 @@
   }
 
   client.auth.onAuthStateChange((event, session) => { user = session?.user || null; updateAccountUi(); if (event === 'SIGNED_IN' && user) void bootstrap(); if (event === 'SIGNED_OUT') { user = null; updateAccountUi(); } });
-  async function boot() { ensureMeta(); injectUiStyle(); bindUi(); await handleAuthCallback(); updateAccountUi(); await bootstrap(); observe(); updateAccountUi(); }
+  async function boot() { try { ensureMeta(); injectUiStyle(); bindUi(); await handleAuthCallback(); updateAccountUi(); await bootstrap(); observe(); updateAccountUi(); } finally { if (window.__ONEBASE_LIBRARY_READY__ === false) { window.__ONEBASE_LIBRARY_READY__ = true; window.dispatchEvent(new Event('onebase:library-ready')); } } }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => void boot(), { once: true }); else void boot();
   window.AnimeTrackerCloud = { sync: () => user ? saveLibraryNow() : openAccountUi(), saveProgress: saveProgressNow, refresh: updateAccountUi, open: openAccountUi, logout };
 })();

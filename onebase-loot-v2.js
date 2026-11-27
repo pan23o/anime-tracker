@@ -215,7 +215,7 @@ function opening(i){
   if(!document.getElementById('onebase-loot-cinema-style')){
     const style=document.createElement('style');style.id='onebase-loot-cinema-style';
     style.textContent=`
-#onebase-loot-cinema{position:fixed!important;inset:0!important;z-index:2147483640!important;display:block!important;overflow:auto!important;overscroll-behavior:contain;background:radial-gradient(ellipse at 50% 38%,#1c1d21 0%,#111216 48%,#08090b 100%)!important;backdrop-filter:blur(8px)!important;-webkit-backdrop-filter:blur(8px)!important;color:#f8f2e9!important;font-family:system-ui,-apple-system,sans-serif!important;pointer-events:none!important}
+#onebase-loot-cinema{position:fixed!important;inset:0!important;z-index:2147483640!important;display:block!important;overflow:auto!important;overscroll-behavior:contain;background:radial-gradient(ellipse at 50% 38%,#1c1d21 0%,#111216 48%,#08090b 100%)!important;backdrop-filter:blur(8px)!important;-webkit-backdrop-filter:blur(8px)!important;color:#f8f2e9!important;font-family:system-ui,-apple-system,sans-serif!important;pointer-events:auto!important}
 #onebase-loot-cinema *{box-sizing:border-box}
 #onebase-loot-cinema .obc-stage{position:relative;width:min(1320px,97vw);height:min(800px,96dvh);min-height:560px;margin:auto;isolation:isolate}
 #onebase-loot-cinema .obc-top{position:absolute;top:5%;left:0;right:0;text-align:center;color:#f0c66d;font-size:12px;font-weight:900;letter-spacing:3px}
@@ -230,7 +230,7 @@ function opening(i){
 #onebase-loot-cinema .obc-card{position:absolute;left:50%;top:46%;width:270px;height:390px;transform:translate(-50%,110px) scale(.5);opacity:0;border:3px solid #f6cb75;border-radius:14px;overflow:hidden;background:#322618;box-shadow:0 0 38px #efbd5c88,0 22px 65px #000d;z-index:10}
 #onebase-loot-cinema .obc-card img{width:100%;height:100%;object-fit:cover;display:block}
 #onebase-loot-cinema .obc-panel{position:absolute;left:calc(50% - 190px);top:46%;width:min(850px,64vw);transform:translateY(-50%);opacity:0;clip-path:inset(0 100% 0 0);z-index:8;pointer-events:none}
-#onebase-loot-cinema .obc-content{padding:36px 42px 36px 42px;min-height:400px;border:1px solid #5b513d;border-radius:19px;background:linear-gradient(130deg,#202126,#111216 70%);box-shadow:0 20px 65px #000b}
+#onebase-loot-cinema .obc-content{padding:36px 42px 36px 42px;min-height:400px;border:0;border-radius:19px;background:linear-gradient(90deg,rgba(31,29,26,.7),rgba(24,23,23,.18),transparent);box-shadow:none}
 #onebase-loot-cinema .obc-tag{color:#edc478;font-size:10px;font-weight:900;letter-spacing:1px}
 #onebase-loot-cinema .obc-title{font-size:clamp(25px,2.35vw,38px);line-height:1.16;margin:14px 0 12px;font-weight:950;color:#fff}
 #onebase-loot-cinema .obc-meta{font-size:14px;color:#d1b991}
@@ -296,26 +296,26 @@ function opening(i){
   };
   async function play(){
     const id=++runId;reset();
-    caption.textContent='La caja está lista…';await wait(700);
+    caption.textContent='La caja está lista…';await wait(180);
     if(runId!==id)return;
-    for(let n=1;n<=3;n++){
-      caption.textContent='Temblor '+n+' de 3';
+    for(let n=1;n<=2;n++){
+      caption.textContent='Preparando tu sorpresa…';
       const d=10+n*6;
-      if(!await move(chest,[{transform:'translateX(-50%) rotate(0deg)'},{transform:'translateX(calc(-50% - '+d+'px)) rotate(-'+(n+1)+'deg)',offset:.25},{transform:'translateX(calc(-50% + '+d+'px)) rotate('+(n+1)+'deg)',offset:.6},{transform:'translateX(-50%) rotate(0deg)'}],650,id))return;
-      await wait(250);if(runId!==id)return;
+      if(!await move(chest,[{transform:'translateX(-50%) rotate(0deg)'},{transform:'translateX(calc(-50% - '+d+'px)) rotate(-'+(n+1)+'deg)',offset:.25},{transform:'translateX(calc(-50% + '+d+'px)) rotate('+(n+1)+'deg)',offset:.6},{transform:'translateX(-50%) rotate(0deg)'}],300,id))return;
+      await wait(40);if(runId!==id)return;
     }
     caption.textContent='¡La caja se abre!';
-    if(!(await Promise.all([move(lid,[{transform:'none'},{transform:'translateY(-105px) rotateX(-80deg)'}],950,id),move(light,[{opacity:0,transform:'translateX(-50%) scale(.35)'},{opacity:1,transform:'translateX(-50%) scale(1.3)'}],950,id)])).every(Boolean))return;
+    if(!(await Promise.all([move(lid,[{transform:'none'},{transform:'translateY(-105px) rotateX(-80deg)'}],550,id),move(light,[{opacity:0,transform:'translateX(-50%) scale(.35)'},{opacity:1,transform:'translateX(-50%) scale(1.3)'}],550,id)])).every(Boolean))return;
     caption.textContent='La caja desciende…';
-    if(!await move(chest,[{transform:'translateX(-50%)'},{transform:'translateX(-50%) translateY(265px) scale(.65)'}],1050,id))return;
+    if(!await move(chest,[{transform:'translateX(-50%)'},{transform:'translateX(-50%) translateY(265px) scale(.65)'}],420,id))return;
     caption.textContent='La tarjeta aparece…';
-    if(!(await Promise.all([move(card,[{opacity:0,transform:'translate(-50%,110px) scale(.5)'},{opacity:1,transform:'translate(-50%,-50%) scale(1)'}],1250,id),move(box,[{opacity:1},{opacity:0}],1050,id)])).every(Boolean))return;
-    await wait(650);if(runId!==id)return;
+    if(!(await Promise.all([move(card,[{opacity:0,transform:'translate(-50%,110px) scale(.5)'},{opacity:1,transform:'translate(-50%,-50%) scale(1)'}],650,id),move(box,[{opacity:1},{opacity:0}],550,id)])).every(Boolean))return;
+    await wait(100);if(runId!==id)return;
     caption.textContent='La tarjeta se desplaza…';
     const mobile=innerWidth<1100;
-    if(!await move(card,[{transform:'translate(-50%,-50%)'},{transform:mobile?'translate(-50%,-50%) scale(.85)':'translate(calc(-50% - 365px),-50%)'}],1500,id))return;
+    if(!await move(card,[{transform:'translate(-50%,-50%)'},{transform:mobile?'translate(-50%,-50%) scale(.85)':'translate(calc(-50% - 365px),-50%)'}],650,id))return;
     caption.textContent='Abriendo los detalles…';
-    if(!await move(panel,[{opacity:0,clipPath:'inset(0 100% 0 0)'},{opacity:1,clipPath:'inset(0 0 0 0)'}],1700,id))return;
+    if(!await move(panel,[{opacity:0,clipPath:'inset(0 100% 0 0)'},{opacity:1,clipPath:'inset(0 0 0 0)'}],500,id))return;
     finish();
   }
   q('.obc-replay').onclick=()=>void play();
@@ -344,7 +344,7 @@ function opening(i){
     panel.style.clipPath='inset(0 0 0 0)';
     finish();
   };
-  void play();
+  if(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)skipButton.click();else void play();
 }
 
 function choose(i){

@@ -257,6 +257,9 @@ function refreshEpisodeMetadata(item,force=false){
       const next=media.nextAiringEpisode||null,status=String(media.status||'').toUpperCase();
       item.anilistId=Number(media.id);item.aniId=Number(media.id);item.apiStatus=status;item.anilistStatus=status;
       item.nextAiringAt=Number(next?.airingAt)||0;item.nextAiringEpisode=Number(next?.episode)||0;
+      const previousTotal=episodeCount(item),total=Math.max(previousTotal,Number(media.episodes)||0);
+      if(total>0){item.total=String(total);item.knownTotal=String(total)}
+      if(total>previousTotal&&item.state==='terminado'&&Number(item.watched)<total)item.state='viendo';
       try{window.save?.({skipBackup:true})}catch(_){}
       if($('#onebaseEpisodesModal')?.classList.contains('open')&&getData()[episodeIndex]===item)renderEpisodes();
       return true;
@@ -282,7 +285,7 @@ function animeHasPendingRelease(item,now=Date.now()){
   return Number(item?.nextAiringAt)>now/1000||status==='RELEASING'||status==='NOT_YET_RELEASED'||status==='HIATUS';
 }
 function episodeCount(item){
-  return Math.max(0,Number(item?.total)||Number(item?.knownTotal)||Number(item?.episodes)||Number(item?.plannedEpisodes)||Number(item?.airedEpisodes)||Number(item?.episodeCount)||Number(item?.chapters)||0);
+  return Math.max(0,...[item?.total,item?.knownTotal,item?.episodes,item?.plannedEpisodes,item?.airedEpisodes,item?.episodeCount,item?.chapters,item?.watched].map(x=>Number(x)||0));
 }
 function episodeDisplayCount(item){
   const watched=Math.max(0,Number(item?.watched)||0),next=Math.max(0,Number(item?.nextAiringEpisode)||0);
@@ -462,7 +465,7 @@ function bindEvents(){
 }
 function boot(){
   if(booted)return;booted=true;
-  const link=document.createElement('link');link.rel='stylesheet';link.href='/onebase-premium.css?v=25';document.head.appendChild(link);
+  const link=document.createElement('link');link.rel='stylesheet';link.href='/onebase-premium.css?v=26';document.head.appendChild(link);
   ensureHealthButton();ensureHealth();ensureEpisodeModal();ensurePublicSection();wrapRender();bindEvents();refresh();void loadPublicSettings();void syncPublicSnapshot();
   window.OneBasePremium={refresh,openHealth,openEpisodes,openInfo:openInfoIndex,runHealth,publicUrl,profileBio(){return publicState.bio},saveProfileBio(value){publicState.bio=String(value||'').slice(0,280);saveLocalPublic();void syncPublicSnapshot();window.dispatchEvent(new CustomEvent('onebase:profile-bio-changed'));return publicState.bio},removeAnimeFromLibrary(index){const row=document.querySelector('.row[data-index="'+Number(index)+'"]'),button=row?.querySelector('.clearAnime');if(!button)return false;button.click();return true}};
 }
@@ -543,6 +546,7 @@ function discoveryPool(){
  });
 }
 function home(){
+ if(window.__ONEBASE_LIBRARY_READY__===false)return shell('ONEBASE 2.0','Tu biblioteca','Preparando tu colección…','<div class="ob-empty-large" role="status" aria-live="polite">Cargando anime, películas y series…</div>');
  const s=stats(),all=unifiedItems(),pending=all.filter(o=>o.state==='pendiente'||o.state==='viendo'||o.state==='pausa').sort((a,b)=>(Number(b.x.updatedAt)||Number(b.x.addedAt)||0)-(Number(a.x.updatedAt)||Number(a.x.addedAt)||0)).slice(0,8);
  const rows=pending.map(o=>'<button type="button" class="ob-continue-row" '+(o.kind==='anime'?'data-epopen="'+o.key+'"':'data-media-open="'+o.kind+'" data-media-type="'+(o.kind==='series'?'tv':'movie')+'" data-media-id="'+o.key+'"')+'><span class="ob-continue-row-cover">'+(o.cover?'<img loading="lazy" src="'+esc(o.cover)+'" alt="">':'')+'</span><span><strong>'+esc(o.title)+'</strong><small>'+esc(({viendo:'En curso',pendiente:'Por empezar',pausa:'En pausa'}[o.state]||'En tu biblioteca'))+((o.kind==='anime'||o.kind==='series')&&o.total?' · '+o.watched+' / '+o.total+' episodios':' · '+({anime:'Anime',movie:'Película',series:'Serie'}[o.kind]))+'</small></span><span class="ob-continue-row-progress">›</span></button>').join('');
  const continueBlock=pending.length?'<section class="ob-continue-page"><div class="ob-continue-heading"><div><span>ONEBASE 2.0 · TU COLECCIÓN</span><h3>Continuar y descubrir</h3></div><button type="button" data-go="library">Biblioteca completa <b>→</b></button></div><div class="ob-continue-queue">'+rows+'</div></section>':'<section class="ob-continue-empty"><span>◈</span><h3>Tu biblioteca empieza aquí</h3><p>Añade anime, películas o series y sigue todo desde OneBase.</p><button type="button" class="ob-page-add" data-ob-add>＋ Añadir a biblioteca</button></section>';

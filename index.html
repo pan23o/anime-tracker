@@ -847,6 +847,8 @@ function normalizeItem(raw){
   item.knownTotal=String(item.knownTotal||"");
   item.airedEpisodes=String(item.airedEpisodes||"");
   item.plannedEpisodes=String(item.plannedEpisodes||"");
+  const retainedEpisodes=Math.max(0,...[item.total,item.knownTotal,item.airedEpisodes,item.plannedEpisodes,item.watched].map(value=>Number(value)||0));
+  if(retainedEpisodes>0)item.total=String(retainedEpisodes);
   item.newEpisodes=Number(item.newEpisodes)||0;
   const airing=String(item.apiStatus||"").toUpperCase()==="RELEASING" || Number(item.nextAiringAt)*1000>Date.now();
   if(!airing && Number(item.total)>0 && Number(item.watched)>=Number(item.total)) item.state="terminado";
@@ -1208,7 +1210,6 @@ function createRow(i){
     ensure(i);
     let v=watched.value.trim()===""?"":Number(watched.value);
     if(v!=="" && (!Number.isFinite(v)||v<0)) v=0;
-    if(v!=="" && data[i].total) v=Math.min(v,Number(data[i].total));
     data[i].watched=v===""?"":String(v);
     if(v!==""){
       addActivity();
@@ -1268,10 +1269,7 @@ function updateRow(row,item,options={}){
   row.querySelector(".durationSub").textContent=item.durationMin?`${item.durationMin} min / capítulo`:"";
 
   const input=row.querySelector(".watched");
-  if(total){
-    input.max=total;
-    if(watched>total){item.watched=String(total);input.value=item.watched}
-  }else input.removeAttribute("max");
+  input.removeAttribute("max");
 
   const eye=row.querySelector(".eye");
   eye.style.setProperty("--open",progress);
@@ -1465,6 +1463,7 @@ function applyAniData(item,m,{first=false}={}){
   item.nextAiringAt=Number(m.nextAiringEpisode?.airingAt||0)||"";
   item.nextAiringEpisode=Number(m.nextAiringEpisode?.episode||0)||"";
 
+  const previousTotal=Math.max(0,Number(item.total)||0,Number(item.knownTotal)||0,Number(item.plannedEpisodes)||0,Number(item.airedEpisodes)||0,Number(item.watched)||0);
   const planned=Number(m.episodes)||0;
   const nextEpisode=Number(m.nextAiringEpisode?.episode)||0;
   const scheduled=m.status==="RELEASING" && nextEpisode>0;
@@ -1502,8 +1501,10 @@ function applyAniData(item,m,{first=false}={}){
     item.plannedEpisodes=String(planned);
     item.total=String(planned);
   }
+  const retainedTotal=Math.max(previousTotal,Number(item.total)||0);
+  if(retainedTotal>0){item.total=String(retainedTotal);item.knownTotal=String(Math.max(retainedTotal,Number(item.knownTotal)||0))}
+  if(retainedTotal>previousTotal && item.state==="terminado" && Number(item.watched)<retainedTotal) item.state="viendo";
   if(first && !item.state) item.state=(item.total && Number(item.watched)>=Number(item.total))?"terminado":"viendo";
-  if(item.total && Number(item.watched)>Number(item.total)) item.watched=String(item.total);
 }
 
 async function lookupWikipedia(q,signal=null){
@@ -1586,13 +1587,12 @@ async function lookupAnime(query,i,row,token,signal=null){
     // Wikipedia es la fuente prioritaria para el total mostrado.
     if(wiki?.total){
       const oldKnown=Number(data[i].knownTotal)||0;
-      const wikiTotal=Number(wiki.total);
+      const wikiTotal=Math.max(Number(wiki.total)||0,Number(data[i].total)||0,Number(data[i].knownTotal)||0,Number(data[i].watched)||0);
       data[i].total=String(wikiTotal);
       data[i].knownTotal=String(wikiTotal);
       data[i].plannedEpisodes=String(wikiTotal);
       data[i].airedEpisodes=String(wikiTotal);
       data[i].newEpisodes=first ? 0 : Math.max(0,wikiTotal-oldKnown);
-      if(Number(data[i].watched)>wikiTotal) data[i].watched=String(wikiTotal);
     }
     if(!m && !wiki?.total) throw new Error("NOT_FOUND");
 
@@ -1630,13 +1630,12 @@ async function refreshItem(i){
       const wiki=await lookupWikipedia(item.anime.trim());
       if(wiki?.total){
         const oldKnown=Number(item.knownTotal)||0;
-        const wikiTotal=Number(wiki.total);
+        const wikiTotal=Math.max(Number(wiki.total)||0,Number(item.total)||0,Number(item.knownTotal)||0,Number(item.watched)||0);
         item.total=String(wikiTotal);
         item.knownTotal=String(wikiTotal);
         item.plannedEpisodes=String(wikiTotal);
         item.airedEpisodes=String(wikiTotal);
         item.newEpisodes=Math.max(0,wikiTotal-oldKnown);
-        if(Number(item.watched)>wikiTotal) item.watched=String(wikiTotal);
       }
     }catch(e){ console.warn("Wikipedia no respondió al actualizar",item.anime,e); }
     item.updatedAt=Date.now();
@@ -1719,7 +1718,7 @@ document.getElementById("infoSave").addEventListener("click",()=>{
   item.score=score===""?"":Math.max(0,Math.min(10,Number(score)));
   item.favorite=document.getElementById("infoFav").checked;
   item.updatedAt=Date.now();
-  if(item.state==="terminado"&&item.total)item.watched=String(item.total);
+  if(item.state==="terminado"&&item.total)item.watched=String(Math.max(Number(item.watched)||0,Number(item.total)||0));
   const airing=String(item.apiStatus||"").toUpperCase()==="RELEASING" || Number(item.nextAiringAt)*1000>Date.now();
   if(!airing && Number(item.total)>0&&Number(item.watched)>=Number(item.total))item.state="terminado";
   save();render();closeInfoModal();toast("Ficha guardada");
