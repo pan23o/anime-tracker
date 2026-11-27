@@ -51,7 +51,7 @@ html::before{
   border:1px solid rgba(225,183,92,.045);
 }
 
-header{
+body>header{
   animation:obxHeaderIn .7s cubic-bezier(.2,.8,.2,1) both!important;
 }
 main{

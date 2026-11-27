@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AnimeTracker</title>
+<title>ONEBASE</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;600&display=swap');
 
@@ -41,7 +41,7 @@ body:after{
 button,input,select{font:inherit}
 button{cursor:pointer}
 
-header{
+body>header{
   width:min(1240px,92vw);margin:0 auto;padding:42px 0 24px;
   display:flex;align-items:flex-end;justify-content:space-between;gap:24px;
 }
@@ -444,7 +444,7 @@ body[data-theme] .achievements::-webkit-scrollbar-track{background:var(--soft)}
   .row{grid-template-columns:minmax(270px,1fr) 190px 170px}
 }
 @media(max-width:750px){
-  header{padding:32px 0 22px;align-items:flex-start}
+  body>header{padding:32px 0 22px;align-items:flex-start}
   .brand h1{font-size:34px}
   .controls{max-width:230px}
   main{width:94vw}
@@ -464,7 +464,7 @@ body[data-theme] .achievements::-webkit-scrollbar-track{background:var(--soft)}
   .achievements{grid-template-columns:repeat(2,1fr)}
 }
 @media(max-width:520px){
-  header{display:block}
+  body>header{display:block}
   .controls{margin-top:15px;justify-content:flex-start;max-width:none}
   .dashboard{gap:7px}
   .stat{padding:11px}
@@ -498,8 +498,7 @@ body[data-theme] .achievements::-webkit-scrollbar-track{background:var(--soft)}
 
 <header>
   <div class="brand">
-    <h1>AnimeTracker</h1>
-    <div class="tag">tu lista · tu progreso · tu biblioteca</div>
+    <h1>ONEBASE</h1>
   </div>
   <div class="controls">
     <button class="btn profileTopBtn" id="profileTopBtn" title="Perfil y cuenta local" aria-label="Abrir perfil"><span id="profileTopInitials">AT</span></button>
